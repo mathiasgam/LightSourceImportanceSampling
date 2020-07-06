@@ -2,6 +2,8 @@
 
 #include "Window.h"
 
+#include "CL/cl.h"
+
 namespace LSIS {
 
 	class Application {
@@ -13,6 +15,8 @@ namespace LSIS {
 
 	private:
 		Window window;
+
+
 	};
 
 }

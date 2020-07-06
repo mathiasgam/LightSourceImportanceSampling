@@ -3,6 +3,7 @@
 #include <cinttypes>
 
 #include "glm.hpp"
+#include "CL/cl.h"
 
 namespace {
 	class GLFWwindow;
@@ -24,10 +25,10 @@ namespace LSIS {
 		const char* GetTitle() const;
 		const glm::uvec2 GetSize() const;
 
-		void PollEvents();
+		void Clear();
+		void Update();
 		bool IsCloseRequested() const;
 
-		void Clear();
 		void SwapBuffers();
 
 		void Show();
@@ -37,7 +38,7 @@ namespace LSIS {
 
 		void Init();
 		void InitGLFW();
-		void InitGLAD();
+		void InitGL();
 
 	private:
 		const char* m_title;
@@ -45,6 +46,11 @@ namespace LSIS {
 
 		GLFWwindow* m_native_window = nullptr;
 
+		unsigned int m_program;
+		unsigned int m_vbo;
+		unsigned int m_vao;
+
+		
 	};
 
 

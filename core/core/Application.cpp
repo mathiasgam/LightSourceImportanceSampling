@@ -24,7 +24,7 @@ namespace LSIS {
 
 			// Do rendering
 
-			window.PollEvents();
+			window.Update();
 			window.SwapBuffers();
 		}
 	}
