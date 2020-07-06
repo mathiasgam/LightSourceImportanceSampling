@@ -41,12 +41,12 @@ workspace "LSIS"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
---IncludeDir["glfw"] = "PathTracer/vendor/glfw/include"
---IncludeDir["glad"] = "PathTracer/vendor/glad/include"
---IncludeDir["glm"] = "PathTracer/vendor/glm/glm"
+IncludeDir["glfw"] = "vendor/glfw/include"
+IncludeDir["glad"] = "vendor/glad/include"
+IncludeDir["glm"] = "vendor/glm/glm"
 
---include "vendor/glfw"
---include "vendor/glad"
+include "vendor/glfw"
+include "vendor/glad"
 
 project "Core"
 	kind "ConsoleApp"
@@ -71,21 +71,21 @@ project "Core"
 
 	links
 	{
-		--"glfw",
-		--"glad",
-		--"opengl32",
+		"glfw",
+		"glad",
+		"opengl32",
 		"opencl",
 	}
 
 	includedirs {
 		"$(OPENCL_PATH)/include",
-		--"%{IncludeDir.glfw}",
-		--"%{IncludeDir.glad}",
-		--"%{IncludeDir.glm}",
+		"%{IncludeDir.glfw}",
+		"%{IncludeDir.glad}",
+		"%{IncludeDir.glm}",
 		"%{prj.name}/src"
 	}
 
 	defines {
-		--"GLFW_INCLUDE_NONE"
+		"GLFW_INCLUDE_NONE"
 	}
 

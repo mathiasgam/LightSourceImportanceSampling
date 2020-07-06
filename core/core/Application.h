@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Window.h"
+
 namespace LSIS {
 
 	class Application {
@@ -10,7 +12,7 @@ namespace LSIS {
 		void run();
 
 	private:
-
+		Window window;
 	};
 
 }
