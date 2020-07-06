@@ -7,27 +7,9 @@
 
 namespace LSIS {
 
-	const char* vertexShaderSource =
-		"#version 330 core\n"
-		"layout (location = 0) in vec3 pos;\n"
-		"layout (location = 1) in vec2 tex;\n"
-		"out vec2 TexCoord;\n"
-		"void main()\n"
-		"{\n"
-		"	TexCoord = tex;\n"
-		"   gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);\n"
-		"}\0";
-
-	const char* fragmentShaderSource =
-		"#version 330 core\n"
-		"out vec4 FragColor;\n"
-		"in vec2 TexCoord;\n"
-		"uniform sampler2D ourTexture;\n"
-		"void main()\n"
-		"{\n"
-		"	//FragColor = texture(ourTexture, TexCoord);\n"
-		"	FragColor = vec4(TexCoord.x, TexCoord.y, 0.0, 1.0); \n"
-		"}\n";
+	const char* vertex_path = "kernels/window.vert";
+	const char* fragment_path = "kernels/window.frag";
+	
 
 	Window::Window()
 		: m_title("dafualt"), m_size(720,512), m_native_window(nullptr)
@@ -78,9 +60,8 @@ namespace LSIS {
 
 	void Window::Update()
 	{
-		glfwPollEvents();
 
-		glUseProgram(m_program);
+		m_shader->Bind();
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	}
@@ -96,17 +77,36 @@ namespace LSIS {
 		return false;
 	}
 
+	void Window::ReloadShaders()
+	{
+		// replace shader with a new version
+		m_shader = Shader::Create(vertex_path, fragment_path);
+		std::cout << "Reloaded Window Shaders\n";
+	}
+
 	void Window::SwapBuffers()
 	{
 		glfwSwapBuffers(m_native_window);
 	}
 
+	void Window::PollEvents()
+	{
+		glfwPollEvents();
+	}
+
+	void Window::WaitForEvent()
+	{
+		glfwWaitEvents();
+	}
+
 	void Window::Show()
 	{
+		glfwShowWindow(m_native_window);
 	}
 
 	void Window::Hide()
 	{
+		glfwHideWindow(m_native_window);
 	}
 
 	void Window::Init()
@@ -134,6 +134,17 @@ namespace LSIS {
 
 		m_native_window = glfwCreateWindow((int)((float)m_size.x * xscale), (int)((float)m_size.y * yscale), m_title, nullptr, nullptr);
 		glfwMakeContextCurrent(m_native_window);
+
+		glfwSetWindowUserPointer(m_native_window, this);
+		
+		glfwSetKeyCallback(m_native_window, [](GLFWwindow* native_window, int key, int scancode, int action, int mods) {
+			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
+
+			if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+				window.ReloadShaders();
+			}
+		});
+
 	}
 
 	void Window::InitGL()
@@ -142,38 +153,7 @@ namespace LSIS {
 		glClearColor(1.0, 0.0, 1.0, 1.0);
 		glViewport(0, 0, m_size[0], m_size[1]);
 
-		int  success;
-		char infoLog[512];
-
-		unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-		glCompileShader(vertexShader);
-		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-
-		unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-		glCompileShader(fragmentShader);
-		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-
-		m_program = glCreateProgram();
-		glAttachShader(m_program, vertexShader);
-		glAttachShader(m_program, fragmentShader);
-		glLinkProgram(m_program);
-
-		glGetProgramiv(m_program, GL_LINK_STATUS, &success);
-		if (!success) {
-			glGetProgramInfoLog(m_program, 512, NULL, infoLog);
-		}
+		m_shader = Shader::Create(vertex_path, fragment_path);
 
 		const float x = 0.5f;
 		float vertices[] = {

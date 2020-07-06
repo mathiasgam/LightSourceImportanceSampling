@@ -1,12 +1,15 @@
 #pragma once
 
 #include <cinttypes>
+#include <memory>
 
 #include "glm.hpp"
 #include "CL/cl.h"
 
+#include "../graphics/Shader.h"
+
 namespace {
-	class GLFWwindow;
+	struct GLFWwindow;
 }
 
 namespace LSIS {
@@ -29,7 +32,11 @@ namespace LSIS {
 		void Update();
 		bool IsCloseRequested() const;
 
+		void ReloadShaders();
+
 		void SwapBuffers();
+		void PollEvents();
+		void WaitForEvent();
 
 		void Show();
 		void Hide();
@@ -46,7 +53,8 @@ namespace LSIS {
 
 		GLFWwindow* m_native_window = nullptr;
 
-		unsigned int m_program;
+		std::unique_ptr<Shader> m_shader;
+
 		unsigned int m_vbo;
 		unsigned int m_vao;
 

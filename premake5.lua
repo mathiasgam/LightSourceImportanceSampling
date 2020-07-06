@@ -62,7 +62,9 @@ project "Core"
 		"%{prj.name}/**.hpp",
 		"%{prj.name}/**.c",
 		"%{prj.name}/**.cpp",
-		"%{prj.name}/**.cl"
+		"%{prj.name}/**.cl",
+		"%{prj.name}/**.vert",
+		"%{prj.name}/**.frag",
 	}
 
 	libdirs {

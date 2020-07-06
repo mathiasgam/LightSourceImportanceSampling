@@ -19,13 +19,19 @@ namespace LSIS {
 	void Application::run()
 	{
 		std::cout << "Running\n";
+
+		//window.ReloadShaders();
+
 		while (!window.IsCloseRequested()) {
 			window.Clear();
 
 			// Do rendering
 
+			std::cout << "Update\n";
+
 			window.Update();
 			window.SwapBuffers();
+			window.WaitForEvent();
 		}
 	}
 
