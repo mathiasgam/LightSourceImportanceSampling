@@ -1,0 +1,24 @@
+
+# ignore everything as a default
+*.*
+
+bin/
+bin-int/
+
+# include git files
+!.git/
+!.gitignore
+!LICENSE
+
+# include setup files
+!premake5.lua
+!*.bat
+
+!**.cl
+!**.h
+!**.c
+!**.hpp
+!**.cpp
+!**.inl
+
+!test/assets/**

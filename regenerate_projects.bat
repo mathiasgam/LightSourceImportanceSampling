@@ -1,0 +1,2 @@
+call clean_projects.bat
+call generate_projects.bat
