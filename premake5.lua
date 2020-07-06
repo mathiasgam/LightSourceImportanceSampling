@@ -86,7 +86,6 @@ project "Core"
 	}
 
 	defines {
-		--"GLFW_INCLUDE_NONE",
-		"LSIS"
+		--"GLFW_INCLUDE_NONE"
 	}
 
