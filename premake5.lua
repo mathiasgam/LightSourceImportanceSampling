@@ -11,7 +11,7 @@ workspace "LSIS"
 
 	filter "system:windows"
         defines {
-		    "CH_PLATFORM_WINDOWS",
+		    "LSIS_PLATFORM_WIN",
 	    }
         
     filter "action:vs*"
