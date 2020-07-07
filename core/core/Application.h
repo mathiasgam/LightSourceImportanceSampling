@@ -2,7 +2,10 @@
 
 #include "Window.h"
 
+#include "glm.hpp"
 #include "CL/cl.h"
+
+#include <iostream>
 
 namespace LSIS {
 
@@ -12,6 +15,8 @@ namespace LSIS {
 		virtual ~Application();
 
 		void run();
+
+	private:
 
 	private:
 		Window window;

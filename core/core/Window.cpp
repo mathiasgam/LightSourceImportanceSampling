@@ -7,12 +7,20 @@
 
 namespace LSIS {
 
+	std::ostream& operator<<(std::ostream& os, glm::uvec2 vec) {
+		return os << "[" << vec.x << "," << vec.y << "]";
+	}
+
+	std::ostream& operator<<(std::ostream& os, glm::vec2 vec) {
+		return os << "[" << vec.x << "," << vec.y << "]";
+	}
+
 	const char* vertex_path = "kernels/window.vert";
 	const char* fragment_path = "kernels/window.frag";
-	
+
 
 	Window::Window()
-		: m_title("dafualt"), m_size(720,512), m_native_window(nullptr)
+		: m_title("dafualt"), m_size(720, 512), m_native_window(nullptr)
 	{
 		Init();
 	}
@@ -43,6 +51,32 @@ namespace LSIS {
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
+	void Window::SetCursorPos(glm::vec2& pos)
+	{
+		cursor_last_pos = pos;
+	}
+
+	void Window::CenterWindow()
+	{
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		int x, y, w, h, size_x, size_y;
+		glfwGetMonitorWorkarea(monitor, &x, &y, &w, &h);
+		glfwGetWindowSize(m_native_window, &size_x, &size_y);
+		glfwSetWindowPos(m_native_window, x + (w - size_x) / 2, y + (h - size_y) / 2);
+	}
+
+	void Window::Maximize()
+	{
+		glfwMaximizeWindow(m_native_window);
+		/*
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		int x, y, w, h;
+		glfwGetMonitorWorkarea(monitor, &x, &y, &w, &h);
+		glfwSetWindowSize(m_native_window, w, h);
+		glfwSetWindowPos(m_native_window, x, y);
+		*/
+	}
+
 	const char* Window::GetTitle() const
 	{
 		return m_title;
@@ -51,6 +85,11 @@ namespace LSIS {
 	const glm::uvec2 Window::GetSize() const
 	{
 		return m_size;
+	}
+
+	const glm::vec2 Window::GetCursorPos() const
+	{
+		return cursor_last_pos;
 	}
 
 	void Window::Clear()
@@ -127,22 +166,67 @@ namespace LSIS {
 		float xscale, yscale;
 		glfwGetMonitorContentScale(monitor, &xscale, &yscale);
 
-		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
-		m_native_window = glfwCreateWindow((int)((float)m_size.x * xscale), (int)((float)m_size.y * yscale), m_title, nullptr, nullptr);
+		glm::uvec2 window_size = { (int)((float)m_size.x * xscale), (int)((float)m_size.y * yscale) };
+
+		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_title, nullptr, nullptr);
 		glfwMakeContextCurrent(m_native_window);
 
+		CenterWindow();
+		glfwShowWindow(m_native_window);
+
 		glfwSetWindowUserPointer(m_native_window, this);
-		
+
+		{
+			double x, y;
+			glfwGetCursorPos(m_native_window, &x, &y);
+			cursor_last_pos = { x,y };
+		}
+
 		glfwSetKeyCallback(m_native_window, [](GLFWwindow* native_window, int key, int scancode, int action, int mods) {
 			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
 
-			if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-				window.ReloadShaders();
+			if (action == GLFW_PRESS) {
+				switch (key)
+				{
+				case GLFW_KEY_SPACE:
+					window.ReloadShaders();
+					break;
+				case GLFW_KEY_C:
+					window.CenterWindow();
+					break;
+				case GLFW_KEY_M:
+					window.Maximize();
+					break;
+				case GLFW_KEY_LEFT_SUPER:
+					std::cout << "Super!!!\n";
+					break;
+				}
 			}
+		});
+
+		glfwSetCursorPosCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
+			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
+
+
+			glm::vec2 pos = { x,y };
+			glm::vec2 diff = pos - window.GetCursorPos();
+
+			std::cout << "Move: " << pos << diff << std::endl;
+
+			if (glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+				int win_x, win_y;
+				glfwGetWindowPos(native_window, &win_x, &win_y);
+				glfwSetWindowPos(native_window, win_x + diff.x, win_y + diff.y);
+				pos -= diff;
+				glfwSetCursorPos(native_window, pos.x, pos.y);
+			}
+
+			window.SetCursorPos(pos);
 		});
 
 	}

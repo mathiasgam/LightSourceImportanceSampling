@@ -24,9 +24,14 @@ namespace LSIS {
 		void SetTitle(const char*);
 		void SetSize(const glm::uvec2& size);
 		void SetClearColor(const glm::vec4& color);
+		void SetCursorPos(glm::vec2& pos);
+
+		void CenterWindow();
+		void Maximize();
 
 		const char* GetTitle() const;
 		const glm::uvec2 GetSize() const;
+		const glm::vec2 GetCursorPos() const;
 
 		void Clear();
 		void Update();
@@ -57,6 +62,8 @@ namespace LSIS {
 
 		unsigned int m_vbo;
 		unsigned int m_vao;
+
+		glm::vec2 cursor_last_pos;
 
 		
 	};

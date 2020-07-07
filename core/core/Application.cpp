@@ -3,8 +3,9 @@
 #include <iostream>
 
 namespace LSIS {
+
 	Application::Application()
-		: window("App", { 720, 512 })
+		: window("LSIS", { 720, 512 })
 	{
 		std::cout << "Created Application\n";
 
@@ -27,12 +28,12 @@ namespace LSIS {
 
 			// Do rendering
 
-			std::cout << "Update\n";
-
 			window.Update();
 			window.SwapBuffers();
 			window.WaitForEvent();
 		}
 	}
+
+	
 
 }
