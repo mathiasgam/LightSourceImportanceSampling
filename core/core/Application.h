@@ -1,11 +1,13 @@
 #pragma once
 
 #include "Window.h"
+#include "scene/Scene.h"
 
 #include "glm.hpp"
 #include "CL/cl.h"
 
 #include <iostream>
+#include <memory>
 
 namespace LSIS {
 
@@ -20,6 +22,8 @@ namespace LSIS {
 
 	private:
 		Window window;
+
+		std::unique_ptr<Scene> m_scene;
 
 
 	};

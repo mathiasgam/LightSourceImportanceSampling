@@ -112,10 +112,11 @@ namespace LSIS {
 
 	void Window::Update()
 	{
-
 		m_shader->Bind();
+		/*
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+		*/
 	}
 
 	bool Window::IsCloseRequested() const

@@ -6,7 +6,7 @@
 #include "glm.hpp"
 #include "CL/cl.h"
 
-#include "../graphics/Shader.h"
+#include "graphics/Shader.h"
 
 namespace {
 	struct GLFWwindow;
@@ -58,7 +58,7 @@ namespace LSIS {
 
 		GLFWwindow* m_native_window = nullptr;
 
-		std::unique_ptr<Shader> m_shader;
+		std::shared_ptr<Shader> m_shader;
 
 		unsigned int m_vbo;
 		unsigned int m_vao;

@@ -84,7 +84,7 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
-		"%{prj.name}/src"
+		"%{prj.name}"
 	}
 
 	defines {
