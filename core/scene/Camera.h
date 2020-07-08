@@ -2,6 +2,8 @@
 
 #include "glm.hpp"
 
+#include "Transform.h"
+
 namespace LSIS {
 
 	class Camera
@@ -11,16 +13,19 @@ namespace LSIS {
 		virtual ~Camera();
 
 		void SetPosition(glm::vec3 position);
-		void SetDirection(glm::vec3 direction);
+		void SetRotation(glm::vec3 direction);
 		void SetResolution(glm::uvec2 resolution);
+		void SetFOV(float fov);
 
 		void LookAt(glm::vec3 position);
 
+		glm::mat4 GetViewProjectionMatrix() const;
+
 	private:
-		glm::vec3 m_position;
-		glm::vec3 m_direction;
+		Transform m_transform;
 
 		glm::uvec2 m_resolution;
+		float m_FOV = 90;
 	};
 
 }

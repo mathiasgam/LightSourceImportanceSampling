@@ -11,21 +11,14 @@
 
 namespace LSIS {
 
-	class Application {
-	public:
-		Application();
-		virtual ~Application();
+	namespace Application {
 
-		void run();
+		void Init();
+		void Run();
 
-	private:
+		void OnKeyPressed(int key);
+		void OnKeuReleased(int key);
 
-	private:
-		Window window;
-
-		std::unique_ptr<Scene> m_scene;
-
-
-	};
+	}
 
 }

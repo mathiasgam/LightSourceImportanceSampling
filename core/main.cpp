@@ -4,9 +4,8 @@
 
 int main(int argc, char** argv) {
 
-	auto app = LSIS::Application();
-
-	app.run();
+	LSIS::Application::Init();
+	LSIS::Application::Run();
 
 	return 0;
 }

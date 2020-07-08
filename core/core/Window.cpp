@@ -232,7 +232,6 @@ namespace LSIS {
 #endif
 			*/
 
-
 			if (action == GLFW_PRESS) {
 				switch (key)
 				{
