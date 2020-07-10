@@ -53,6 +53,7 @@ namespace LSIS {
 	{
 		glBindVertexArray(m_vao);
 		glDrawElements(GL_TRIANGLES, m_faces.size(), GL_UNSIGNED_INT, nullptr);
+		//glDrawElements(GL_LINE_LOOP, m_faces.size(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	std::shared_ptr<Mesh> Mesh::CreateRect(glm::vec2 size)
@@ -81,32 +82,30 @@ namespace LSIS {
 
 		float hs = size / 2.0f;
 
-		vertices.emplace_back(-hs, -hs, -hs);
-		vertices.emplace_back(+hs, -hs, -hs);
-		vertices.emplace_back(+hs, +hs, -hs);
-		vertices.emplace_back(-hs, +hs, -hs);
+		vertices.emplace_back(hs, hs, -hs);
+		vertices.emplace_back(hs, -hs, -hs);
+		vertices.emplace_back(hs, hs, hs);
+		vertices.emplace_back(hs, -hs, hs);
 
+		vertices.emplace_back(-hs, hs, -hs);
 		vertices.emplace_back(-hs, -hs, -hs);
-		vertices.emplace_back(+hs, -hs, -hs);
-		vertices.emplace_back(+hs, +hs, -hs);
-		vertices.emplace_back(-hs, +hs, -hs);
+		vertices.emplace_back(-hs, hs, hs);
+		vertices.emplace_back(-hs, -hs, hs);
 
-		// Bottom
-		faces.emplace_back(0, 1, 2);
+		faces.emplace_back(4, 2, 0);
+		faces.emplace_back(2, 7, 3);
+		faces.emplace_back(6, 5, 7);
+		faces.emplace_back(1, 7, 5);
+		faces.emplace_back(0, 3, 1);
+		faces.emplace_back(4, 1, 5);
+		faces.emplace_back(4, 6, 2);
+		faces.emplace_back(2, 6, 7);
+		faces.emplace_back(6, 4, 5);
+		faces.emplace_back(1, 3, 7);
 		faces.emplace_back(0, 2, 3);
-		// Top
-		faces.emplace_back(4, 5, 6);
-		faces.emplace_back(4, 6, 7);
+		faces.emplace_back(4, 0, 1);
 
-		// Left
-
-		// Right
-
-		// Front
-
-		// Back
-
-		return std::shared_ptr<Mesh>();
+		return std::make_shared<Mesh>(vertices, faces);
 	}
 
 }
