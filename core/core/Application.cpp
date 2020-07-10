@@ -1,21 +1,26 @@
 #include "Application.h"
 
+#include "Core.h"
+#include "input/KeyCodes.h"
+
 #include "glm.hpp"
 #include "scene/Camera.h"
 
 #include <iostream>
+#include <functional>
 
 namespace LSIS {
 
 	bool Initialized = false;
 
-	Window m_window;
+	std::unique_ptr<Window> m_window;
 	std::unique_ptr<Scene> m_scene;
 	std::shared_ptr<Camera> m_cam;
 
 	void Application::Init()
 	{
-		m_window = Window("LSIS", { 720,512 });
+		m_window = std::make_unique<Window>();
+		m_window->SetEventCallback(Application::OnEvent);
 		std::cout << "Created Application\n";
 
 		m_scene = std::make_unique<Scene>();
@@ -36,7 +41,7 @@ namespace LSIS {
 		m_scene->AddObject(std::make_shared<Object>(square, m3, Transform({ -0.5,0.5,0 })));
 		m_scene->AddObject(std::make_shared<Object>(square, m4, Transform({ 0.5,-0.5,0 })));
 
-		m_window.SetClearColor({ 0.05,0.05,0.05,1.0 });
+		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 
 		Initialized = true;
 	}
@@ -50,17 +55,50 @@ namespace LSIS {
 
 		//window.ReloadShaders();
 
-		while (!m_window.IsCloseRequested()) {
-			m_window.Clear();
+		while (!m_window->IsCloseRequested()) {
+			m_window->Clear();
 
 			m_scene->Render();
 
 			// Do rendering
 
-			m_window.Update();
-			m_window.SwapBuffers();
-			m_window.WaitForEvent();
+			m_window->Update();
+			m_window->SwapBuffers();
+			m_window->WaitForEvent();
 		}
 	}
+
+	void Application::OnEvent(const Event& e)
+	{
+		EventType type = e.GetEventType();
+		switch (type)
+		{
+		case EventType::KeyPressed:
+			OnKeyPressedEvent((const KeyPressedEvent&)e);
+			break;
+		case EventType::KeyReleased:
+			OnKeyReleasedEvent((const KeyReleasedEvent&)e);
+			break;
+		default:
+			std::cout << e << std::endl;
+			break;
+		}
+	}
+
+	void Application::OnKeyPressedEvent(const KeyPressedEvent& e)
+	{
+		int key = e.GetKey();
+
+		std::cout << "Key pressed: " << GetKeyString(key) << std::endl;
+
+	}
+
+	void Application::OnKeyReleasedEvent(const KeyReleasedEvent& e)
+	{
+		int key = e.GetKey();
+		std::cout << "Key released: " << GetKeyString(key) << std::endl;
+
+	}
+
 
 }

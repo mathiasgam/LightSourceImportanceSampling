@@ -9,6 +9,10 @@
 #include <iostream>
 #include <memory>
 
+#include "event/ApplicationEvent.h"
+#include "event/MouseEvent.h"
+#include "event/KeyEvent.h"
+
 namespace LSIS {
 
 	namespace Application {
@@ -16,9 +20,10 @@ namespace LSIS {
 		void Init();
 		void Run();
 
-		void OnKeyPressed(int key);
-		void OnKeuReleased(int key);
+		void OnEvent(const Event& e);
 
+		void OnKeyPressedEvent(const KeyPressedEvent& e);
+		void OnKeyReleasedEvent(const KeyReleasedEvent& e);
 	}
 
 }

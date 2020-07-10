@@ -13,6 +13,10 @@
 
 #include "glad/glad.h"
 
+#include "event/ApplicationEvent.h"
+#include "event/MouseEvent.h"
+#include "event/KeyEvent.h"
+
 namespace LSIS {
 
 	std::ostream& operator<<(std::ostream& os, glm::uvec2 vec) {
@@ -27,16 +31,15 @@ namespace LSIS {
 	const char* fragment_path = "kernels/window.frag";
 
 
-	Window::Window()
-		: m_title("dafualt"), m_size(720, 512), m_native_window(nullptr)
+	Window::Window(WindowData data)
 	{
-		Init();
-	}
+		m_Data = data;
+		m_native_window = nullptr;
 
-	Window::Window(const char* title, const glm::uvec2& size)
-		: m_title(title), m_size(size), m_native_window(nullptr)
-	{
 		Init();
+		SetWindowCallbacks();
+		SetMouseCallbacks();
+		SetKeyCallbacks();
 	}
 
 	Window::~Window()
@@ -45,13 +48,16 @@ namespace LSIS {
 
 	void Window::SetTitle(const char* title)
 	{
-		m_title = title;
+		m_Data.Title = title;
+		glfwSetWindowTitle(m_native_window, title);
 	}
 
 	void Window::SetSize(const glm::uvec2& size)
 	{
-		m_size = size;
+		m_Data.Width = size.x;
+		m_Data.Height = size.y;
 		glViewport(0, 0, size[0], size[1]);
+		glfwSetWindowSize(m_native_window, size.x, size.y);
 	}
 
 	void Window::SetClearColor(const glm::vec4& color)
@@ -59,9 +65,9 @@ namespace LSIS {
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
-	void Window::SetCursorPos(glm::vec2& pos)
+	void Window::SetEventCallback(const EventCallbackFunc& callback)
 	{
-		cursor_last_pos = pos;
+		m_Data.EventCallback = callback;
 	}
 
 	void Window::CenterWindow()
@@ -90,19 +96,14 @@ namespace LSIS {
 		*/
 	}
 
-	const char* Window::GetTitle() const
+	std::string Window::GetTitle() const
 	{
-		return m_title;
+		return m_Data.Title;
 	}
 
 	const glm::uvec2 Window::GetSize() const
 	{
-		return m_size;
-	}
-
-	const glm::vec2 Window::GetCursorPos() const
-	{
-		return cursor_last_pos;
+		return glm::uvec2(m_Data.Width, m_Data.Height);
 	}
 
 	void Window::Clear()
@@ -112,7 +113,7 @@ namespace LSIS {
 
 	void Window::Update()
 	{
-		m_shader->Bind();
+		
 		/*
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -128,13 +129,6 @@ namespace LSIS {
 			return true;
 
 		return false;
-	}
-
-	void Window::ReloadShaders()
-	{
-		// replace shader with a new version
-		m_shader = Shader::Create(vertex_path, fragment_path);
-		std::cout << "Reloaded Window Shaders\n";
 	}
 
 	void Window::SwapBuffers()
@@ -164,12 +158,6 @@ namespace LSIS {
 
 	void Window::Init()
 	{
-		InitGLFW();
-		InitGL();
-	}
-
-	void Window::InitGLFW()
-	{
 		if (glfwInit() != GLFW_TRUE) {
 			std::cout << "Failed to initialize GLFW\n";
 			exit(-1);
@@ -185,119 +173,81 @@ namespace LSIS {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
-		glm::uvec2 window_size = { (int)((float)m_size.x * xscale), (int)((float)m_size.y * yscale) };
+		glm::uvec2 window_size = { (int)((float)m_Data.Width * xscale), (int)((float)m_Data.Height * yscale) };
 
-		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_title, nullptr, nullptr);
+		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_Data.Title.c_str(), nullptr, nullptr);
+		glfwSetWindowUserPointer(m_native_window, &m_Data);
+
 		glfwMakeContextCurrent(m_native_window);
+
+		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+		glClearColor(1.0, 0.0, 1.0, 1.0);
+		glViewport(0, 0, m_Data.Width, m_Data.Height);
 
 		CenterWindow();
 		glfwShowWindow(m_native_window);
 
-		glfwSetWindowUserPointer(m_native_window, this);
+		glfwSetErrorCallback([](int code, const char* err) {
+			std::cout << "Code: " << code << ": " << err << std::endl;
+		});
 
-		{
-			double x, y;
-			glfwGetCursorPos(m_native_window, &x, &y);
-			cursor_last_pos = { x,y };
-		}
+	}
 
+	void Window::SetWindowCallbacks()
+	{
 		glfwSetWindowSizeCallback(m_native_window, [](GLFWwindow* native_window, int width, int height) {
-			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
-
-			glViewport(0, 0, width, height);
+			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
+			data->EventCallback(WindowResizeEvent(width, height));
 		});
 
 		glfwSetWindowMaximizeCallback(m_native_window, [](GLFWwindow* native_window, int code) {
 			std::cout << "Maximize!\n";
 		});
-
-		glfwSetKeyCallback(m_native_window, [](GLFWwindow* native_window, int key, int scancode, int action, int mods) {
-			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
-
-			/*
-#ifdef LSIS_PALTFORM_WIN
-			if (key == GLFW_KEY_LEFT_SUPER) {
-				HWND hwnd = glfwGetWin32Window(native_window);
-				if (action == GLFW_PRESS) {
-					LONG style = GetWindowLongA(hwnd, GWL_STYLE);
-					style = style | WS_SIZEBOX;
-					SetWindowLongA(hwnd, GWL_STYLE, style);
-				}
-				else if (action == GLFW_RELEASE) {
-					LONG style = GetWindowLongA(hwnd, GWL_STYLE);
-					style = style & (~WS_SIZEBOX);
-					SetWindowLongA(hwnd, GWL_STYLE, style);
-				}
-			}
-#endif
-			*/
-
-			if (action == GLFW_PRESS) {
-				switch (key)
-				{
-				case GLFW_KEY_SPACE:
-					window.ReloadShaders();
-					break;
-				case GLFW_KEY_C:
-					window.CenterWindow();
-					break;
-				case GLFW_KEY_M:
-					window.Maximize();
-					break;
-				case GLFW_KEY_LEFT_SUPER:
-					std::cout << "Super!!!\n";
-					break;
-				}
-			}
-		});
-
-		glfwSetCursorPosCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
-			Window& window = *(Window*)glfwGetWindowUserPointer(native_window);
-
-			glm::vec2 pos = { x,y };
-			glm::vec2 diff = pos - window.GetCursorPos();
-
-			/*
-			if (glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-				int win_x, win_y;
-				glfwGetWindowPos(native_window, &win_x, &win_y);
-				glfwSetWindowPos(native_window, win_x + diff.x, win_y + diff.y);
-				pos -= diff;
-				glfwSetCursorPos(native_window, pos.x, pos.y);
-			}
-			*/
-
-			window.SetCursorPos(pos);
-		});
-
 	}
 
-	void Window::InitGL()
+	void Window::SetMouseCallbacks()
 	{
-		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-		glClearColor(1.0, 0.0, 1.0, 1.0);
-		glViewport(0, 0, m_size[0], m_size[1]);
+		glfwSetCursorPosCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
+			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
+			data->EventCallback(MouseMovedEvent(x, y));
+		});
 
-		m_shader = Shader::Create(vertex_path, fragment_path);
+		glfwSetScrollCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
+			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
+			data->EventCallback(MouseScrolledEvent(x, y));
+		});
 
-		const float x = 0.5f;
-		float vertices[] = {
-			-x, -x, 0.0f, 0.0f, 0.0f,
-			 x, -x, 0.0f, 1.0f, 0.0f,
-			 x,  x, 0.0f, 1.0f, 1.0f,
-			-x,  x, 0.0f, 0.0f, 1.0f
-		};
+		glfwSetMouseButtonCallback(m_native_window, [](GLFWwindow* native_window, int key, int action, int mod) {
+			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
+			switch (action)
+			{
+			case GLFW_PRESS:
+				data->EventCallback(MouseButtonPressedEvent(key, mod));
+				break;
+			case GLFW_RELEASE:
+				data->EventCallback(MouseButtonReleasedEvent(key, mod));
+				break;
+			}
+		});
+	}
 
-		glGenBuffers(1, &m_vbo);
-		glGenVertexArrays(1, &m_vao);
-
-		glBindVertexArray(m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(GL_FLOAT)));
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
+	void Window::SetKeyCallbacks()
+	{
+		glfwSetKeyCallback(m_native_window, [](GLFWwindow* native_window, int key, int scancode, int action, int mods) {
+			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
+			switch (action)
+			{
+			case GLFW_PRESS:
+				data->EventCallback(KeyPressedEvent(key, scancode, mods));
+				break;
+			case GLFW_REPEAT:
+				data->EventCallback(KeyRepeatEvent(key, scancode, mods));
+				break;
+			case GLFW_RELEASE:
+				data->EventCallback(KeyReleasedEvent(key));
+				break;
+			}
+		});
 	}
 
 }
