@@ -63,15 +63,50 @@ namespace LSIS {
 		float hw = size.x / 2;
 		float hh = size.y / 2;
 
-		vertices.emplace_back(- hw, - hh, 0);
-		vertices.emplace_back(+ hw, - hh, 0);
-		vertices.emplace_back(+ hw, + hh, 0);
-		vertices.emplace_back(- hw, + hh, 0);
+		vertices.emplace_back(-hw, -hh, 0);
+		vertices.emplace_back(+hw, -hh, 0);
+		vertices.emplace_back(+hw, +hh, 0);
+		vertices.emplace_back(-hw, +hh, 0);
 
 		faces.emplace_back(0, 1, 2);
 		faces.emplace_back(0, 2, 3);
 
 		return std::make_shared<Mesh>(vertices, faces);
+	}
+
+	std::shared_ptr<Mesh> Mesh::CreateCube(float size)
+	{
+		std::vector<glm::vec3> vertices{};
+		std::vector<glm::uvec3> faces{};
+
+		float hs = size / 2.0f;
+
+		vertices.emplace_back(-hs, -hs, -hs);
+		vertices.emplace_back(+hs, -hs, -hs);
+		vertices.emplace_back(+hs, +hs, -hs);
+		vertices.emplace_back(-hs, +hs, -hs);
+
+		vertices.emplace_back(-hs, -hs, -hs);
+		vertices.emplace_back(+hs, -hs, -hs);
+		vertices.emplace_back(+hs, +hs, -hs);
+		vertices.emplace_back(-hs, +hs, -hs);
+
+		// Bottom
+		faces.emplace_back(0, 1, 2);
+		faces.emplace_back(0, 2, 3);
+		// Top
+		faces.emplace_back(4, 5, 6);
+		faces.emplace_back(4, 6, 7);
+
+		// Left
+
+		// Right
+
+		// Front
+
+		// Back
+
+		return std::shared_ptr<Mesh>();
 	}
 
 }

@@ -4,7 +4,7 @@
 
 namespace LSIS {
 	Transform::Transform()
-		: m_position(0,0,0), m_rotation(0,0,0), m_model_matrix()
+		: m_position(0, 0, 0), m_rotation(0, 0, 0), m_model_matrix()
 	{
 	}
 
@@ -29,6 +29,11 @@ namespace LSIS {
 
 	glm::mat4 Transform::GetModelMatrix() const
 	{
-		return glm::translate(m_position);
+		glm::mat4 T = glm::mat4(1.0f);
+		T *= glm::translate(m_position);
+		T *= glm::rotate(m_rotation.z, glm::vec3(0, 0, 1));
+		T *= glm::rotate(m_rotation.y, glm::vec3(0, 1, 0));
+		T *= glm::rotate(m_rotation.x, glm::vec3(1, 0, 0));
+		return T;
 	}
 }

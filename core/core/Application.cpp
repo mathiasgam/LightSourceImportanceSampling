@@ -18,6 +18,9 @@ namespace LSIS {
 	std::unique_ptr<Scene> m_scene;
 	std::shared_ptr<Camera> m_cam;
 
+	glm::vec3 cam_pos = glm::vec3(1, 1, 1);
+	glm::vec3 cam_rot = glm::vec3(0, 0, 0);
+
 	void Application::Init()
 	{
 		m_window = std::make_unique<Window>();
@@ -26,7 +29,7 @@ namespace LSIS {
 
 		m_scene = std::make_unique<Scene>();
 
-		m_cam = std::make_shared<Camera>(glm::vec3(0, 0, 0.1), glm::vec3(0, 0, 0));
+		m_cam = std::make_shared<Camera>(cam_pos, cam_rot);
 		m_scene->SetCamera(m_cam);
 
 		auto flat = Shader::Create("kernels/flat.vert", "kernels/flat.frag");
@@ -105,12 +108,28 @@ namespace LSIS {
 
 	void Application::OnMouseMovedEvent(const MouseMovedEvent& e)
 	{
-		int mods = e.GetMods();
+		static float lastX = e.GetX();
+		static float lastY = e.GetY();
+
+		const float x = e.GetX();
+		const float y = e.GetY();
+		const int mods = e.GetMods();
+
 		if (mods & BIT(0)) {
 			std::cout << "right drag\n";
 		}else if (mods & BIT(1)) {
-			std::cout << "left drag\n";
+			const float diffX = x - lastX;
+			const float diffY = y - lastY;
+			cam_rot.y -= diffX * 0.01f;
+			cam_rot.x = glm::clamp(cam_rot.x - diffY * 0.01f, -3.14f, 3.14f);
+
+			std::cout << "Cam Rotation: [" << cam_rot.x << "," << cam_rot.y << "," << cam_rot.z << "]\n";
+			
+			m_cam->SetRotation(cam_rot);
 		}
+
+		lastX = x;
+		lastY = y;
 	}
 
 

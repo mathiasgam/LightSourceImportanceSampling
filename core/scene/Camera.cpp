@@ -43,7 +43,7 @@ namespace LSIS {
 		float aspect = m_resolution.x / m_resolution.y;
 		glm::mat4 P = glm::perspective(glm::radians(m_FOV), aspect, 0.1f, 100.0f);
 		glm::mat4 V = m_transform.GetModelMatrix();
-		return glm::inverse(V * P);
+		return P * glm::inverse(V);
 	}
 
 }
