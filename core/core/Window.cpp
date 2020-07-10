@@ -173,6 +173,12 @@ namespace LSIS {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+		glfwWindowHint(GLFW_SAMPLES, 4);
+
 		glm::uvec2 window_size = { (int)((float)m_Data.Width * xscale), (int)((float)m_Data.Height * yscale) };
 
 		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_Data.Title.c_str(), nullptr, nullptr);
