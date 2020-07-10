@@ -28,7 +28,7 @@ namespace LSIS {
 
 	public:
 
-		Window(WindowData data = { "App", 720, 512, nullptr });
+		Window(WindowData data = { "App", 512, 512, nullptr });
 		virtual ~Window();
 
 		void SetTitle(const char*);
