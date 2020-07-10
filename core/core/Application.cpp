@@ -5,6 +5,8 @@
 #include "input/Input.h"
 
 #include "glm.hpp"
+#include "glad/glad.h"
+
 #include "scene/Camera.h"
 
 #include <iostream>
@@ -38,7 +40,7 @@ namespace LSIS {
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
 		auto m4 = std::make_shared<Material>(flat, glm::vec4(1, 1, 1, 1));
 
-		std::shared_ptr<Mesh> square = Mesh::CreateRect({ 0.5,0.5 });
+		std::shared_ptr<Mesh> square = Mesh::CreateCube(0.5f);
 
 		m_scene->AddObject(std::make_shared<Object>(square, m1, Transform({ -0.5,-0.5,0 })));
 		m_scene->AddObject(std::make_shared<Object>(square, m2, Transform({ 0.5,0.5,0 })));
@@ -86,6 +88,9 @@ namespace LSIS {
 		case EventType::MouseMoved:
 			OnMouseMovedEvent((const MouseMovedEvent&)e);
 			break;
+		case EventType::WindowResize:
+			OnWindowResizedEvent((const WindowResizeEvent&)e);
+			break;
 		default:
 			std::cout << e << std::endl;
 			break;
@@ -130,6 +135,11 @@ namespace LSIS {
 
 		lastX = x;
 		lastY = y;
+	}
+
+	void Application::OnWindowResizedEvent(const WindowResizeEvent& e)
+	{
+		glViewport(0, 0, e.GetWidth(), e.GetHeight());
 	}
 
 
