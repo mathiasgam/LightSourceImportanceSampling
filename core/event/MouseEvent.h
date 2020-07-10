@@ -8,17 +8,18 @@ namespace LSIS {
 	class MouseMovedEvent : public Event 
 	{
 	public:
-		MouseMovedEvent(float x, float y)
-			: m_X(x), m_Y(y)
+		MouseMovedEvent(float x, float y, int mods)
+			: m_X(x), m_Y(y), m_mods(mods)
 		{}
 
 		inline float GetX() const { return m_X; }
 		inline float GetY() const { return m_Y; }
+		inline int GetMods() const { return m_mods; }
 
 		std::string ToString() const override {
 			std::stringstream ss;
 
-			ss << "MouseMoveEvent: [" << m_X << ", " << m_Y << "]";
+			ss << "MouseMoveEvent: [" << m_X << ", " << m_Y << "," << m_mods << "]";
 			return ss.str();
 		}
 
@@ -27,6 +28,7 @@ namespace LSIS {
 
 	private:
 		float m_X, m_Y;
+		int m_mods;
 	};
 
 	class MouseScrolledEvent : public Event

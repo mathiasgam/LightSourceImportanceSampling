@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "input/KeyCodes.h"
+#include "input/Input.h"
 
 #include "glm.hpp"
 #include "scene/Camera.h"
@@ -79,6 +80,9 @@ namespace LSIS {
 		case EventType::KeyReleased:
 			OnKeyReleasedEvent((const KeyReleasedEvent&)e);
 			break;
+		case EventType::MouseMoved:
+			OnMouseMovedEvent((const MouseMovedEvent&)e);
+			break;
 		default:
 			std::cout << e << std::endl;
 			break;
@@ -97,7 +101,16 @@ namespace LSIS {
 	{
 		int key = e.GetKey();
 		std::cout << "Key released: " << GetKeyString(key) << std::endl;
+	}
 
+	void Application::OnMouseMovedEvent(const MouseMovedEvent& e)
+	{
+		int mods = e.GetMods();
+		if (mods & BIT(0)) {
+			std::cout << "right drag\n";
+		}else if (mods & BIT(1)) {
+			std::cout << "left drag\n";
+		}
 	}
 
 

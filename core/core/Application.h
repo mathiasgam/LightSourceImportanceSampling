@@ -24,6 +24,7 @@ namespace LSIS {
 
 		void OnKeyPressedEvent(const KeyPressedEvent& e);
 		void OnKeyReleasedEvent(const KeyReleasedEvent& e);
+		void OnMouseMovedEvent(const MouseMovedEvent& e);
 	}
 
 }

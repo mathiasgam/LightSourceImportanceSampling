@@ -113,7 +113,7 @@ namespace LSIS {
 
 	void Window::Update()
 	{
-		
+
 		/*
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -209,7 +209,11 @@ namespace LSIS {
 	{
 		glfwSetCursorPosCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
 			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
-			data->EventCallback(MouseMovedEvent(x, y));
+			int mods = 0;
+			mods = glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_1) ? mods | BIT(0) : mods;
+			mods = glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_2) ? mods | BIT(1) : mods;
+
+			data->EventCallback(MouseMovedEvent(x, y, mods));
 		});
 
 		glfwSetScrollCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
