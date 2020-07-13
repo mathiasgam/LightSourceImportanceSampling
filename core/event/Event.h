@@ -18,7 +18,8 @@ namespace LSIS {
 
 		PathDrop,
 
-		KeyPressed, 
+		KeyPressed,
+		KeyRepeated,
 		KeyReleased,
 		KeyTyped,
 

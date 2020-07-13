@@ -42,7 +42,7 @@ namespace LSIS {
 			return ss.str();
 		}
 
-		EVENT_CLASS_TYPE(KeyPressed)
+		EVENT_CLASS_TYPE(KeyRepeated)
 			EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
 	private:
 		int m_Key, m_Scancode, m_Mods;
