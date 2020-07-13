@@ -14,7 +14,7 @@ namespace LSIS {
 			std::vector<glm::vec3> vertices{};
 			std::vector<glm::uvec3> faces{};
 
-			std::ifstream file(filepath);
+			std::ifstream file(filepath, std::ios::in);
 			if (!file.is_open()) {
 				std::cerr << "Failed to open " << filepath << std::endl;
 			}
@@ -22,6 +22,30 @@ namespace LSIS {
 			std::cout << "loading file: " << filepath << std::endl;
 
 			std::string buf;
+
+			// scan for number of vertices and faces
+			size_t num_vertices = 0, num_faces = 0;
+			while (file >> buf) {
+				if (buf == "v") {
+					num_vertices++;
+					continue;
+				}
+				if (buf == "f") {
+					num_faces++;
+					continue;
+				}
+			}
+
+			// resize vectors for for faster reading
+			vertices.resize(num_vertices);
+			faces.resize(num_faces);
+
+			// reset file
+			file.clear();
+			file.seekg(0, std::ios::beg);
+
+			size_t index_v = 0, index_f = 0;
+
 			while (file >> buf) {
 				switch (buf[0])
 				{
@@ -29,7 +53,7 @@ namespace LSIS {
 					if (buf == "v") {
 						float x, y, z;
 						file >> x >> y >> z;
-						vertices.emplace_back(x, y, z);
+						vertices[index_v++] = { x,y,z };
 					}
 					else {
 						file.ignore(1024, '\n');
@@ -39,7 +63,7 @@ namespace LSIS {
 					if (buf == "f") {
 						unsigned int x, y, z;
 						file >> x >> y >> z;
-						faces.emplace_back(x-1, y-1, z-1);
+						faces[index_f++] = { x - 1, y - 1, z - 1 };
 					}
 					else {
 						file.ignore(1024, '\n');
