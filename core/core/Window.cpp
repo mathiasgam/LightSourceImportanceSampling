@@ -108,7 +108,7 @@ namespace LSIS {
 
 	void Window::Clear()
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
 	void Window::Update()
@@ -189,6 +189,8 @@ namespace LSIS {
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		glClearColor(1.0, 0.0, 1.0, 1.0);
 		glViewport(0, 0, m_Data.Width, m_Data.Height);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 
 		CenterWindow();
 		glfwShowWindow(m_native_window);
