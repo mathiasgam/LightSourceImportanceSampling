@@ -11,14 +11,10 @@ namespace LSIS {
 
 	class Mesh {
 	public:
-		Mesh(const std::string& path);
 		Mesh(std::vector<glm::vec3> vertices, std::vector<glm::uvec3> faces);
 		virtual ~Mesh();
 
 		void Render();
-		
-		static std::shared_ptr<Mesh> CreateRect(glm::vec2 size);
-		static std::shared_ptr<Mesh> CreateCube(float size);
 
 	private:
 		std::vector<float> m_vertices;

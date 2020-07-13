@@ -4,10 +4,6 @@
 
 namespace LSIS {
 
-	Mesh::Mesh(const std::string& path)
-	{
-	}
-
 	Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<glm::uvec3> faces)
 	{
 		// resize vectors to fit data
@@ -56,56 +52,6 @@ namespace LSIS {
 		//glDrawElements(GL_LINE_LOOP, m_faces.size(), GL_UNSIGNED_INT, nullptr);
 	}
 
-	std::shared_ptr<Mesh> Mesh::CreateRect(glm::vec2 size)
-	{
-		std::vector<glm::vec3> vertices{};
-		std::vector<glm::uvec3> faces{};
-
-		float hw = size.x / 2;
-		float hh = size.y / 2;
-
-		vertices.emplace_back(-hw, -hh, 0);
-		vertices.emplace_back(+hw, -hh, 0);
-		vertices.emplace_back(+hw, +hh, 0);
-		vertices.emplace_back(-hw, +hh, 0);
-
-		faces.emplace_back(0, 1, 2);
-		faces.emplace_back(0, 2, 3);
-
-		return std::make_shared<Mesh>(vertices, faces);
-	}
-
-	std::shared_ptr<Mesh> Mesh::CreateCube(float size)
-	{
-		std::vector<glm::vec3> vertices{};
-		std::vector<glm::uvec3> faces{};
-
-		float hs = size / 2.0f;
-
-		vertices.emplace_back(hs, hs, -hs);
-		vertices.emplace_back(hs, -hs, -hs);
-		vertices.emplace_back(hs, hs, hs);
-		vertices.emplace_back(hs, -hs, hs);
-
-		vertices.emplace_back(-hs, hs, -hs);
-		vertices.emplace_back(-hs, -hs, -hs);
-		vertices.emplace_back(-hs, hs, hs);
-		vertices.emplace_back(-hs, -hs, hs);
-
-		faces.emplace_back(4, 2, 0);
-		faces.emplace_back(2, 7, 3);
-		faces.emplace_back(6, 5, 7);
-		faces.emplace_back(1, 7, 5);
-		faces.emplace_back(0, 3, 1);
-		faces.emplace_back(4, 1, 5);
-		faces.emplace_back(4, 6, 2);
-		faces.emplace_back(2, 6, 7);
-		faces.emplace_back(6, 4, 5);
-		faces.emplace_back(1, 3, 7);
-		faces.emplace_back(0, 2, 3);
-		faces.emplace_back(4, 0, 1);
-
-		return std::make_shared<Mesh>(vertices, faces);
-	}
+	
 
 }
