@@ -1,7 +1,7 @@
 #include "Input.h"
 #include "KeyCodes.h"
 
-#include "core/Application.h"
+#include "Core/Application.h"
 
 #include "gtc/matrix_transform.hpp"
 

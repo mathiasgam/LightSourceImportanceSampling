@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "core/Application.h"
+#include "Core/Application.h"
 
 int main(int argc, char** argv) {
 

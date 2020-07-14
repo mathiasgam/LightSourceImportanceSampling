@@ -9,15 +9,15 @@
 #endif
 #include "GLFW/glfw3native.h"
 
-#include "../platform/windows/Win32Util.h"
+#include "Platform/windows/Win32Util.h"
 
 #include "glad/glad.h"
 
-#include "graphics/RenderCommand.h"
+#include "Graphics/RenderCommand.h"
 
-#include "event/ApplicationEvent.h"
-#include "event/MouseEvent.h"
-#include "event/KeyEvent.h"
+#include "Event/ApplicationEvent.h"
+#include "Event/MouseEvent.h"
+#include "Event/KeyEvent.h"
 
 namespace LSIS {
 

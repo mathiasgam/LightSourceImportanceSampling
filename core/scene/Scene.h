@@ -9,7 +9,7 @@
 #include "Light.h"
 #include "Camera.h"
 
-#include "graphics/Shader.h"
+#include "Graphics/Shader.h"
 
 namespace LSIS {
 

@@ -1,5 +1,5 @@
 #include "Object.h"
-#include "graphics/RenderCommand.h"
+#include "Graphics/RenderCommand.h"
 
 namespace LSIS {
 

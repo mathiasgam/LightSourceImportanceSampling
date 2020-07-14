@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "mesh/Mesh.h"
+#include "Mesh/Mesh.h"
 #include "Material.h"
 #include "Transform.h"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mesh/Mesh.h"
+#include "Mesh/Mesh.h"
 
 namespace LSIS {
 	namespace RenderCommand {

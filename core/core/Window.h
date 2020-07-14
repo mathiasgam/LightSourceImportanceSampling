@@ -7,8 +7,8 @@
 #include "glm.hpp"
 #include "CL/cl.h"
 
-#include "graphics/Shader.h"
-#include "event/Event.h"
+#include "Graphics/Shader.h"
+#include "Event/Event.h"
 
 namespace {
 	struct GLFWwindow;

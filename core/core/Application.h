@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Window.h"
-#include "scene/Scene.h"
+#include "Scene/Scene.h"
 
 #include "glm.hpp"
 #include "CL/cl.h"
@@ -9,9 +9,9 @@
 #include <iostream>
 #include <memory>
 
-#include "event/ApplicationEvent.h"
-#include "event/MouseEvent.h"
-#include "event/KeyEvent.h"
+#include "Event/ApplicationEvent.h"
+#include "Event/MouseEvent.h"
+#include "Event/KeyEvent.h"
 
 namespace LSIS {
 

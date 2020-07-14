@@ -3,7 +3,8 @@
 #include <memory>
 
 #include "glm.hpp"
-#include "graphics/Shader.h"
+
+#include "Graphics/Shader.h"
 #include "Transform.h"
 
 namespace LSIS {

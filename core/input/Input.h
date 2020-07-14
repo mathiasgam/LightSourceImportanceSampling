@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event/Event.h"
+#include "Event/Event.h"
 
 #include "glm.hpp"
 

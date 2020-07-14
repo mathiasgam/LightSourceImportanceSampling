@@ -1,16 +1,16 @@
 #include "Application.h"
 
 #include "Core.h"
-#include "input/KeyCodes.h"
-#include "input/Input.h"
+#include "Input/KeyCodes.h"
+#include "Input/Input.h"
 
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "glad/glad.h"
 
-#include "scene/Camera.h"
+#include "Scene/Camera.h"
 
-#include "mesh/MeshLoader.h"
+#include "Mesh/MeshLoader.h"
 
 #include <iostream>
 #include <functional>
