@@ -23,13 +23,6 @@ namespace LSIS {
 	std::unique_ptr<Scene> m_scene;
 	std::shared_ptr<Camera> m_cam;
 
-	glm::vec4 cam_pos = glm::vec4(1, 1, 1, 1);
-	glm::vec4 cam_vel = glm::vec4(0, 0, 0, 0);
-	glm::vec3 cam_rot = glm::vec3(0, 0, 0);
-
-	float cam_speed = 0.01f;
-	float cam_speed_rot = 0.01f;
-
 	void Application::Init()
 	{
 		m_window = std::make_unique<Window>();
@@ -38,7 +31,7 @@ namespace LSIS {
 
 		m_scene = std::make_unique<Scene>();
 
-		m_cam = std::make_shared<Camera>(cam_pos, cam_rot);
+		m_cam = std::make_shared<Camera>();
 		m_scene->SetCamera(m_cam);
 
 		auto flat = Shader::Create("kernels/flat.vert", "kernels/flat.frag");
@@ -55,7 +48,7 @@ namespace LSIS {
 		m_scene->AddObject(std::make_shared<Object>(square, m3, Transform({ -0.5,0.5,0 })));
 		m_scene->AddObject(std::make_shared<Object>(square, m4, Transform({ 0.5,-0.5,0 })));
 
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4,4,4), glm::vec3(1,1,1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
 
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 
@@ -63,10 +56,8 @@ namespace LSIS {
 	}
 
 	void UpdateCam() {
-		glm::mat4 R = glm::rotate(glm::rotate(glm::identity<glm::mat4>(), cam_rot.y, glm::vec3(0, 1, 0)), cam_rot.x, glm::vec3(1, 0, 0));
-
-		cam_pos += R * cam_vel * cam_speed;
-		m_cam->SetPosition(cam_pos);
+		m_cam->SetPosition(Input::GetCameraPosition());
+		m_cam->SetRotation(Input::GetcameraRotation());
 	}
 
 	void Application::Run()
@@ -80,6 +71,8 @@ namespace LSIS {
 
 		while (!m_window->IsCloseRequested()) {
 			m_window->Clear();
+
+			Input::Update(0.16f);
 			UpdateCam();
 
 			m_scene->Update();
@@ -96,111 +89,16 @@ namespace LSIS {
 	void Application::OnEvent(const Event& e)
 	{
 		EventType type = e.GetEventType();
-		switch (type)
-		{
-		case EventType::KeyPressed:
-			OnKeyPressedEvent((const KeyPressedEvent&)e);
-			break;
-		case EventType::KeyReleased:
-			OnKeyReleasedEvent((const KeyReleasedEvent&)e);
-			break;
-		case EventType::MouseMoved:
-			OnMouseMovedEvent((const MouseMovedEvent&)e);
-			break;
-		case EventType::WindowResize:
-			OnWindowResizedEvent((const WindowResizeEvent&)e);
-			break;
-		default:
-			std::cout << e << std::endl;
-			break;
+		int category_flags = e.GetCategoryFlags();
+
+		if (category_flags & EventCategory::EventCategoryInput) {
+			Input::OnEvent(e);
 		}
-	}
-
-	void Application::OnKeyPressedEvent(const KeyPressedEvent& e)
-	{
-		int key = e.GetKey();
-		switch (key)
-		{
-		case KEY_A:
-			cam_vel.x -= 1.0f;
-			break;
-		case KEY_D:
-			cam_vel.x += 1.0f;
-			break;
-		case KEY_S:
-			cam_vel.z += 1.0f;
-			break;
-		case KEY_W:
-			cam_vel.z -= 1.0f;
-			break;
-		case KEY_SPACE:
-			cam_vel.y += 1.0f;
-			break;
-		case KEY_LEFT_CONTROL:
-			cam_vel.y -= 1.0f;
-			break;
-		case KEY_LEFT_SHIFT:
-			cam_speed = 0.1f;
-			break;
+		if (category_flags & EventCategory::EventCategoryApplication) {
+			if (type == EventType::WindowResize) {
+				OnWindowResizedEvent((const WindowResizeEvent&)e);
+			}
 		}
-
-		//std::cout << "Key pressed: " << GetKeyString(key) << std::endl;
-
-	}
-
-	void Application::OnKeyReleasedEvent(const KeyReleasedEvent& e)
-	{
-		int key = e.GetKey();
-		switch (key)
-		{
-		case KEY_A:
-			cam_vel.x += 1.0f;
-			break;
-		case KEY_D:
-			cam_vel.x -= 1.0f;
-			break;
-		case KEY_S:
-			cam_vel.z -= 1.0f;
-			break;
-		case KEY_W:
-			cam_vel.z += 1.0f;
-			break;
-		case KEY_SPACE:
-			cam_vel.y -= 1.0f;
-			break;
-		case KEY_LEFT_CONTROL:
-			cam_vel.y += 1.0f;
-			break;
-		case KEY_LEFT_SHIFT:
-			cam_speed = 0.01f;
-			break;
-		}
-		//std::cout << "Key released: " << GetKeyString(key) << std::endl;
-	}
-
-	void Application::OnMouseMovedEvent(const MouseMovedEvent& e)
-	{
-		static float lastX = e.GetX();
-		static float lastY = e.GetY();
-
-		const float x = e.GetX();
-		const float y = e.GetY();
-		const int mods = e.GetMods();
-
-		if (mods & BIT(0)) {
-			std::cout << "right drag\n";
-		}
-		else if (mods & BIT(1)) {
-			const float diffX = x - lastX;
-			const float diffY = y - lastY;
-			cam_rot.y -= diffX * 0.01f;
-			cam_rot.x = glm::clamp(cam_rot.x - diffY * 0.01f, -3.14f, 3.14f);
-
-			m_cam->SetRotation(cam_rot);
-		}
-
-		lastX = x;
-		lastY = y;
 	}
 
 	void Application::OnWindowResizedEvent(const WindowResizeEvent& e)

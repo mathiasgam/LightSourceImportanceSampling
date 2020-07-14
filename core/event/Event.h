@@ -4,6 +4,7 @@
 
 #include <string>
 #include <sstream>
+#include <functional>
 
 namespace LSIS {
 

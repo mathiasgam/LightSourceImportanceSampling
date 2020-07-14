@@ -154,7 +154,7 @@ namespace LSIS {
 #define MOUSE_BUTTON_RIGHT     MOUSE_BUTTON_2
 #define MOUSE_BUTTON_MIDDLE    MOUSE_BUTTON_3
 
-	std::string GetKeyString(int key) {
+	inline std::string GetKeyString(int key) {
 		switch (key)
 		{
 		case KEY_UNKNOWN:
@@ -374,6 +374,34 @@ namespace LSIS {
 			return "KP_DIVIDE";
 		case KEY_KP_MULTIPLY:
 			return "KP_MULTIPLY";
-		case KEY_KP_SUBTRACT:			return "KP_SUBTRACT";		case KEY_KP_ADD:			return "KP_ADD";		case KEY_KP_ENTER:			return "KP_ENTER";		case KEY_KP_EQUAL:			return "KP_EQUAL";		case KEY_LEFT_SHIFT:			return "LEFT_SHIFT";		case KEY_LEFT_CONTROL:			return "LEFT_CONTROL";		case KEY_LEFT_ALT:			return "LEFT_ALT";		case KEY_LEFT_SUPER:			return "LEFT_SUPER";		case KEY_RIGHT_SHIFT:			return "RIGHT_SHIFT";		case KEY_RIGHT_CONTROL:			return "RIGHT_CONTROL";		case KEY_RIGHT_ALT:			return "RIGHT_ALT";		case KEY_RIGHT_SUPER:			return "RIGHT_SUPER";		case KEY_MENU:			return "MENU";		default:			return "UNKNOWN";		}
+		case KEY_KP_SUBTRACT:
+			return "KP_SUBTRACT";
+		case KEY_KP_ADD:
+			return "KP_ADD";
+		case KEY_KP_ENTER:
+			return "KP_ENTER";
+		case KEY_KP_EQUAL:
+			return "KP_EQUAL";
+		case KEY_LEFT_SHIFT:
+			return "LEFT_SHIFT";
+		case KEY_LEFT_CONTROL:
+			return "LEFT_CONTROL";
+		case KEY_LEFT_ALT:
+			return "LEFT_ALT";
+		case KEY_LEFT_SUPER:
+			return "LEFT_SUPER";
+		case KEY_RIGHT_SHIFT:
+			return "RIGHT_SHIFT";
+		case KEY_RIGHT_CONTROL:
+			return "RIGHT_CONTROL";
+		case KEY_RIGHT_ALT:
+			return "RIGHT_ALT";
+		case KEY_RIGHT_SUPER:
+			return "RIGHT_SUPER";
+		case KEY_MENU:
+			return "MENU";
+		default:
+			return "UNKNOWN";
+		}
 	}
 }

@@ -9,7 +9,7 @@ namespace LSIS {
 	class Camera
 	{
 	public:
-		Camera(glm::vec3 position, glm::vec3 rotation, glm::uvec2 resolution = { 720,512 });
+		Camera(glm::vec3 position = { 0,0,0 }, glm::vec3 rotation = { 0,0,0 }, glm::uvec2 resolution = { 720,512 });
 		virtual ~Camera();
 
 		void SetPosition(glm::vec3 position);
