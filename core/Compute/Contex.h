@@ -16,6 +16,7 @@ namespace LSIS::Compute {
 		//std::shared_ptr<Buffer> CreateBuffer(std::shared_ptr<Context> context, size_t size);
 
 	private:
+		cl_device_id m_device_id;
 		cl_context m_context;
 	};
 
