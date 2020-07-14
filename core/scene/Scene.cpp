@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "mesh/MeshLoader.h"
+#include "graphics/RenderCommand.h"
 
 #include <iostream>
 

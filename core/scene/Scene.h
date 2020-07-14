@@ -44,6 +44,7 @@ namespace LSIS {
 		static void StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform);
 
 	private:
+
 		std::vector<std::shared_ptr<Object>> m_objects;
 		std::vector<std::shared_ptr<Light>> m_lights;
 

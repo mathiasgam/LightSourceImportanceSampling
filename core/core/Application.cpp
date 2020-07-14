@@ -55,6 +55,8 @@ namespace LSIS {
 		m_scene->AddObject(std::make_shared<Object>(square, m3, Transform({ -0.5,0.5,0 })));
 		m_scene->AddObject(std::make_shared<Object>(square, m4, Transform({ 0.5,-0.5,0 })));
 
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4,4,4), glm::vec3(1,1,1)));
+
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 
 		Initialized = true;

@@ -13,6 +13,8 @@
 
 #include "glad/glad.h"
 
+#include "graphics/RenderCommand.h"
+
 #include "event/ApplicationEvent.h"
 #include "event/MouseEvent.h"
 #include "event/KeyEvent.h"
@@ -187,10 +189,9 @@ namespace LSIS {
 		glfwMakeContextCurrent(m_native_window);
 
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-		glClearColor(1.0, 0.0, 1.0, 1.0);
-		glViewport(0, 0, m_Data.Width, m_Data.Height);
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
+
+		RenderCommand::Init();
+		RenderCommand::SetViewPort(0, 0, m_Data.Width, m_Data.Height);
 
 		CenterWindow();
 		glfwShowWindow(m_native_window);
