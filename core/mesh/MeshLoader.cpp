@@ -11,8 +11,8 @@ namespace LSIS {
 
 		std::shared_ptr<Mesh> LoadFromOBJ(const std::string& filepath)
 		{
-			std::vector<glm::vec3> vertices{};
-			std::vector<glm::uvec3> faces{};
+			std::vector<float> vertices{};
+			std::vector<unsigned int> faces{};
 
 			std::ifstream file(filepath, std::ios::in);
 			if (!file.is_open()) {
@@ -37,8 +37,8 @@ namespace LSIS {
 			}
 
 			// resize vectors for for faster reading
-			vertices.resize(num_vertices);
-			faces.resize(num_faces);
+			vertices.resize(num_vertices * 3);
+			faces.resize(num_faces * 3);
 
 			// reset file
 			file.clear();
@@ -53,7 +53,9 @@ namespace LSIS {
 					if (buf == "v") {
 						float x, y, z;
 						file >> x >> y >> z;
-						vertices[index_v++] = { x,y,z };
+						vertices[index_v++] = x;
+						vertices[index_v++] = y;
+						vertices[index_v++] = z;
 					}
 					else {
 						file.ignore(1024, '\n');
@@ -63,7 +65,9 @@ namespace LSIS {
 					if (buf == "f") {
 						unsigned int x, y, z;
 						file >> x >> y >> z;
-						faces[index_f++] = { x - 1, y - 1, z - 1 };
+						faces[index_f++] = x-1;
+						faces[index_f++] = y-1;
+						faces[index_f++] = z-1;
 					}
 					else {
 						file.ignore(1024, '\n');
