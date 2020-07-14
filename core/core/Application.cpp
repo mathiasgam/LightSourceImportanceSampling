@@ -6,11 +6,13 @@
 
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
-#include "glad/glad.h"
+#include "GLFW/glfw3.h"
 
 #include "Scene/Camera.h"
 
 #include "Mesh/MeshLoader.h"
+
+#include "Graphics/RenderCommand.h"
 
 #include "Compute/Contex.h"
 #include "Compute/Platform.h"
@@ -90,11 +92,17 @@ namespace LSIS {
 		std::cout << "Num Lights:  " << m_scene->GetNumLights() << std::endl;
 
 		//window.ReloadShaders();
+		double last = glfwGetTime();
+		double time;
 
 		while (!m_window->IsCloseRequested()) {
+			time = glfwGetTime();
+			double delta = time - last;
+			last = time;
+
 			m_window->Clear();
 
-			Input::Update(0.16f);
+			Input::Update(delta);
 			UpdateCam();
 
 			m_scene->Update();
@@ -125,7 +133,7 @@ namespace LSIS {
 
 	void Application::OnWindowResizedEvent(const WindowResizeEvent& e)
 	{
-		glViewport(0, 0, e.GetWidth(), e.GetHeight());
+		RenderCommand::SetViewPort(0, 0, e.GetWidth(), e.GetHeight());
 	}
 
 
