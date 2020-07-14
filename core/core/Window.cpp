@@ -2,11 +2,17 @@
 
 #include <iostream>
 
+
+#include "CL/cl.h"
+#include "CL/cl_gl.h"
+#include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
+#define GLFW_EXPOSE_NATIVE_WGL
 #ifdef LSIS_PLATFORM_WIN
 #define GLFW_EXPOSE_NATIVE_WIN32
 #endif
+
 #include "GLFW/glfw3native.h"
 
 #include "Platform/windows/Win32Util.h"
@@ -106,6 +112,32 @@ namespace LSIS {
 	const glm::uvec2 Window::GetSize() const
 	{
 		return glm::uvec2(m_Data.Width, m_Data.Height);
+	}
+
+	cl_context_properties* Window::GetCLProperties(const cl_platform_id platform_id) const
+	{
+		glfwMakeContextCurrent(m_native_window);
+#ifdef linux
+		cl_context_properties properties[] = {
+		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
+		CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
+		CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
+		0 };
+#elif defined _WIN32
+		cl_context_properties properties[] = {
+		CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+		CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
+		CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id,
+		0 };
+#elif defined TARGET_OS_MAC
+		CGLContextObj glContext = CGLGetCurrentContext();
+		CGLShareGroupObj shareGroup = CGLGetShareGroup(glContext);
+		cl_context_properties properties[] = {
+		CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
+		(cl_context_properties)shareGroup,
+		0 };
+#endif
+		return properties;
 	}
 
 	void Window::Clear()

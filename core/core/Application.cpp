@@ -12,10 +12,22 @@
 
 #include "Mesh/MeshLoader.h"
 
+#include "Compute/Contex.h"
+#include "Compute/Platform.h"
+
 #include <iostream>
 #include <functional>
 
 namespace LSIS {
+
+	std::vector<std::string> prefered_platforms = {
+		"NVIDIA CUDA"
+	};
+
+	std::vector<std::string> prefered_devices = {
+		"GeForce RTX 2080",
+		"GeForce GTX 1050"
+	};
 
 	bool Initialized = false;
 
@@ -23,11 +35,21 @@ namespace LSIS {
 	std::unique_ptr<Scene> m_scene;
 	std::shared_ptr<Camera> m_cam;
 
+	std::unique_ptr<Compute::Context> m_context;
+
 	void Application::Init()
 	{
 		m_window = std::make_unique<Window>();
 		m_window->SetEventCallback(Application::OnEvent);
 		std::cout << "Created Application\n";
+
+		cl_platform_id platform_id = Compute::Platform::GetPlatform(prefered_platforms);
+		cl_device_id device_id = Compute::Device::GetDevice(platform_id, prefered_devices);
+
+		std::cout << "Platform: " << Compute::Platform::GetName(platform_id) << std::endl;
+		std::cout << "Device: " << Compute::Device::GetName(device_id) << std::endl;
+
+		m_context = std::make_unique<Compute::Context>(m_window->GetCLProperties(platform_id), device_id);
 
 		m_scene = std::make_unique<Scene>();
 
