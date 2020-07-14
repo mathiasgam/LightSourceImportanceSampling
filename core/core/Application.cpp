@@ -136,9 +136,12 @@ namespace LSIS {
 		case KEY_LEFT_CONTROL:
 			cam_vel.y -= 1.0f;
 			break;
+		case KEY_LEFT_SHIFT:
+			cam_speed = 0.1f;
+			break;
 		}
 
-		std::cout << "Key pressed: " << GetKeyString(key) << std::endl;
+		//std::cout << "Key pressed: " << GetKeyString(key) << std::endl;
 
 	}
 
@@ -165,8 +168,11 @@ namespace LSIS {
 		case KEY_LEFT_CONTROL:
 			cam_vel.y += 1.0f;
 			break;
+		case KEY_LEFT_SHIFT:
+			cam_speed = 0.01f;
+			break;
 		}
-		std::cout << "Key released: " << GetKeyString(key) << std::endl;
+		//std::cout << "Key released: " << GetKeyString(key) << std::endl;
 	}
 
 	void Application::OnMouseMovedEvent(const MouseMovedEvent& e)
@@ -186,8 +192,6 @@ namespace LSIS {
 			const float diffY = y - lastY;
 			cam_rot.y -= diffX * 0.01f;
 			cam_rot.x = glm::clamp(cam_rot.x - diffY * 0.01f, -3.14f, 3.14f);
-
-			std::cout << "Cam Rotation: [" << cam_rot.x << "," << cam_rot.y << "," << cam_rot.z << "]\n";
 
 			m_cam->SetRotation(cam_rot);
 		}
