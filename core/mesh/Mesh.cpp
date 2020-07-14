@@ -7,10 +7,8 @@ namespace LSIS {
 	Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<glm::uvec3> faces)
 	{
 		// resize vectors to fit data
-		std::vector<float> m_vertices(vertices.size() * 3);
-		std::vector<unsigned int> m_faces(faces.size() * 3);
-
-		m_num_faces = faces.size() * 3;
+		m_vertices.resize(vertices.size() * 3);
+		m_faces.resize(faces.size() * 3);
 
 		int index = 0;
 		for (auto& vertex : vertices) {
@@ -26,51 +24,38 @@ namespace LSIS {
 			m_faces[index++] = face.z;
 		}
 
-		glGenBuffers(1, &m_vbo);
-		glGenBuffers(1, &m_ebo);
-		glGenVertexArrays(1, &m_vao);
-
-		glBindVertexArray(m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * m_vertices.size(), m_vertices.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * m_faces.size(), m_faces.data(), GL_STATIC_DRAW);
 	}
 
 	Mesh::Mesh(const std::vector<float>& vertices, const std::vector<unsigned int>& faces)
 	{
-		m_num_faces = faces.size();
-
-		glGenBuffers(1, &m_vbo);
-		glGenBuffers(1, &m_ebo);
-		glGenVertexArrays(1, &m_vao);
-
-		glBindVertexArray(m_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * faces.size(), faces.data(), GL_STATIC_DRAW);
+		m_vertices = vertices;
+		m_faces = faces;
 	}
 
 	Mesh::~Mesh()
 	{
-		glDeleteBuffers(1, &m_vbo);
-		glDeleteBuffers(1, &m_ebo);
-		glDeleteVertexArrays(1, &m_vao);
 	}
 
-	void Mesh::Render()
+	const float* Mesh::GetVertices() const
 	{
-		glBindVertexArray(m_vao);
-		glDrawElements(GL_TRIANGLES, m_num_faces, GL_UNSIGNED_INT, nullptr);
-		//glDrawElements(GL_LINE_LOOP, m_faces.size(), GL_UNSIGNED_INT, nullptr);
+		return m_vertices.data();
 	}
+
+	const unsigned int* Mesh::GetFaces() const
+	{
+		return m_faces.data();
+	}
+
+	const unsigned int Mesh::GetNumVertices() const
+	{
+		return m_vertices.size();
+	}
+
+	const unsigned int Mesh::GetNumFaces() const
+	{
+		return m_faces.size();
+	}
+
 
 	
 

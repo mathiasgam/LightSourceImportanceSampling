@@ -15,17 +15,16 @@ namespace LSIS {
 		Mesh(const std::vector<float>& vertices, const std::vector<unsigned int>& faces);
 		virtual ~Mesh();
 
-		void Render();
+		const float* GetVertices() const;
+		const unsigned int* GetFaces() const;
+		const unsigned int GetNumVertices() const;
+		const unsigned int GetNumFaces() const;
 
 	private:
-		//std::vector<float> m_vertices;
-		//std::vector<unsigned int> m_faces;
+		std::vector<float> m_vertices{};
+		std::vector<unsigned int> m_faces{};
 
-		unsigned int m_num_faces;
 
-		unsigned int m_ebo = 0;
-		unsigned int m_vbo = 0;
-		unsigned int m_vao = 0;
 	};
 
 }

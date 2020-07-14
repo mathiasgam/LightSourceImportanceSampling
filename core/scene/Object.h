@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "mesh/Mesh.h"
+#include "graphics/GeometryBuffer.h"
 #include "Material.h"
 #include "Transform.h"
 
@@ -17,9 +17,9 @@ namespace LSIS {
 		void Render(const glm::mat4& cam_matrix);
 
 	private:
-		std::shared_ptr<Mesh> m_mesh;
-		std::shared_ptr<Material> m_material;
 		Transform m_transform; 
+		std::shared_ptr<Material> m_material;
+		std::shared_ptr<GeometryBuffer> m_mesh;
 	};
 
 }
