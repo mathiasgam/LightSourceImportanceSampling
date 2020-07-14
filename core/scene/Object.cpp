@@ -4,10 +4,10 @@
 namespace LSIS {
 
 
-	Object::Object(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material, Transform transform)
+	Object::Object(std::shared_ptr<MeshData> mesh, std::shared_ptr<Material> material, Transform transform)
 		: m_transform(transform), m_material(material)
 	{
-		m_mesh = std::make_shared<GeometryBuffer>(mesh);
+		m_mesh = std::make_shared<Mesh>(mesh);
 	}
 
 	Object::~Object()

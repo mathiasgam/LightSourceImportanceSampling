@@ -9,7 +9,7 @@ namespace LSIS {
 
 	namespace MeshLoader {
 
-		std::shared_ptr<Mesh> LoadFromOBJ(const std::string& filepath)
+		std::shared_ptr<MeshData> LoadFromOBJ(const std::string& filepath)
 		{
 			std::vector<float> vertices{};
 			std::vector<unsigned int> faces{};
@@ -78,10 +78,10 @@ namespace LSIS {
 				}
 			}
 
-			return std::make_shared<Mesh>(vertices, faces);
+			return std::make_shared<MeshData>(vertices, faces);
 		}
 
-		std::shared_ptr<Mesh> CreateRect(glm::vec2 size)
+		std::shared_ptr<MeshData> CreateRect(glm::vec2 size)
 		{
 			std::vector<glm::vec3> vertices{};
 			std::vector<glm::uvec3> faces{};
@@ -97,10 +97,10 @@ namespace LSIS {
 			faces.emplace_back(0, 1, 2);
 			faces.emplace_back(0, 2, 3);
 
-			return std::make_shared<Mesh>(vertices, faces);
+			return std::make_shared<MeshData>(vertices, faces);
 		}
 
-		std::shared_ptr<Mesh> CreateCube(float size)
+		std::shared_ptr<MeshData> CreateCube(float size)
 		{
 			std::vector<glm::vec3> vertices{};
 			std::vector<glm::uvec3> faces{};
@@ -130,7 +130,7 @@ namespace LSIS {
 			faces.emplace_back(0, 2, 3);
 			faces.emplace_back(4, 0, 1);
 
-			return std::make_shared<Mesh>(vertices, faces);
+			return std::make_shared<MeshData>(vertices, faces);
 		}
 	}
 }

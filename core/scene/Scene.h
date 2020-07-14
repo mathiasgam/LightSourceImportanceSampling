@@ -16,7 +16,7 @@ namespace LSIS {
 	class Scene {
 
 		struct ObjectUpload {
-			std::shared_ptr<Mesh> mesh;
+			std::shared_ptr<MeshData> mesh;
 			std::shared_ptr<Material> material;
 			Transform transform;
 		};

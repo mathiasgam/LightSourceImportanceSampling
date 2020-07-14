@@ -222,12 +222,12 @@ namespace LSIS {
 			mods = glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_1) ? mods | BIT(0) : mods;
 			mods = glfwGetMouseButton(native_window, GLFW_MOUSE_BUTTON_2) ? mods | BIT(1) : mods;
 
-			data->EventCallback(MouseMovedEvent(x, y, mods));
+			data->EventCallback(MouseMovedEvent((float)x, (float)y, mods));
 		});
 
 		glfwSetScrollCallback(m_native_window, [](GLFWwindow* native_window, double x, double y) {
 			WindowData* data = (WindowData*)glfwGetWindowUserPointer(native_window);
-			data->EventCallback(MouseScrolledEvent(x, y));
+			data->EventCallback(MouseScrolledEvent((float)x, (float)y));
 		});
 
 		glfwSetMouseButtonCallback(m_native_window, [](GLFWwindow* native_window, int key, int action, int mod) {

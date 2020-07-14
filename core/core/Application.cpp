@@ -47,7 +47,7 @@ namespace LSIS {
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
 		auto m4 = std::make_shared<Material>(flat, glm::vec4(1, 1, 1, 1));
 
-		std::shared_ptr<Mesh> square = MeshLoader::CreateCube(0.5f);
+		std::shared_ptr<MeshData> square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
 
 		m_scene->LoadObject("../models/bunny.obj", m1, Transform({ -0.5,-0.5,0 }));
