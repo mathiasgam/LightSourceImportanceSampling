@@ -223,7 +223,7 @@ namespace LSIS {
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
 		RenderCommand::Init();
-		RenderCommand::SetViewPort(0, 0, m_Data.Width, m_Data.Height);
+		RenderCommand::SetViewPort(0, 0, window_size.x, window_size.y);
 
 		CenterWindow();
 		glfwShowWindow(m_native_window);
