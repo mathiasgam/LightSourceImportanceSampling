@@ -59,7 +59,7 @@ namespace LSIS {
 		m_scene->LoadObject("../models/cube.obj", m3, Transform({ -1,0,1 }));
 		m_scene->LoadObject("../models/cube.obj", m4, Transform({ 1,0,-1 }));
 
-		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m1, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
+		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
 
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
 	}
