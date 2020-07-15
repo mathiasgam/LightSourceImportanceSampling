@@ -8,6 +8,7 @@ namespace LSIS {
 
 	Scene::Scene()
 	{
+		m_point_shader = Shader::Create("kernels/point.vert", "kernels/point.frag");
 	}
 
 	Scene::~Scene()
@@ -28,12 +29,13 @@ namespace LSIS {
 		for (auto& light : m_lights) {
 			Point p{};
 			glm::vec3 pos = light->GetPosition();
+			glm::vec3 col = light->GetColor();
 			p.position[0] = pos.x;
 			p.position[1] = pos.y;
 			p.position[2] = pos.z;
-			p.color[0] = 1.0f;
-			p.color[1] = 1.0f;
-			p.color[2] = 1.0f;
+			p.color[0] = col.x;
+			p.color[1] = col.y;
+			p.color[2] = col.z;
 			points.push_back(p);
 		}
 		m_points = std::make_shared<PointMesh>(points);
@@ -79,6 +81,8 @@ namespace LSIS {
 			object->Render(cam_matrix);
 		}
 		
+		m_point_shader->Bind();
+		m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 		m_points->Bind();
 		RenderCommand::RenderPointMesh(m_points);
 	}

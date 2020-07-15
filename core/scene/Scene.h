@@ -48,6 +48,7 @@ namespace LSIS {
 	private:
 
 		std::shared_ptr<PointMesh> m_points;
+		std::shared_ptr<Shader> m_point_shader;
 
 		std::vector<std::shared_ptr<Object>> m_objects;
 		std::vector<std::shared_ptr<Light>> m_lights;
