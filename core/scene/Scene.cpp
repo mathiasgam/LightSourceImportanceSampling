@@ -22,6 +22,21 @@ namespace LSIS {
 	void Scene::AddLight(std::shared_ptr<Light> light)
 	{
 		m_lights.push_back(light);
+
+		std::vector<Point> points{};
+		points.reserve(m_lights.size());
+		for (auto& light : m_lights) {
+			Point p{};
+			glm::vec3 pos = light->GetPosition();
+			p.position[0] = pos.x;
+			p.position[1] = pos.y;
+			p.position[2] = pos.z;
+			p.color[0] = 1.0f;
+			p.color[1] = 1.0f;
+			p.color[2] = 1.0f;
+			points.push_back(p);
+		}
+		m_points = std::make_shared<PointMesh>(points);
 	}
 
 	void Scene::LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform)
@@ -63,6 +78,9 @@ namespace LSIS {
 		for (auto& object : m_objects) {
 			object->Render(cam_matrix);
 		}
+		
+		m_points->Bind();
+		RenderCommand::RenderPointMesh(m_points);
 	}
 	size_t Scene::GetNumObjects() const
 	{

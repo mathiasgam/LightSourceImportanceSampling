@@ -10,6 +10,8 @@
 #include "Camera.h"
 
 #include "Graphics/Shader.h"
+#include "Mesh/Mesh.h"
+#include "Mesh/PointMesh.h"
 
 namespace LSIS {
 
@@ -44,6 +46,8 @@ namespace LSIS {
 		static void StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform);
 
 	private:
+
+		std::shared_ptr<PointMesh> m_points;
 
 		std::vector<std::shared_ptr<Object>> m_objects;
 		std::vector<std::shared_ptr<Light>> m_lights;
