@@ -39,20 +39,7 @@ namespace LSIS {
 
 	std::unique_ptr<Compute::Context> m_context;
 
-	void Application::Init()
-	{
-		m_window = std::make_unique<Window>();
-		m_window->SetEventCallback(Application::OnEvent);
-		std::cout << "Created Application\n";
-
-		cl_platform_id platform_id = Compute::Platform::GetPlatform(prefered_platforms);
-		cl_device_id device_id = Compute::Device::GetDevice(platform_id, prefered_devices);
-
-		std::cout << "Platform: " << Compute::Platform::GetName(platform_id) << std::endl;
-		std::cout << "Device: " << Compute::Device::GetName(device_id) << std::endl;
-
-		m_context = std::make_unique<Compute::Context>(m_window->GetCLProperties(platform_id), device_id);
-
+	void LoadScene() {
 		m_scene = std::make_unique<Scene>();
 
 		m_cam = std::make_shared<Camera>();
@@ -73,9 +60,32 @@ namespace LSIS {
 		m_scene->AddObject(std::make_shared<Object>(square, m4, Transform({ 0.5,-0.5,0 })));
 
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
+	}
 
+	void CreateWindow() {
+		m_window = std::make_unique<Window>();
+		m_window->SetEventCallback(Application::OnEvent);
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
+	}
 
+	void CreateCLContext() {
+		cl_platform_id platform_id = Compute::Platform::GetPlatform(prefered_platforms);
+		cl_device_id device_id = Compute::Device::GetDevice(platform_id, prefered_devices);
+
+		std::cout << "Platform: " << Compute::Platform::GetName(platform_id) << std::endl;
+		std::cout << "Device: " << Compute::Device::GetName(device_id) << std::endl;
+
+		m_context = std::make_unique<Compute::Context>(m_window->GetCLProperties(platform_id), device_id);
+	}
+
+	void Application::Init()
+	{
+		CreateWindow();
+		CreateCLContext();
+
+		LoadScene();
+
+		std::cout << "Application Initialized\n";
 		Initialized = true;
 	}
 
