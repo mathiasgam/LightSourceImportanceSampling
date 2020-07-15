@@ -8,6 +8,7 @@ namespace LSIS {
 
 		void Init();
 
+		void SetPointSize(float size);
 		void SetViewPort(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
 
 		void Clear();

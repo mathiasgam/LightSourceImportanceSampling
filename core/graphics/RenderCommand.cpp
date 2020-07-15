@@ -10,7 +10,12 @@ namespace LSIS::RenderCommand {
 		glClearColor(1.0, 0.0, 1.0, 1.0);
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
+		SetPointSize(4.0f);
+	}
 
+	void SetPointSize(float size)
+	{
+		glPointSize(size);
 	}
 
 	void SetViewPort(unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
