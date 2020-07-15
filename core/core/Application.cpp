@@ -62,6 +62,9 @@ namespace LSIS {
 		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
 
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(1, 1, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 0, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -2), glm::vec3(1, 1, 1)));
 	}
 
 	void CreateWindow() {
