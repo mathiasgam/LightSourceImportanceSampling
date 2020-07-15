@@ -24,36 +24,21 @@ namespace LSIS {
 		}
 	};
 
-	struct IndexData {
-		int x;
-		int y;
-		int z;
-
-		IndexData() 
-			: x(0), y(0), z(0)
-		{
-		}
-		IndexData(int x, int y, int z)
-			: x(x), y(y), z(z)
-		{
-		}
-	};
-
 	class MeshData {
 	public:
-		MeshData(const std::vector<VertexData>& vertices, const std::vector<IndexData>& indices);
+		MeshData(const std::vector<VertexData>& vertices, const std::vector<uint32_t>& indices);
 		virtual ~MeshData();
 
 		const VertexData* GetVertices() const { return m_vertices.data(); }
-		const IndexData* GetFaces() const { return m_faces.data(); }
+		const uint32_t* GetIndices() const { return m_indices.data(); }
 		size_t GetNumVertices() const { return m_vertices.size(); }
-		size_t GetNumFaces() const { return m_faces.size(); }
+		size_t GetNumIndices() const { return m_indices.size(); }
 
 	private:
 		std::vector<VertexData> m_vertices;
 		//std::vector<float> m_vertices;
 		//std::vector<float> m_normals;
-		std::vector<IndexData> m_faces;
+		std::vector<uint32_t> m_indices;
 	};
 
 	class Mesh {
@@ -64,14 +49,13 @@ namespace LSIS {
 		void Upload(std::shared_ptr<MeshData> data);
 		void Bind();
 
-		inline unsigned int GetNumFaces() const { return m_num_faces; };
-		inline unsigned int GetNumIndices() const { return m_num_faces * 3; }
+		inline unsigned int GetNumIndices() const { return m_num_indices; }
 		inline unsigned int GetNumVertices() const { return m_num_vertices; };
 
 		std::shared_ptr<MeshData> Download() const;
 
 	private:
-		unsigned int m_num_faces;
+		unsigned int m_num_indices;
 		unsigned int m_num_vertices;
 		unsigned int m_vbo;
 		unsigned int m_ebo;

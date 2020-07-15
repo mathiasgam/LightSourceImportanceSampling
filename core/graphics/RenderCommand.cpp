@@ -24,7 +24,7 @@ namespace LSIS::RenderCommand {
 
 	void RenderGeometryBuffer(const std::shared_ptr<Mesh>& buffer)
 	{
-		glDrawElements(GL_TRIANGLES, buffer->GetNumFaces(), GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, buffer->GetNumIndices(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	void RenderPoints(glm::vec3 position, glm::vec4 color)

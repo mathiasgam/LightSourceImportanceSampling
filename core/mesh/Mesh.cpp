@@ -4,11 +4,11 @@
 
 namespace LSIS {	
 
-	MeshData::MeshData(const std::vector<VertexData>& vertices, const std::vector<IndexData>& indices) {
+	MeshData::MeshData(const std::vector<VertexData>& vertices, const std::vector<uint32_t>& indices) {
 		m_vertices.resize(vertices.size());
-		m_faces.resize(indices.size());
+		m_indices.resize(indices.size());
 		std::copy(vertices.begin(), vertices.end(), m_vertices.begin());
-		std::copy(indices.begin(), indices.end(), m_faces.begin());
+		std::copy(indices.begin(), indices.end(), m_indices.begin());
 	}
 
 	MeshData::~MeshData()
@@ -16,7 +16,7 @@ namespace LSIS {
 	}
 
 	Mesh::Mesh(std::shared_ptr<MeshData> data)
-		: m_num_faces(0), m_num_vertices(0), m_vbo(0), m_ebo(0), m_vao(0)
+		: m_num_indices(0), m_num_vertices(0), m_vbo(0), m_ebo(0), m_vao(0)
 	{
 		Upload(data);
 	}
@@ -26,7 +26,8 @@ namespace LSIS {
 		glDeleteBuffers(1, &m_vbo);
 		glDeleteBuffers(1, &m_ebo);
 		glDeleteVertexArrays(1, &m_vao);
-		m_num_faces = 0;
+		m_num_indices = 0;
+		m_num_vertices = 0;
 	}
 
 	void Mesh::Upload(std::shared_ptr<MeshData> data)
@@ -36,7 +37,7 @@ namespace LSIS {
 		glGenVertexArrays(1, &m_vao);
 
 		m_num_vertices = (unsigned int) data->GetNumVertices();
-		m_num_faces = (unsigned int) data->GetNumFaces() * 3;
+		m_num_indices = (unsigned int) data->GetNumIndices();
 
 		glBindVertexArray(m_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -49,7 +50,7 @@ namespace LSIS {
 		glEnableVertexAttribArray(2);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(IndexData) * data->GetNumFaces(), data->GetFaces(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * data->GetNumIndices(), data->GetIndices(), GL_STATIC_DRAW);
 	}
 
 	void Mesh::Bind()
@@ -60,15 +61,15 @@ namespace LSIS {
 	std::shared_ptr<MeshData> Mesh::Download() const
 	{
 		std::vector<VertexData> vertices{};
-		std::vector<IndexData> faces{};
+		std::vector<uint32_t> indices{};
 
 		vertices.resize(m_num_vertices);
-		faces.resize(m_num_faces);
+		indices.resize(m_num_indices);
 
 		glGetBufferSubData(m_vbo, 0, m_num_vertices, vertices.data());
-		glGetBufferSubData(m_ebo, 0, m_num_faces, faces.data());
+		glGetBufferSubData(m_ebo, 0, m_num_indices, indices.data());
 
-		return std::make_shared<MeshData>(vertices, faces);
+		return std::make_shared<MeshData>(vertices, indices);
 	}
 
 }

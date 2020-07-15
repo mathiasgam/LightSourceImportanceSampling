@@ -2,7 +2,9 @@
 
 #include <vector>
 #include <iostream>
-#include <fstream>
+#include <unordered_map>
+
+#include "gtx/hash.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
@@ -25,44 +27,56 @@ namespace LSIS {
 			bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str());
 
 			std::vector<VertexData> vertices{};
-			std::vector<IndexData> faces{};
+			std::vector<uint32_t> indices{};
 
 			const uint32_t num_vertices = attrib.vertices.size() / 3;
 			const uint32_t num_faces = shapes[0].mesh.indices.size() / 3;
 
-			vertices.resize(num_vertices);
-			faces.resize(num_faces);
+			std::unordered_map<glm::uvec3, uint32_t> vertex_map{};
 
-			for (int i = 0; i < num_vertices; i++) {
-				VertexData v{};
-				const uint32_t index = i * 3;
-				v.position[0] = attrib.vertices[index];
-				v.position[1] = attrib.vertices[index+1];
-				v.position[2] = attrib.vertices[index+2];
-				v.normal[0] = 0.0f;
-				v.normal[1] = 0.0f;
-				v.normal[2] = 0.0f;
-				v.uv[0] = 0.0f;
-				v.uv[1] = 0.0f;
-				vertices[i] = v;
+			for (auto& face : shapes[0].mesh.indices) {
+				glm::uvec3 key = { face.vertex_index, face.normal_index, face.texcoord_index };
+				auto p = vertex_map.find(key);
+				if (p == vertex_map.end()) {
+					// unique vertex not yet mapped
+					uint32_t index = vertices.size();
+
+					VertexData v{};
+
+					v.position[0] = attrib.vertices[3 * face.vertex_index + 0];
+					v.position[1] = attrib.vertices[3 * face.vertex_index + 1];
+					v.position[2] = attrib.vertices[3 * face.vertex_index + 2];
+					v.normal[0] = attrib.normals[3 * face.normal_index + 0];
+					v.normal[1] = attrib.normals[3 * face.normal_index + 1];
+					v.normal[2] = attrib.normals[3 * face.normal_index + 2];
+					v.uv[0] = 0.0f;
+					v.uv[1] = 0.0f;
+
+					vertices.push_back(v);
+					indices.push_back(index);
+					vertex_map.insert({ key, index });
+				}
+				else {
+					uint32_t index = p->second;
+					indices.push_back(index);
+				}
 			}
 
-			for (int i = 0; i < num_faces; i++) {
-				IndexData f{};
-				const uint32_t index = i * 3;
-				f.x = shapes[0].mesh.indices[index].vertex_index;
-				f.y = shapes[0].mesh.indices[index+1].vertex_index;
-				f.z = shapes[0].mesh.indices[index+2].vertex_index;
-				faces[i] = f;
-			}
 
-			return std::make_shared<MeshData>(vertices, faces);
+
+			return std::make_shared<MeshData>(vertices, indices);
+		}
+
+		void push_face(std::vector<uint32_t>& vec, glm::uvec3 face) {
+			vec.push_back(face.x);
+			vec.push_back(face.y);
+			vec.push_back(face.z);
 		}
 
 		std::shared_ptr<MeshData> CreateRect(glm::vec2 size)
 		{
 			std::vector<VertexData> vertices{};
-			std::vector<IndexData> faces{};
+			std::vector<uint32_t> indices{};
 
 			float hw = size.x / 2;
 			float hh = size.y / 2;
@@ -72,16 +86,16 @@ namespace LSIS {
 			vertices.emplace_back(+hw, +hh, 0, 0, 0, 1, 1, 1);
 			vertices.emplace_back(-hw, +hh, 0, 0, 0, 1, 0, 1);
 
-			faces.emplace_back(0, 1, 2);
-			faces.emplace_back(0, 2, 3);
+			push_face(indices, { 0,1,2 });
+			push_face(indices, { 0,2,3 });
 
-			return std::make_shared<MeshData>(vertices, faces);
+			return std::make_shared<MeshData>(vertices, indices);
 		}
 
 		std::shared_ptr<MeshData> CreateCube(float size)
 		{
 			std::vector<VertexData> vertices{};
-			std::vector<IndexData> faces{};
+			std::vector<uint32_t> indices{};
 
 			float hs = size / 2.0f;
 
@@ -95,20 +109,21 @@ namespace LSIS {
 			vertices.emplace_back(-hs, hs, hs, -1, 1, 1, 0, 0);
 			vertices.emplace_back(-hs, -hs, hs, -1, -1, 1, 0, 0);
 
-			faces.emplace_back(4, 2, 0);
-			faces.emplace_back(2, 7, 3);
-			faces.emplace_back(6, 5, 7);
-			faces.emplace_back(1, 7, 5);
-			faces.emplace_back(0, 3, 1);
-			faces.emplace_back(4, 1, 5);
-			faces.emplace_back(4, 6, 2);
-			faces.emplace_back(2, 6, 7);
-			faces.emplace_back(6, 4, 5);
-			faces.emplace_back(1, 3, 7);
-			faces.emplace_back(0, 2, 3);
-			faces.emplace_back(4, 0, 1);
 
-			return std::make_shared<MeshData>(vertices, faces);
+			push_face(indices, { 4, 2, 0 });
+			push_face(indices, { 2, 7, 3 });
+			push_face(indices, { 6, 5, 7 });
+			push_face(indices, { 1, 7, 5 });
+			push_face(indices, { 0, 3, 1 });
+			push_face(indices, { 4, 1, 5 });
+			push_face(indices, { 4, 6, 2 });
+			push_face(indices, { 2, 6, 7 });
+			push_face(indices, { 6, 4, 5 });
+			push_face(indices, { 1, 3, 7 });
+			push_face(indices, { 0, 2, 3 });
+			push_face(indices, { 4, 0, 1 });
+
+			return std::make_shared<MeshData>(vertices, indices);
 		}
 	}
 }
