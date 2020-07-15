@@ -24,18 +24,36 @@ namespace LSIS {
 
 			bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str());
 
-			std::vector<float> vertices{};
-			std::vector<unsigned int> faces{};
+			std::vector<VertexData> vertices{};
+			std::vector<IndexData> faces{};
 
-			vertices.resize(attrib.vertices.size());
-			faces.resize(shapes[0].mesh.indices.size());
+			const uint32_t num_vertices = attrib.vertices.size() / 3;
+			const uint32_t num_faces = shapes[0].mesh.indices.size() / 3;
 
-			for (int i = 0; i < vertices.size(); i++) {
-				vertices[i] = attrib.vertices[i];
+			vertices.resize(num_vertices);
+			faces.resize(num_faces);
+
+			for (int i = 0; i < num_vertices; i++) {
+				VertexData v{};
+				const uint32_t index = i * 3;
+				v.position[0] = attrib.vertices[index];
+				v.position[1] = attrib.vertices[index+1];
+				v.position[2] = attrib.vertices[index+2];
+				v.normal[0] = 0.0f;
+				v.normal[1] = 0.0f;
+				v.normal[2] = 0.0f;
+				v.uv[0] = 0.0f;
+				v.uv[1] = 0.0f;
+				vertices[i] = v;
 			}
 
-			for (int i = 0; i < faces.size(); i++) {
-				faces[i] = shapes[0].mesh.indices[i].vertex_index;
+			for (int i = 0; i < num_faces; i++) {
+				IndexData f{};
+				const uint32_t index = i * 3;
+				f.x = shapes[0].mesh.indices[index].vertex_index;
+				f.y = shapes[0].mesh.indices[index+1].vertex_index;
+				f.z = shapes[0].mesh.indices[index+2].vertex_index;
+				faces[i] = f;
 			}
 
 			return std::make_shared<MeshData>(vertices, faces);
@@ -43,16 +61,16 @@ namespace LSIS {
 
 		std::shared_ptr<MeshData> CreateRect(glm::vec2 size)
 		{
-			std::vector<glm::vec3> vertices{};
-			std::vector<glm::uvec3> faces{};
+			std::vector<VertexData> vertices{};
+			std::vector<IndexData> faces{};
 
 			float hw = size.x / 2;
 			float hh = size.y / 2;
 
-			vertices.emplace_back(-hw, -hh, 0);
-			vertices.emplace_back(+hw, -hh, 0);
-			vertices.emplace_back(+hw, +hh, 0);
-			vertices.emplace_back(-hw, +hh, 0);
+			vertices.emplace_back(-hw, -hh, 0, 0, 0, 1, 0, 0);
+			vertices.emplace_back(+hw, -hh, 0, 0, 0, 1, 1, 0);
+			vertices.emplace_back(+hw, +hh, 0, 0, 0, 1, 1, 1);
+			vertices.emplace_back(-hw, +hh, 0, 0, 0, 1, 0, 1);
 
 			faces.emplace_back(0, 1, 2);
 			faces.emplace_back(0, 2, 3);
@@ -62,20 +80,20 @@ namespace LSIS {
 
 		std::shared_ptr<MeshData> CreateCube(float size)
 		{
-			std::vector<glm::vec3> vertices{};
-			std::vector<glm::uvec3> faces{};
+			std::vector<VertexData> vertices{};
+			std::vector<IndexData> faces{};
 
 			float hs = size / 2.0f;
 
-			vertices.emplace_back(hs, hs, -hs);
-			vertices.emplace_back(hs, -hs, -hs);
-			vertices.emplace_back(hs, hs, hs);
-			vertices.emplace_back(hs, -hs, hs);
+			vertices.emplace_back(hs, hs, -hs, 1, 1, -1, 0, 0);
+			vertices.emplace_back(hs, -hs, -hs, 1, -1, -1, 0, 0);
+			vertices.emplace_back(hs, hs, hs, 1, 1, 1, 0, 0);
+			vertices.emplace_back(hs, -hs, hs, 1, -1, 1, 0, 0);
 
-			vertices.emplace_back(-hs, hs, -hs);
-			vertices.emplace_back(-hs, -hs, -hs);
-			vertices.emplace_back(-hs, hs, hs);
-			vertices.emplace_back(-hs, -hs, hs);
+			vertices.emplace_back(-hs, hs, -hs, -1, 1, -1, 0, 0);
+			vertices.emplace_back(-hs, -hs, -hs, -1, -1, -1, 0, 0);
+			vertices.emplace_back(-hs, hs, hs, -1, 1, 1, 0, 0);
+			vertices.emplace_back(-hs, -hs, hs, -1, -1, 1, 0, 0);
 
 			faces.emplace_back(4, 2, 0);
 			faces.emplace_back(2, 7, 3);

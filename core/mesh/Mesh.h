@@ -12,18 +12,36 @@ namespace LSIS {
 		float position[3];
 		float normal[3];
 		float uv[2];
+
+		VertexData()
+			: position{ 0.0f,0.0f,0.0f }, normal{ 0.0f,0.0f,0.0f }, uv{ 0.0f,0.0f }
+		{
+		}
+
+		VertexData(float px, float py, float pz, float nx, float ny, float nz, float u, float v)
+			: position{ px,py,pz }, normal{ nx,ny,nz }, uv{ u,v }
+		{
+		}
 	};
 
 	struct IndexData {
 		int x;
 		int y;
 		int z;
+
+		IndexData() 
+			: x(0), y(0), z(0)
+		{
+		}
+		IndexData(int x, int y, int z)
+			: x(x), y(y), z(z)
+		{
+		}
 	};
 
 	class MeshData {
 	public:
-		MeshData(std::vector<glm::vec3> vertices, std::vector<glm::uvec3> faces);
-		MeshData(const std::vector<float>& vertices, const std::vector<unsigned int>& faces);
+		MeshData(const std::vector<VertexData>& vertices, const std::vector<IndexData>& indices);
 		virtual ~MeshData();
 
 		const VertexData* GetVertices() const { return m_vertices.data(); }
@@ -40,7 +58,6 @@ namespace LSIS {
 
 	class Mesh {
 	public:
-		Mesh();
 		Mesh(std::shared_ptr<MeshData> data);
 		virtual ~Mesh();
 
@@ -48,6 +65,7 @@ namespace LSIS {
 		void Bind();
 
 		inline unsigned int GetNumFaces() const { return m_num_faces; };
+		inline unsigned int GetNumIndices() const { return m_num_faces * 3; }
 		inline unsigned int GetNumVertices() const { return m_num_vertices; };
 
 		std::shared_ptr<MeshData> Download() const;

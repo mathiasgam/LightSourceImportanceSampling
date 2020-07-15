@@ -4,81 +4,19 @@
 
 namespace LSIS {	
 
-	MeshData::MeshData(std::vector<glm::vec3> vertices, std::vector<glm::uvec3> faces)
-	{
-		// resize vectors to fit data
+	MeshData::MeshData(const std::vector<VertexData>& vertices, const std::vector<IndexData>& indices) {
 		m_vertices.resize(vertices.size());
-		m_faces.resize(faces.size());
-
-		int index = 0;
-		for (auto& vertex : vertices) {
-			VertexData v{};
-			v.position[0] = vertex.x;
-			v.position[1] = vertex.y;
-			v.position[2] = vertex.z;
-			v.normal[0] = 0.0f;
-			v.normal[1] = 0.0f;
-			v.normal[2] = 0.0f;
-			v.uv[0] = 0.0f;
-			v.uv[1] = 0.0f;
-			m_vertices[index++] = v;
-		}
-
-		index = 0;
-		for (auto& face : faces) {
-			IndexData i{};
-			i.x = face.x;
-			i.y = face.y;
-			i.z = face.z;
-			m_faces[index++] = i;
-		}
-	}
-
-	MeshData::MeshData(const std::vector<float>& vertices, const std::vector<unsigned int>& faces)
-	{
-		const uint32_t num_vertices = vertices.size() / 3;
-		const uint32_t num_faces = faces.size() / 3;
-
-		// resize vectors to fit data
-		m_vertices.resize(vertices.size() / 3);
-		m_faces.resize(faces.size() / 3);
-
-
-		for (uint32_t i = 0; i < num_vertices; i++) {
-			VertexData v{};
-			int index = i * 3;
-			v.position[0] = vertices[index];
-			v.position[1] = vertices[index+1];
-			v.position[2] = vertices[index+2];
-			v.normal[0] = 0.0f;
-			v.normal[1] = 0.0f;
-			v.normal[2] = 0.0f;
-			v.uv[0] = 0.0f;
-			v.uv[1] = 0.0f;
-			m_vertices[i] = v;
-		}
-
-		for (uint32_t i = 0; i < num_faces; i++) {
-			IndexData f{};
-			uint32_t index = i * 3;
-			f.x = faces[index];
-			f.y = faces[index+1];
-			f.z = faces[index+2];
-			m_faces[i] = f;
-		}
+		m_faces.resize(indices.size());
+		std::copy(vertices.begin(), vertices.end(), m_vertices.begin());
+		std::copy(indices.begin(), indices.end(), m_faces.begin());
 	}
 
 	MeshData::~MeshData()
 	{
 	}
 
-	Mesh::Mesh()
-		: m_num_faces(0), m_vbo(0), m_ebo(0), m_vao(0)
-	{
-	}
-
 	Mesh::Mesh(std::shared_ptr<MeshData> data)
-		: m_num_faces(0), m_vbo(0), m_ebo(0), m_vao(0)
+		: m_num_faces(0), m_num_vertices(0), m_vbo(0), m_ebo(0), m_vao(0)
 	{
 		Upload(data);
 	}
@@ -121,8 +59,8 @@ namespace LSIS {
 
 	std::shared_ptr<MeshData> Mesh::Download() const
 	{
-		std::vector<float> vertices{};
-		std::vector<unsigned int> faces{};
+		std::vector<VertexData> vertices{};
+		std::vector<IndexData> faces{};
 
 		vertices.resize(m_num_vertices);
 		faces.resize(m_num_faces);
