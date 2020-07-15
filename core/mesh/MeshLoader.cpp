@@ -4,6 +4,9 @@
 #include <iostream>
 #include <fstream>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+
 namespace LSIS {
 
 
@@ -11,71 +14,28 @@ namespace LSIS {
 
 		std::shared_ptr<MeshData> LoadFromOBJ(const std::string& filepath)
 		{
+
+			tinyobj::attrib_t attrib;
+			std::vector<tinyobj::shape_t> shapes{};
+			std::vector<tinyobj::material_t> materials{};
+
+			std::string warn;
+			std::string err;
+
+			bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str());
+
 			std::vector<float> vertices{};
 			std::vector<unsigned int> faces{};
 
-			std::ifstream file(filepath, std::ios::in);
-			if (!file.is_open()) {
-				std::cerr << "Failed to open " << filepath << std::endl;
+			vertices.resize(attrib.vertices.size());
+			faces.resize(shapes[0].mesh.indices.size());
+
+			for (int i = 0; i < vertices.size(); i++) {
+				vertices[i] = attrib.vertices[i];
 			}
 
-			std::cout << "loading file: " << filepath << std::endl;
-
-			std::string buf;
-
-			// scan for number of vertices and faces
-			size_t num_vertices = 0, num_faces = 0;
-			while (file >> buf) {
-				if (buf == "v") {
-					num_vertices++;
-					continue;
-				}
-				if (buf == "f") {
-					num_faces++;
-					continue;
-				}
-			}
-
-			// resize vectors for for faster reading
-			vertices.resize(num_vertices * 3);
-			faces.resize(num_faces * 3);
-
-			// reset file
-			file.clear();
-			file.seekg(0, std::ios::beg);
-
-			size_t index_v = 0, index_f = 0;
-
-			while (file >> buf) {
-				switch (buf[0])
-				{
-				case 'v':
-					if (buf == "v") {
-						float x, y, z;
-						file >> x >> y >> z;
-						vertices[index_v++] = x;
-						vertices[index_v++] = y;
-						vertices[index_v++] = z;
-					}
-					else {
-						file.ignore(1024, '\n');
-					}
-					break;
-				case 'f':
-					if (buf == "f") {
-						unsigned int x, y, z;
-						file >> x >> y >> z;
-						faces[index_f++] = x-1;
-						faces[index_f++] = y-1;
-						faces[index_f++] = z-1;
-					}
-					else {
-						file.ignore(1024, '\n');
-					}
-				default:
-					file.ignore(1024, '\n');
-					break;
-				}
+			for (int i = 0; i < faces.size(); i++) {
+				faces[i] = shapes[0].mesh.indices[i].vertex_index;
 			}
 
 			return std::make_shared<MeshData>(vertices, faces);
