@@ -8,6 +8,17 @@
 
 namespace LSIS {
 
+	struct VertexData {
+		float position[3];
+		float normal[3];
+		float uv[2];
+	};
+
+	struct IndexData {
+		int x;
+		int y;
+		int z;
+	};
 
 	class MeshData {
 	public:
@@ -15,14 +26,16 @@ namespace LSIS {
 		MeshData(const std::vector<float>& vertices, const std::vector<unsigned int>& faces);
 		virtual ~MeshData();
 
-		const float* GetVertices() const { return m_vertices.data(); }
-		const unsigned int* GetFaces() const { return m_faces.data(); }
+		const VertexData* GetVertices() const { return m_vertices.data(); }
+		const IndexData* GetFaces() const { return m_faces.data(); }
 		size_t GetNumVertices() const { return m_vertices.size(); }
 		size_t GetNumFaces() const { return m_faces.size(); }
 
 	private:
-		std::vector<float> m_vertices;
-		std::vector<unsigned int> m_faces;
+		std::vector<VertexData> m_vertices;
+		//std::vector<float> m_vertices;
+		//std::vector<float> m_normals;
+		std::vector<IndexData> m_faces;
 	};
 
 	class Mesh {
