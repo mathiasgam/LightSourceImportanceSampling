@@ -199,9 +199,9 @@ namespace LSIS {
 
 	void Window::SaveScreen()
 	{
-		int width = m_Data.Width;
-		int height = m_Data.Height;
-		int channels = 3;
+		size_t width = m_Data.Width;
+		size_t height = m_Data.Height;
+		size_t channels = 3;
 
 		uint8_t* pixels = new uint8_t[width * height * channels];
 		glReadPixels(0, 0, m_Data.Width, m_Data.Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
