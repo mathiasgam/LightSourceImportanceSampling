@@ -21,6 +21,11 @@
 #include "Event/MouseEvent.h"
 #include "Event/KeyEvent.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 namespace LSIS {
 
 	std::ostream& operator<<(std::ostream& os, glm::uvec2 vec) {
@@ -147,7 +152,9 @@ namespace LSIS {
 
 	void Window::Update()
 	{
-
+		if (glfwGetKey(m_native_window, GLFW_KEY_P) == GLFW_PRESS) {
+			SaveScreen();
+		}
 		/*
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -188,6 +195,23 @@ namespace LSIS {
 	void Window::Hide()
 	{
 		glfwHideWindow(m_native_window);
+	}
+
+	void Window::SaveScreen()
+	{
+		int width = m_Data.Width;
+		int height = m_Data.Height;
+		int channels = 3;
+
+		uint8_t* pixels = new uint8_t[width * height * channels];
+		glReadPixels(0, 0, m_Data.Width, m_Data.Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+		stbi_flip_vertically_on_write(true);
+		stbi_write_png("../ScreenShot.png", width, height, channels, pixels, width * channels);
+
+		std::cout << "Screen shot saved\n";
+
+		delete[] pixels;
 	}
 
 	void Window::Init()

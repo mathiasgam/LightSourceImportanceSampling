@@ -54,6 +54,8 @@ namespace LSIS {
 		void Show();
 		void Hide();
 
+		void SaveScreen();
+
 	private:
 
 		void Init();
