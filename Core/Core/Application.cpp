@@ -103,6 +103,15 @@ namespace LSIS {
 		Initialized = true;
 	}
 
+	void Application::Destroy()
+	{
+		clReleaseCommandQueue(m_queue);
+		clReleaseContext(m_context);
+		clReleaseDevice(m_device_id);
+
+		std::cout << "Application Destroyed\n";
+	}
+
 	void UpdateCam() {
 		m_cam->SetPosition(Input::GetCameraPosition());
 		m_cam->SetRotation(Input::GetcameraRotation());

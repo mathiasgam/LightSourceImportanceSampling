@@ -18,6 +18,7 @@ namespace LSIS {
 	namespace Application {
 
 		void Init();
+		void Destroy();
 		void Run();
 
 		void OnEvent(const Event& e);
