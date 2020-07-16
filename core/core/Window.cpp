@@ -3,11 +3,10 @@
 
 #include <iostream>
 
-
+#include "GLFW/glfw3.h"
 #include "CL/cl.h"
 #include "CL/cl_gl.h"
 #include "glad/glad.h"
-#include "GLFW/glfw3.h"
 
 #define GLFW_EXPOSE_NATIVE_WGL
 #ifdef LSIS_PLATFORM_WIN
@@ -15,10 +14,6 @@
 #endif
 
 #include "GLFW/glfw3native.h"
-
-#include "Platform/windows/Win32Util.h"
-
-#include "glad/glad.h"
 
 #include "Graphics/RenderCommand.h"
 
@@ -38,7 +33,6 @@ namespace LSIS {
 
 	const char* vertex_path = "kernels/window.vert";
 	const char* fragment_path = "kernels/window.frag";
-
 
 	Window::Window(WindowData data)
 	{
@@ -115,30 +109,35 @@ namespace LSIS {
 		return glm::uvec2(m_Data.Width, m_Data.Height);
 	}
 
-	cl_context_properties* Window::GetCLProperties(const cl_platform_id platform_id) const
+	std::vector<cl_context_properties> Window::GetCLProperties(const cl_platform_id platform_id) const
 	{
 		glfwMakeContextCurrent(m_native_window);
+		std::vector<cl_context_properties> props{};
 #ifdef linux
-		cl_context_properties properties[] = {
-		CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
-		CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
-		CL_CONTEXT_PLATFORM, (cl_context_properties)platform,
-		0 };
+		props.resize(7);
+		props.push_back(CL_GL_CONTEXT_KHR);
+		props.push_back((cl_context_properties)glXGetCurrentContext());
+		props.push_back(CL_GLX_DISPLAY_KHR);
+		props.push_back((cl_context_properties)glXGetCurrentDisplay());
+		props.push_back(CL_CONTEXT_PLATFORM);
+		props.push_back((cl_context_properties)platform);
 #elif defined _WIN32
-		cl_context_properties properties[] = {
-		CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-		CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-		CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id,
-		0 };
+		props.resize(7);
+		props.push_back(CL_GL_CONTEXT_KHR);
+		props.push_back((cl_context_properties)wglGetCurrentContext());
+		props.push_back(CL_WGL_HDC_KHR);
+		props.push_back((cl_context_properties)wglGetCurrentDC());
+		props.push_back(CL_CONTEXT_PLATFORM);
+		props.push_back((cl_context_properties)platform_id);
 #elif defined TARGET_OS_MAC
 		CGLContextObj glContext = CGLGetCurrentContext();
 		CGLShareGroupObj shareGroup = CGLGetShareGroup(glContext);
-		cl_context_properties properties[] = {
-		CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-		(cl_context_properties)shareGroup,
-		0 };
+		props.resize(3);
+		props.push_back(CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE);
+		props.push_back((cl_context_properties)shareGroup);
 #endif
-		return properties;
+		props.push_back(0);
+		return props;
 	}
 
 	void Window::Clear()

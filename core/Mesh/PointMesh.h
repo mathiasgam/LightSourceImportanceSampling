@@ -22,9 +22,9 @@ namespace LSIS {
 		std::vector<Point> Download() const;
 
 	private:
-		unsigned int m_num_vertices;
-		unsigned int m_vbo;
-		unsigned int m_vao;
+		uint32_t m_num_vertices;
+		uint32_t m_vbo;
+		uint32_t m_vao;
 	};
 
 }

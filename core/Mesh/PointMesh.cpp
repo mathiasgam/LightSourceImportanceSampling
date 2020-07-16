@@ -19,7 +19,7 @@ namespace LSIS {
 
 	void PointMesh::Upload(const std::vector<Point>& data)
 	{
-		m_num_vertices = data.size();
+		m_num_vertices = static_cast<uint32_t>(data.size());
 
 		glGenBuffers(1, &m_vbo);
 		glGenVertexArrays(1, &m_vao);

@@ -31,8 +31,8 @@ namespace LSIS::Compute {
 
 		std::string delim = " ";
 
-		auto start = 0U;
-		auto end = string.find(delim);
+		size_t start = 0U;
+		size_t end = string.find(delim);
 
 		while (end != std::string::npos) {
 			result.push_back(string.substr(start, end - start));
@@ -54,6 +54,7 @@ namespace LSIS::Compute {
 					return device_id;
 			}
 		}
+		return 0;
 	}
 
 

@@ -45,8 +45,8 @@ namespace LSIS::Compute {
 		
 		std::string delim = " ";
 
-		auto start = 0U;
-		auto end = string.find(delim);
+		size_t start = 0;
+		size_t end = string.find(delim);
 
 		while (end != std::string::npos) {
 			result.push_back(string.substr(start, end - start));

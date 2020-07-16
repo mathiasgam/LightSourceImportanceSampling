@@ -30,8 +30,8 @@ namespace LSIS {
 			std::vector<VertexData> vertices{};
 			std::vector<uint32_t> indices{};
 
-			const uint32_t num_vertices = attrib.vertices.size() / 3;
-			const uint32_t num_faces = shapes[0].mesh.indices.size() / 3;
+			const uint32_t num_vertices = static_cast<uint32_t>(attrib.vertices.size() / 3);
+			const uint32_t num_faces = static_cast<uint32_t>(shapes[0].mesh.indices.size() / 3);
 
 			std::unordered_map<glm::uvec3, uint32_t> vertex_map{};
 
@@ -40,7 +40,7 @@ namespace LSIS {
 				auto p = vertex_map.find(key);
 				if (p == vertex_map.end()) {
 					// unique vertex not yet mapped
-					uint32_t index = vertices.size();
+					uint32_t index = static_cast<uint32_t>(vertices.size());
 
 					VertexData v{};
 
@@ -82,10 +82,10 @@ namespace LSIS {
 			float hw = size.x / 2;
 			float hh = size.y / 2;
 
-			vertices.emplace_back(-hw, -hh, 0, 0, 0, 1, 0, 0);
-			vertices.emplace_back(+hw, -hh, 0, 0, 0, 1, 1, 0);
-			vertices.emplace_back(+hw, +hh, 0, 0, 0, 1, 1, 1);
-			vertices.emplace_back(-hw, +hh, 0, 0, 0, 1, 0, 1);
+			vertices.emplace_back(-hw, -hh, 0.0f, 00.f, 0.0f, 1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(+hw, -hh, 0.0f, 00.f, 0.0f, 1.0f, 1.0f, 0.0f);
+			vertices.emplace_back(+hw, +hh, 0.0f, 00.f, 0.0f, 1.0f, 1.0f, 1.0f);
+			vertices.emplace_back(-hw, +hh, 0.0f, 00.f, 0.0f, 1.0f, 0.0f, 1.0f);
 
 			push_face(indices, { 0,1,2 });
 			push_face(indices, { 0,2,3 });
@@ -100,15 +100,15 @@ namespace LSIS {
 
 			float hs = size / 2.0f;
 
-			vertices.emplace_back(hs, hs, -hs, 1, 1, -1, 0, 0);
-			vertices.emplace_back(hs, -hs, -hs, 1, -1, -1, 0, 0);
-			vertices.emplace_back(hs, hs, hs, 1, 1, 1, 0, 0);
-			vertices.emplace_back(hs, -hs, hs, 1, -1, 1, 0, 0);
+			vertices.emplace_back(hs, hs, -hs, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(hs, -hs, -hs, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(hs, hs, hs, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(hs, -hs, hs, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f);
 
-			vertices.emplace_back(-hs, hs, -hs, -1, 1, -1, 0, 0);
-			vertices.emplace_back(-hs, -hs, -hs, -1, -1, -1, 0, 0);
-			vertices.emplace_back(-hs, hs, hs, -1, 1, 1, 0, 0);
-			vertices.emplace_back(-hs, -hs, hs, -1, -1, 1, 0, 0);
+			vertices.emplace_back(-hs, hs, -hs, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(-hs, -hs, -hs, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(-hs, hs, hs, -1.0f, 1.0f, 1.0f, 0.0f, 0.0f);
+			vertices.emplace_back(-hs, -hs, hs, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f);
 
 
 			push_face(indices, { 4, 2, 0 });

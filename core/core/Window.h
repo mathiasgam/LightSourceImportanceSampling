@@ -41,7 +41,7 @@ namespace LSIS {
 
 		std::string GetTitle() const;
 		const glm::uvec2 GetSize() const;
-		cl_context_properties* GetCLProperties(const cl_platform_id platform_id) const;
+		std::vector<cl_context_properties> GetCLProperties(const cl_platform_id platform_id) const;
 
 		void Clear();
 		void Update();

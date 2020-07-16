@@ -8,10 +8,10 @@
 
 namespace LSIS::Compute {
 
-	Context::Context(const cl_context_properties* propeties, cl_device_id device_id)
+	Context::Context(const std::vector<cl_context_properties>& propeties, cl_device_id device_id)
 		: m_device_id(device_id)
 	{
-		m_context = clCreateContext(propeties, 1, &device_id, nullptr, nullptr, nullptr);
+		m_context = clCreateContext(propeties.data(), 1, &device_id, nullptr, nullptr, nullptr);
 	}
 
 	Context::~Context()
