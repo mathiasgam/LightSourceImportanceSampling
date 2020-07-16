@@ -2,6 +2,7 @@ workspace "LSIS"
 	architecture "x64"
 	cppdialect "c++17"
 	startproject "LSIS"
+	systemversion "latest"
 
 	configurations {
 		"Debug",
@@ -41,21 +42,26 @@ workspace "LSIS"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
-IncludeDir["glfw"] = "vendor/glfw/include"
-IncludeDir["glad"] = "vendor/glad/include"
-IncludeDir["glm"] = "vendor/glm/glm"
+IncludeDir["glfw"] = "Vendor/glfw/include"
+IncludeDir["glad"] = "Vendor/glad/include"
+IncludeDir["glm"] = "Vendor/glm/glm"
+IncludeDir["stb_image"] = "Vendor/stb_image/"
 
-include "vendor/glfw"
-include "vendor/glad"
+include "Vendor/glfw"
+include "Vendor/glad"
 
 project "Core"
 	kind "ConsoleApp"
-	location "core"
+	location "Core"
 	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir)
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "pch.h"
+    pchsource "Core/pch.cpp"
 
 	files {
 		"%{prj.name}/**.h",
@@ -84,7 +90,8 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
-		"%{prj.name}"
+		"%{IncludeDir.stb_image}",
+		"%{prj.name}",
 	}
 
 	defines {
