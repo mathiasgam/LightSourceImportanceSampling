@@ -46,7 +46,7 @@ namespace LSIS {
 		m_cam = std::make_shared<Camera>();
 		m_scene->SetCamera(m_cam);
 
-		auto flat = Shader::Create("kernels/flat.vert", "kernels/flat.frag");
+		auto flat = Shader::Create("Kernels/flat.vert", "Kernels/flat.frag");
 		auto m1 = std::make_shared<Material>(flat, glm::vec4(1, 0, 0, 1));
 		auto m2 = std::make_shared<Material>(flat, glm::vec4(0, 1, 0, 1));
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
