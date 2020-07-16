@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PointMesh.h"
 #include "glad/glad.h"
 

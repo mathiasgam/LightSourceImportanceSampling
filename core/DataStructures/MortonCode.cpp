@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MortonCode.h"
 
 #include <intrin.h>

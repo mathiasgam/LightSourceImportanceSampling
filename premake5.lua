@@ -2,6 +2,7 @@ workspace "LSIS"
 	architecture "x64"
 	cppdialect "c++17"
 	startproject "LSIS"
+	systemversion "latest"
 
 	configurations {
 		"Debug",
@@ -52,10 +53,14 @@ project "Core"
 	kind "ConsoleApp"
 	location "core"
 	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir)
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "pch.h"
+    pchsource "Core/pch.cpp"
 
 	files {
 		"%{prj.name}/**.h",
@@ -84,7 +89,7 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
-		"%{prj.name}"
+		"%{prj.name}",
 	}
 
 	defines {

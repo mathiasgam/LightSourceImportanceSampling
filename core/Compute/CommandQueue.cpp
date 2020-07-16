@@ -1,6 +1,5 @@
+#include "pch.h"
 #include "CommandQueue.h"
-
-
 
 namespace LSIS::Compute {
 

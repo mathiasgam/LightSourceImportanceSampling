@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Object.h"
 #include "Graphics/RenderCommand.h"
 
