@@ -1,9 +1,9 @@
 [submodule "vendor/glfw"]
-	path = vendor/glfw
+	path = Vendor/glfw
 	url = https://github.com/mathiasgam/glfw.git
 [submodule "vendor/glm"]
-	path = vendor/glm
+	path = Vendor/glm
 	url = https://github.com/mathiasgam/glm.git
 [submodule "vendor/glad"]
-	path = vendor/glad
+	path = Vendor/glad
 	url = https://github.com/mathiasgam/glad.git
