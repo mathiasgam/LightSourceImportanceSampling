@@ -6,23 +6,26 @@
 
 namespace LSIS::Compute {
 
-	Buffer::Buffer(cl_mem mem, size_t size) 
-		: m_mem(mem), m_size(size)
+	Buffer::Buffer(cl_context context, size_t size)
 	{
+		cl_int err;
+		m_mem = clCreateBuffer(context, CL_MEM_READ_WRITE, size, nullptr, &err);
+		m_size = size;
 	}
 
 	Buffer::~Buffer()
 	{
+		clReleaseMemObject(m_mem);
 	}
 
-	void Buffer::Write(const void* data)
+	void Buffer::Write(cl_command_queue queue, const void* data, size_t offset, size_t size)
 	{
-		//CommandQueue::WriteBuffer(m_mem, m_size, data);
+		clEnqueueWriteBuffer(queue, m_mem, CL_TRUE, offset, size, data, 0, nullptr, nullptr);
 	}
 
-	void Buffer::Read(void* data) const
+	void Buffer::Read(cl_command_queue queue, void* data, size_t offset, size_t size)
 	{
-		//CommandQueue::ReadBuffer(m_mem, m_size, data);
+		clEnqueueReadBuffer(queue, m_mem, CL_TRUE, offset, size, data, 0, nullptr, nullptr);
 	}
 
 }

@@ -1,14 +1,13 @@
 #pragma once
 
 #include "CL/cl.h"
+#include "Contex.h"
+#include "Buffer.h"
 
 namespace LSIS::Compute {
 
 	namespace CommandQueue {
-
-		//void ReadBuffer(cl_mem mem, size_t size, void* data);
-		//void WriteBuffer(cl_mem mem, size_t size, const void* data);
-
+		cl_command_queue CreateCommandQueue(cl_context context, cl_device_id device);
 	}
 
 }

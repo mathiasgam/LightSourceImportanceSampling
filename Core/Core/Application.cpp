@@ -15,8 +15,10 @@
 
 #include "Graphics/RenderCommand.h"
 
-#include "Compute/Contex.h"
 #include "Compute/Platform.h"
+#include "Compute/Device.h"
+#include "Compute/Contex.h"
+#include "Compute/CommandQueue.h"
 
 #include <iostream>
 #include <functional>
@@ -38,7 +40,10 @@ namespace LSIS {
 	std::unique_ptr<Scene> m_scene;
 	std::shared_ptr<Camera> m_cam;
 
-	std::unique_ptr<Compute::Context> m_context;
+	cl_platform_id m_platform_id;
+	cl_device_id m_device_id;
+	cl_context m_context;
+	cl_command_queue m_queue;
 
 	void LoadScene() {
 		m_scene = std::make_unique<Scene>();
@@ -75,13 +80,16 @@ namespace LSIS {
 	}
 
 	void CreateCLContext() {
-		cl_platform_id platform_id = Compute::Platform::GetPlatform(prefered_platforms);
-		cl_device_id device_id = Compute::Device::GetDevice(platform_id, prefered_devices);
+		m_platform_id = Compute::Platform::GetPlatform(prefered_platforms);
+		m_device_id = Compute::Device::GetDevice(m_platform_id, prefered_devices);
 
-		std::cout << "Platform: " << Compute::Platform::GetName(platform_id) << std::endl;
-		std::cout << "Device: " << Compute::Device::GetName(device_id) << std::endl;
+		std::cout << "Platform: " << Compute::Platform::GetName(m_platform_id) << std::endl;
+		std::cout << "Device: " << Compute::Device::GetName(m_device_id) << std::endl;
 
-		m_context = std::make_unique<Compute::Context>(m_window->GetCLProperties(platform_id), device_id);
+		cl_int err;
+		// Create Context
+		m_context = Compute::Context::CreateContext(m_window->GetCLProperties(m_platform_id), m_device_id);
+		m_queue = Compute::CommandQueue::CreateCommandQueue(m_context, m_device_id);
 	}
 
 	void Application::Init()

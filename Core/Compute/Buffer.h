@@ -4,17 +4,17 @@
 
 #include "CL/cl.h"
 #include "Contex.h"
+#include "CommandQueue.h"
 
 namespace LSIS::Compute {
 
 	class Buffer {
-		friend class Context;
 	public:
-		Buffer(cl_mem mem, size_t size);
+		Buffer(cl_context context, size_t size);
 		virtual ~Buffer();
 
-		void Write(const void* data);
-		void Read(void* data) const;
+		void Write(cl_command_queue queue, const void* data, size_t offset, size_t size);
+		void Read(cl_command_queue queue, void* data, size_t offset, size_t size);
 
 		inline size_t GetSize() const { return m_size; };
 
