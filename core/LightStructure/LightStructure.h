@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Scene/Light.h"
+#include "Light/Light.h"
 
 namespace LSIS {
 

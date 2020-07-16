@@ -6,8 +6,9 @@
 #include <queue>
 
 #include "Object.h"
-#include "Light.h"
 #include "Camera.h"
+
+#include "Light/Light.h"
 
 #include "Graphics/Shader.h"
 #include "Mesh/Mesh.h"

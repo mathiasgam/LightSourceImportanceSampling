@@ -3,11 +3,11 @@
 #include <vector>
 #include <cinttypes>
 
-#include <Scene/Light.h>
+#include "LightStructure.h"
 
 namespace LSIS {
 
-	class LightTree {
+	class LightTree : public LightStructure {
 
 		struct Node {
 			uint32_t parent;
