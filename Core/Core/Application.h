@@ -4,7 +4,7 @@
 #include "Scene/Scene.h"
 
 #include "glm.hpp"
-#include "CL/cl.h"
+#include "CL/cl.hpp"
 
 #include <iostream>
 #include <memory>
@@ -21,9 +21,9 @@ namespace LSIS {
 		void Destroy();
 		void Run();
 
-		cl_context GetContext();
-		cl_device_id GetDeviceID();
-		cl_command_queue GetCommandQueue();
+		const cl::Context& GetContext();
+		const cl::Device& GetDevice();
+		const cl::CommandQueue& GetCommandQueue();
 
 		void OnEvent(const Event& e);
 

@@ -17,8 +17,8 @@ namespace LSIS::Compute {
 		cl_float4 incoming;
 	};
 
-	using RayBuffer = ObjectBuffer<Ray>;
-	using IntersectionBuffer = ObjectBuffer<Intersection>;
+	using RayBuffer = TypedBuffer<Ray>;
+	using IntersectionBuffer = TypedBuffer<Intersection>;
 
 	class AccelerationStructure {
 	public:

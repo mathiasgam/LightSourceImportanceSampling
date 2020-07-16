@@ -15,10 +15,7 @@
 
 #include "Graphics/RenderCommand.h"
 
-#include "Compute/Platform.h"
-#include "Compute/Device.h"
-#include "Compute/Contex.h"
-#include "Compute/CommandQueue.h"
+#include "Compute/Compute.h"
 
 #include <iostream>
 #include <functional>
@@ -31,10 +28,10 @@ namespace LSIS {
 		std::unique_ptr<Scene> m_scene;
 		std::shared_ptr<Camera> m_cam;
 
-		cl_platform_id m_platform_id;
-		cl_device_id m_device_id;
-		cl_context m_context;
-		cl_command_queue m_queue;
+		cl::Platform platform;
+		cl::Device device;
+		cl::Context context;
+		cl::CommandQueue queue;
 
 		std::vector<std::string> prefered_platforms = {
 			"NVIDIA CUDA"
@@ -82,15 +79,16 @@ namespace LSIS {
 		}
 
 		void CreateCLContext() {
-			m_platform_id = Compute::Platform::GetPlatform(prefered_platforms);
-			m_device_id = Compute::Device::GetDevice(m_platform_id, prefered_devices);
+			// Find a prefered platform and device
+			platform = Compute::GetPreferedPlatform(prefered_platforms);
+			device = Compute::GetPreferedDevice(platform, prefered_devices);
 
-			std::cout << "Platform: " << Compute::Platform::GetName(m_platform_id) << std::endl;
-			std::cout << "Device: " << Compute::Device::GetName(m_device_id) << std::endl;
+			std::cout << "Platform: " << Compute::GetName(platform) << std::endl;
+			std::cout << "Device: " << Compute::GetName(device) << std::endl;
 
 			// Create Context
-			m_context = Compute::Context::CreateContext(m_window->GetCLProperties(m_platform_id), m_device_id);
-			m_queue = Compute::CommandQueue::CreateCommandQueue(m_context, m_device_id);
+			context = Compute::CreateContext(m_window->GetCLProperties(platform()), device);
+			queue = Compute::CreateCommandQueue(context, device);
 		}
 
 		void Init()
@@ -106,10 +104,6 @@ namespace LSIS {
 
 		void Destroy()
 		{
-			clReleaseCommandQueue(m_queue);
-			clReleaseContext(m_context);
-			clReleaseDevice(m_device_id);
-
 			std::cout << "Application Destroyed\n";
 		}
 
@@ -150,19 +144,19 @@ namespace LSIS {
 			}
 		}
 
-		cl_context GetContext()
+		const cl::Context& GetContext()
 		{
-			return m_context;
+			return context;
 		}
 
-		cl_device_id GetDeviceID()
+		const cl::Device& GetDevice()
 		{
-			return m_device_id;
+			return device;
 		}
 
-		cl_command_queue GetCommandQueue()
+		const cl::CommandQueue& GetCommandQueue()
 		{
-			return m_queue;
+			return queue;
 		}
 
 		void OnEvent(const Event& e)
