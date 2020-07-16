@@ -3,6 +3,8 @@
 
 #include "shared_defines.h"
 
+// This file is NOT meant to be included in CPP code. (only CL kernels)
+
 #define IN_VAL(type, name) const type name
 #define IN_BUF(type, name) __global const type* const restrict name
 #define OUT_BUF(type, name) __global type* const restrict name
