@@ -95,6 +95,7 @@ project "Core"
 	}
 
 	defines {
-		"GLFW_INCLUDE_NONE"
+		"GLFW_INCLUDE_NONE",
+		"APP_LSIS"
 	}
 
