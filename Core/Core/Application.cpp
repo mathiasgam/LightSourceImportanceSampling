@@ -176,6 +176,7 @@ namespace LSIS {
 
 		void OnWindowResizedEvent(const WindowResizeEvent& e)
 		{
+			m_cam->SetResolution({ e.GetWidth(), e.GetHeight() });
 			RenderCommand::SetViewPort(0, 0, e.GetWidth(), e.GetHeight());
 		}
 
