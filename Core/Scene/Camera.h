@@ -25,7 +25,7 @@ namespace LSIS {
 		Transform m_transform;
 
 		glm::uvec2 m_resolution;
-		float m_FOV = 90;
+		float m_FOV = 60;
 	};
 
 }
