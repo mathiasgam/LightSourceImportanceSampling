@@ -45,6 +45,7 @@ IncludeDir = {}
 IncludeDir["glfw"] = "vendor/glfw/include"
 IncludeDir["glad"] = "vendor/glad/include"
 IncludeDir["glm"] = "vendor/glm/glm"
+IncludeDir["stb_image"] = "vendor/stb_image/"
 
 include "vendor/glfw"
 include "vendor/glad"
@@ -89,6 +90,7 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
+		"%{IncludeDir.stb_image}",
 		"%{prj.name}",
 	}
 
