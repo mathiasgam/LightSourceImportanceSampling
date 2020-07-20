@@ -46,5 +46,8 @@ namespace LSIS {
 		// Command queue
 		cl::CommandQueue CreateCommandQueue(const cl::Context& context, const cl::Device& device);
 
+		cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename);
+		cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name);
+
 	}
 }

@@ -2,6 +2,7 @@
 #include "Compute.h"
 
 #include <iostream>
+#include <fstream>
 
 namespace LSIS::Compute {
 
@@ -111,7 +112,10 @@ namespace LSIS::Compute {
 		cl_int err;
 		cl::Context context = cl::Context(device, properties.data(), nullptr, nullptr, &err);
 
-		// TODO handle errors
+		if (err) {
+			std::cout << "ERROR: " << GET_CL_ERROR_CODE(err) << std::endl;
+			exit(err);
+		}
 
 		return context;
 	}
@@ -121,9 +125,58 @@ namespace LSIS::Compute {
 		cl_int err;
 		cl_command_queue_properties props{};
 		cl::CommandQueue queue = cl::CommandQueue(context, device, props, &err);
-		// TODO handle errors
+
+		if (err) {
+			std::cout << "ERROR: " << GET_CL_ERROR_CODE(err) << std::endl;
+			exit(err);
+		}
 
 		return queue;
+	}
+
+	std::string ReadFile(const std::string& filename) {
+		auto filestream = std::ifstream(filename);
+		if (filestream.fail()) {
+			std::cerr << "Failed to open file: \"" << filename << "\n";
+		}
+		auto ss = std::stringstream();
+		if (filestream.is_open()) {
+			std::string line;
+			while (std::getline(filestream, line)) {
+				ss << line << "\n";
+			}
+		}
+		ss << "\n#define CACHE_WORKAROUND " << std::rand() << "\n";
+		return ss.str();
+	}
+
+	cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename)
+	{
+		std::string str = ReadFile(filename);
+		cl::Program::Sources source(1, std::make_pair(str.c_str(), str.length() + 1));
+		cl::Program program_copy(context, source);
+#ifdef DEBUG
+		auto err = program_copy.build("-I src/kernels -D DEBUG");
+#else
+		auto err = program.build("-I src/kernels");
+#endif // DEBUG
+
+		if (err) {
+			std::cout << "Failed to build kernel program!!!\n";
+			std::string buildlog = program_copy.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+			std::cerr << "Build log: " << GET_CL_ERROR_CODE(err) << "\n" << "at: " << filename << "\n" << buildlog << "\n";
+		}
+		return program_copy;
+	}
+
+	cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name)
+	{
+		cl_int err;
+		cl::Kernel kernel_copy(program, function_name.c_str(), &err);
+		if (err != 0) {
+			std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << "\n";
+		}
+		return kernel_copy;
 	}
 
 }
