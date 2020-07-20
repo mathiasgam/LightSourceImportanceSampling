@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Texture.h"
 
 namespace LSIS {
@@ -22,7 +23,7 @@ namespace LSIS {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		//glTexStorage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size[0], size[1]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)width, (GLsizei)height, 0, GL_RGBA, GL_FLOAT, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
