@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PathTracer.h"
+
 #include "Window.h"
 #include "Scene/Scene.h"
 
@@ -15,7 +17,10 @@
 
 namespace LSIS {
 
-	namespace Application {
+	class Application {
+	public:
+		Application();
+		virtual ~Application();
 
 		void Init();
 		void Destroy();
@@ -28,6 +33,26 @@ namespace LSIS {
 		void OnEvent(const Event& e);
 
 		void OnWindowResizedEvent(const WindowResizeEvent& e);
-	}
+
+	private:
+		void LoadScene();
+		void CreateWindow();
+		void CreateCLContext();
+		void UpdateCam();
+
+	private:
+		bool Initialized = false;
+
+		cl::Platform m_platform;
+		cl::Device m_device;
+		cl::Context m_context;
+		cl::CommandQueue m_queue;
+
+		Scope<Window> m_window;
+		Scope<Scene> m_scene;
+		Ref<Camera> m_cam;
+
+		Scope<PathTracer> m_path_tracer;
+	};
 
 }

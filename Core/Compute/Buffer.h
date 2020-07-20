@@ -7,8 +7,11 @@ namespace LSIS::Compute {
 	template<class T>
 	class TypedBuffer {
 	public:
-		TypedBuffer(const cl::Context& context, size_t count) : m_buffer(context, sizeof(T) * count), m_count(count) {}
+		TypedBuffer() : m_buffer(), m_count(0) {}
+		TypedBuffer(const cl::Context& context, cl_mem_flags mem_flags, size_t count) : m_buffer(context, mem_flags, sizeof(T) * count), m_count(count) {}
 		virtual ~TypedBuffer(){}
+
+		TypedBuffer(const TypedBuffer& buf) = delete;
 
 		void Write(const cl::CommandQueue& queue, const T* data, size_t offset, size_t count) {
 			queue.enqueueWriteBuffer(m_buffer, CL_TRUE, sizeof(T) * offset, sizeof(T) * count, std::static_pointer_cast<const void*>(data));

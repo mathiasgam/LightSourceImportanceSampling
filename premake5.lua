@@ -79,10 +79,10 @@ project "Core"
 
 	links
 	{
-		"glfw",
-		"glad",
-		"opengl32",
 		"opencl",
+		"opengl32",
+		"glfw",
+		"glad"
 	}
 
 	includedirs {

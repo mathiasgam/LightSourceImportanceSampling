@@ -5,9 +5,11 @@
 
 int main(int argc, char** argv) {
 
-	LSIS::Application::Init();
-	LSIS::Application::Run();
-	LSIS::Application::Destroy();
+	LSIS::Application app = LSIS::Application();
+
+	//app.Init();
+	app.Run();
+	app.Destroy();
 
 	return 0;
 }

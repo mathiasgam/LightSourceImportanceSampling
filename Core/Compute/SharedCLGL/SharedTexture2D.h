@@ -16,10 +16,13 @@ namespace LSIS::Compute {
 		SharedTexture2D(const cl::Context& context, size_t width, size_t height);
 		virtual ~SharedTexture2D();
 
+		SharedTexture2D(const SharedTexture2D& other) = delete;
+
 		virtual void Bind() const override;
 		virtual void UnBind() const override;
 
 		void Update(const cl::CommandQueue& queue, const cl::Buffer& buffer);
+		void Update(const cl::CommandQueue& queue, const float* data);
 
 		static void LoadKernels();
 
@@ -30,8 +33,8 @@ namespace LSIS::Compute {
 		uint32_t m_texture_id;
 		cl_mem m_cl_shared_texture;
 
-		static cl::Kernel s_kernel;
-		static cl::Program s_program;
+		//static cl::Kernel s_kernel;
+		//static cl::Program s_program;
 	};
 
 }

@@ -19,7 +19,7 @@ namespace LSIS::Compute {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		//glTexStorage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size[0], size[1]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, (GLsizei)m_width, (GLsizei)m_height, 0, GL_RGBA, GL_FLOAT, 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		cl_int status = 0;
@@ -48,19 +48,25 @@ namespace LSIS::Compute {
 	{
 		clEnqueueAcquireGLObjects(queue(), 1, &m_cl_shared_texture, 0, 0, 0);
 
-		s_kernel.setArg(0, buffer);
-		s_kernel.setArg(1, sizeof(size_t), &m_width);
-		s_kernel.setArg(1, sizeof(size_t), &m_height);
-		clSetKernelArg(s_kernel(), 2, sizeof(m_cl_shared_texture), &m_cl_shared_texture);
+		//s_kernel.setArg(0, buffer);
+		//s_kernel.setArg(1, sizeof(size_t), &m_width);
+		//s_kernel.setArg(1, sizeof(size_t), &m_height);
+		//clSetKernelArg(s_kernel(), 2, sizeof(m_cl_shared_texture), &m_cl_shared_texture);
 
-		queue.enqueueNDRangeKernel(s_kernel, 0, cl::NDRange(m_width * m_height), cl::NullRange);
+		//queue.enqueueNDRangeKernel(s_kernel, 0, cl::NDRange(m_width * m_height), cl::NullRange);
 
 		clEnqueueReleaseGLObjects(queue(), 1, &m_cl_shared_texture, 0, 0, NULL);
 	}
 
+	void SharedTexture2D::Update(const cl::CommandQueue& queue, const float* data)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_texture_id);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)m_width, (GLsizei)m_height, 0, GL_RGBA, GL_FLOAT, data);
+	}
+
 	void SharedTexture2D::LoadKernels()
 	{
-		
+
 	}
 
 }

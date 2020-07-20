@@ -5,6 +5,9 @@
 #include "Input/KeyCodes.h"
 #include "Input/Input.h"
 
+#include "CL/cl.hpp"
+#include "CL/cl.h"
+
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "GLFW/glfw3.h"
@@ -22,164 +25,167 @@
 
 namespace LSIS {
 
-	namespace Application {
+	std::vector<std::string> prefered_platforms = {
+		"NVIDIA CUDA"
+	};
 
-		std::unique_ptr<Window> m_window;
-		std::unique_ptr<Scene> m_scene;
-		std::shared_ptr<Camera> m_cam;
+	std::vector<std::string> prefered_devices = {
+		"GeForce RTX 2080",
+		"GeForce GTX 1050"
+	};
 
-		cl::Platform platform;
-		cl::Device device;
-		cl::Context context;
-		cl::CommandQueue queue;
+	void Application::LoadScene() {
+		m_scene = std::make_unique<Scene>();
 
-		std::vector<std::string> prefered_platforms = {
-			"NVIDIA CUDA"
-		};
+		m_cam = std::make_shared<Camera>();
+		m_scene->SetCamera(m_cam);
 
-		std::vector<std::string> prefered_devices = {
-			"GeForce RTX 2080",
-			"GeForce GTX 1050"
-		};
+		auto flat = Shader::Create("Kernels/flat.vert", "Kernels/flat.frag");
+		auto m1 = std::make_shared<Material>(flat, glm::vec4(1, 0, 0, 1));
+		auto m2 = std::make_shared<Material>(flat, glm::vec4(0, 1, 0, 1));
+		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
+		auto m4 = std::make_shared<Material>(flat, glm::vec4(1, 1, 1, 1));
 
-		bool Initialized = false;
+		auto square = MeshLoader::CreateCube(0.5f);
+		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
 
-		void LoadScene() {
-			m_scene = std::make_unique<Scene>();
+		m_scene->LoadObject("../models/bunny.obj", m1, Transform({ -1,0,-1 }));
+		m_scene->LoadObject("../models/cube.obj", m2, Transform({ 1,0,1 }));
+		m_scene->LoadObject("../models/cube.obj", m3, Transform({ -1,0,1 }));
+		m_scene->LoadObject("../models/cube.obj", m4, Transform({ 1,0,-1 }));
 
-			m_cam = std::make_shared<Camera>();
-			m_scene->SetCamera(m_cam);
+		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
 
-			auto flat = Shader::Create("Kernels/flat.vert", "Kernels/flat.frag");
-			auto m1 = std::make_shared<Material>(flat, glm::vec4(1, 0, 0, 1));
-			auto m2 = std::make_shared<Material>(flat, glm::vec4(0, 1, 0, 1));
-			auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
-			auto m4 = std::make_shared<Material>(flat, glm::vec4(1, 1, 1, 1));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(1, 1, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 0, 1)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -2), glm::vec3(1, 1, 1)));
+	}
 
-			std::shared_ptr<MeshData> square = MeshLoader::CreateCube(0.5f);
-			//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
+	void Application::CreateWindow() {
+		m_window = std::make_unique<Window>();
+		m_window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
+	}
 
-			m_scene->LoadObject("../models/bunny.obj", m1, Transform({ -1,0,-1 }));
-			m_scene->LoadObject("../models/cube.obj", m2, Transform({ 1,0,1 }));
-			m_scene->LoadObject("../models/cube.obj", m3, Transform({ -1,0,1 }));
-			m_scene->LoadObject("../models/cube.obj", m4, Transform({ 1,0,-1 }));
+	void Application::CreateCLContext() {
+		clGetGLContextInfoKHR_fn pclGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(m_platform(), "clGetGLContextInfoKHR");
 
-			m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
+		// Find a prefered platform and device
+		m_platform = Compute::GetPreferedPlatform(prefered_platforms);
+		m_device = Compute::GetPreferedDevice(m_platform, prefered_devices);
 
-			m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
-			m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(1, 1, 1)));
-			m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 0, 1)));
-			m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -2), glm::vec3(1, 1, 1)));
+		std::cout << "Platform: " << Compute::GetName(m_platform) << std::endl;
+		std::cout << "Device: " << Compute::GetName(m_device) << std::endl;
+
+		// Create Context
+		auto properties = m_window->GetCLProperties(m_platform());
+		m_context = Compute::CreateContext(properties, m_device);
+		m_queue = Compute::CreateCommandQueue(m_context, m_device);
+	}
+
+	void Application::Init()
+	{
+		CreateWindow();
+		CreateCLContext();
+
+		LoadScene();
+
+		auto size = m_window->GetSize();
+		m_path_tracer = std::make_unique<PathTracer>(m_context, size.x, size.y);
+
+		std::cout << "Application Initialized\n";
+		Initialized = true;
+	}
+
+	void Application::Destroy()
+	{
+		std::cout << "Application Destroyed\n";
+	}
+
+	void Application::UpdateCam() {
+		m_cam->SetPosition(Input::GetCameraPosition());
+		m_cam->SetRotation(Input::GetcameraRotation());
+	}
+
+	void Application::Run()
+	{
+		std::cout << "Running\n";
+
+		std::cout << "Num Objects: " << m_scene->GetNumObjects() << std::endl;
+		std::cout << "Num Lights:  " << m_scene->GetNumLights() << std::endl;
+
+		//window.ReloadShaders();
+		double last = glfwGetTime();
+		double time;
+
+		while (!m_window->IsCloseRequested()) {
+			time = glfwGetTime();
+			double delta = time - last;
+			last = time;
+
+			m_window->Clear();
+
+			Input::Update((float)delta);
+			UpdateCam();
+
+			m_scene->Update();
+			m_scene->Render();
+
+			m_path_tracer->Update(m_queue);
+			m_path_tracer->Render();
+
+			// Do rendering
+
+			m_window->Update();
+			m_window->SwapBuffers();
+			m_window->PollEvents();
 		}
+	}
 
-		void CreateWindow() {
-			m_window = std::make_unique<Window>();
-			m_window->SetEventCallback(Application::OnEvent);
-			m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
+	const cl::Context& Application::GetContext()
+	{
+		return m_context;
+	}
+
+	const cl::Device& Application::GetDevice()
+	{
+		return m_device;
+	}
+
+	const cl::CommandQueue& Application::GetCommandQueue()
+	{
+		return m_queue;
+	}
+
+	void Application::OnEvent(const Event& e)
+	{
+		EventType type = e.GetEventType();
+		int category_flags = e.GetCategoryFlags();
+
+		if (category_flags & EventCategory::EventCategoryInput) {
+			Input::OnEvent(e);
 		}
-
-		void CreateCLContext() {
-			// Find a prefered platform and device
-			platform = Compute::GetPreferedPlatform(prefered_platforms);
-			device = Compute::GetPreferedDevice(platform, prefered_devices);
-
-			std::cout << "Platform: " << Compute::GetName(platform) << std::endl;
-			std::cout << "Device: " << Compute::GetName(device) << std::endl;
-
-			// Create Context
-			context = Compute::CreateContext(m_window->GetCLProperties(platform()), device);
-			queue = Compute::CreateCommandQueue(context, device);
-		}
-
-		void Init()
-		{
-			CreateWindow();
-			CreateCLContext();
-
-			LoadScene();
-
-			std::cout << "Application Initialized\n";
-			Initialized = true;
-		}
-
-		void Destroy()
-		{
-			std::cout << "Application Destroyed\n";
-		}
-
-		void UpdateCam() {
-			m_cam->SetPosition(Input::GetCameraPosition());
-			m_cam->SetRotation(Input::GetcameraRotation());
-		}
-
-		void Run()
-		{
-			std::cout << "Running\n";
-
-			std::cout << "Num Objects: " << m_scene->GetNumObjects() << std::endl;
-			std::cout << "Num Lights:  " << m_scene->GetNumLights() << std::endl;
-
-			//window.ReloadShaders();
-			double last = glfwGetTime();
-			double time;
-
-			while (!m_window->IsCloseRequested()) {
-				time = glfwGetTime();
-				double delta = time - last;
-				last = time;
-
-				m_window->Clear();
-
-				Input::Update((float)delta);
-				UpdateCam();
-
-				m_scene->Update();
-				m_scene->Render();
-
-				// Do rendering
-
-				m_window->Update();
-				m_window->SwapBuffers();
-				m_window->PollEvents();
+		if (category_flags & EventCategory::EventCategoryApplication) {
+			if (type == EventType::WindowResize) {
+				OnWindowResizedEvent((const WindowResizeEvent&)e);
 			}
 		}
+	}
 
-		const cl::Context& GetContext()
-		{
-			return context;
-		}
+	void Application::OnWindowResizedEvent(const WindowResizeEvent& e)
+	{
+		m_cam->SetResolution({ e.GetWidth(), e.GetHeight() });
+		RenderCommand::SetViewPort(0, 0, e.GetWidth(), e.GetHeight());
+	}
 
-		const cl::Device& GetDevice()
-		{
-			return device;
-		}
+	Application::Application()
+	{
+		Init();
+	}
 
-		const cl::CommandQueue& GetCommandQueue()
-		{
-			return queue;
-		}
-
-		void OnEvent(const Event& e)
-		{
-			EventType type = e.GetEventType();
-			int category_flags = e.GetCategoryFlags();
-
-			if (category_flags & EventCategory::EventCategoryInput) {
-				Input::OnEvent(e);
-			}
-			if (category_flags & EventCategory::EventCategoryApplication) {
-				if (type == EventType::WindowResize) {
-					OnWindowResizedEvent((const WindowResizeEvent&)e);
-				}
-			}
-		}
-
-		void OnWindowResizedEvent(const WindowResizeEvent& e)
-		{
-			m_cam->SetResolution({ e.GetWidth(), e.GetHeight() });
-			RenderCommand::SetViewPort(0, 0, e.GetWidth(), e.GetHeight());
-		}
-
+	Application::~Application()
+	{
 	}
 
 }
