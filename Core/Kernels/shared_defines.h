@@ -40,7 +40,7 @@ namespace SHARED {
 
     typedef struct Pixel {
         float4 color;
-    };
+    } Pixel;
 
 #if defined(APP_LSIS)
 }
