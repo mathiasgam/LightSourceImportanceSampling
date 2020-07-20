@@ -2,6 +2,21 @@
 
 #include "CL/cl.hpp"
 
+#include "cl_error_code.h"
+
+#ifdef DEBUG
+#define CHECK(_openclcall_)															\
+{																					\
+	int err = _openclcall_;															\
+	if (err != 0){																	\
+		std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << ", " << __FILE__ << "\n";		\
+		exit(err);																	\
+	}																				\
+}
+#else
+#define CHECK(_openclcall_) _openclcall_
+#endif // DEBUG
+
 namespace LSIS {
 
 	namespace Compute {

@@ -38,6 +38,9 @@ namespace SHARED {
         float4 uvwt;
     } Intersection;
 
+    typedef struct Pixel {
+        float4 color;
+    };
 
 #if defined(APP_LSIS)
 }
