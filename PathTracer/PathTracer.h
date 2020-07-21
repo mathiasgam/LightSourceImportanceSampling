@@ -6,7 +6,7 @@
 #include "Core/Layer.h"
 #include "Graphics/Shader.h"
 
-#include "Compute/AccelerationStructure/AccelerationStructure.h"
+#include "AccelerationStructure/AccelerationStructure.h"
 #include "Compute/SharedCLGL/SharedTexture2D.h"
 
 namespace LSIS {

@@ -112,6 +112,9 @@ project "PathTracer"
 	targetdir ("bin/" .. outputdir)
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "pch.h"
+    pchsource "PathTracer/pch.cpp"
+
 	files {
 		"%{prj.name}/**.h",
 		"%{prj.name}/**.hpp",
