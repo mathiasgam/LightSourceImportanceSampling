@@ -13,6 +13,7 @@
 #include "GLFW/glfw3.h"
 
 #include "Scene/Camera.h"
+#include "Scene/Material.h"
 
 #include "Mesh/MeshLoader.h"
 
@@ -46,6 +47,7 @@ namespace LSIS {
 		auto m2 = std::make_shared<Material>(flat, glm::vec4(0, 1, 0, 1));
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
 		auto m4 = std::make_shared<Material>(flat, glm::vec4(1, 1, 1, 1));
+		auto m5 = std::make_shared<Material>(flat, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
 
 		auto square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
@@ -54,9 +56,13 @@ namespace LSIS {
 		m_scene->LoadObject("../Assets/Models/cube.obj", m2, Transform({ 1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m3, Transform({ -1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m4, Transform({ 1,0,-1 }));
-
-		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
-
+		{
+			auto entity = m_scene->CreateEntity();
+			auto mesh = std::make_shared<Mesh>(MeshLoader::CreateRect({ 10.0,10.0 }));
+			auto transform = Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 });
+			m_scene->AddTransform(entity, transform);
+			m_scene->AddMesh(entity, mesh, m5);
+		}
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(1, 1, 1)));
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(1, 1, 1)));
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 0, 1)));
@@ -110,7 +116,7 @@ namespace LSIS {
 	{
 		std::cout << "Running\n";
 
-		std::cout << "Num Objects: " << m_scene->GetNumObjects() << std::endl;
+		std::cout << "Num Objects: " << m_scene->GetNumEntities() << std::endl;
 		std::cout << "Num Lights:  " << m_scene->GetNumLights() << std::endl;
 
 		//window.ReloadShaders();

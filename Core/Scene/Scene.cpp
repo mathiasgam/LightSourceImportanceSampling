@@ -5,6 +5,8 @@
 
 #include <iostream>
 
+#include "Components.h"
+
 namespace LSIS {
 
 	Scene::Scene()
@@ -14,11 +16,6 @@ namespace LSIS {
 
 	Scene::~Scene()
 	{
-	}
-
-	void Scene::AddObject(std::shared_ptr<Object> object)
-	{
-		m_objects.push_back(object);
 	}
 
 	void Scene::AddLight(std::shared_ptr<Light> light)
@@ -42,6 +39,22 @@ namespace LSIS {
 		m_points = std::make_shared<PointMesh>(points);
 	}
 
+	entt::entity Scene::CreateEntity()
+	{
+		return m_registry.create();
+	}
+
+	void Scene::AddTransform(entt::entity entity, const Transform& transform)
+	{
+		const glm::mat4 mat = transform.GetModelMatrix();
+		m_registry.emplace<TransformComponent>(entity, mat);
+	}
+
+	void Scene::AddMesh(entt::entity entity, Ref<Mesh> mesh, Ref<Material> material)
+	{
+		m_registry.emplace<MeshComponent>(entity, mesh, material);
+	}
+
 	void Scene::LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform)
 	{
 		m_Futures.push_back(std::async(std::launch::async, StaticLoadObject , &m_uploads, filepath, material, transform));
@@ -60,14 +73,16 @@ namespace LSIS {
 
 	void Scene::Update()
 	{
-		//std::cout << "Scene Update\n";
-
 		queue_mutex.lock();
 		while (!m_uploads.empty()) {
 			auto& upload = m_uploads.front();
 
-			auto object = std::make_shared<Object>(upload.mesh, upload.material, upload.transform);
-			AddObject(object);
+			auto entity = m_registry.create();
+			auto mesh = std::make_shared<Mesh>(upload.mesh);
+
+			m_registry.emplace<TransformComponent>(entity, upload.transform.GetModelMatrix());
+			m_registry.emplace<MeshComponent>(entity, mesh, upload.material);
+
 			std::cout << "Upload Complete\n";
 
 			m_uploads.pop();
@@ -78,22 +93,23 @@ namespace LSIS {
 	void Scene::Render()
 	{
 		glm::mat4 cam_matrix = m_camera->GetViewProjectionMatrix();
-		for (auto& object : m_objects) {
+		/*for (auto& object : m_objects) {
 			object->Render(cam_matrix);
+		}*/
+
+		auto view = m_registry.view<MeshComponent, TransformComponent>();
+		for (auto entity : view) {
+			auto& [mesh, transform] = view.get<MeshComponent, TransformComponent>(entity);
+
+			mesh.material->Bind(transform.Transform, cam_matrix);
+			mesh.mesh->Bind();
+			RenderCommand::RenderGeometryBuffer(mesh.mesh);
 		}
 		
 		m_point_shader->Bind();
 		m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 		m_points->Bind();
 		RenderCommand::RenderPointMesh(m_points);
-	}
-	size_t Scene::GetNumObjects() const
-	{
-		return m_objects.size();
-	}
-	size_t Scene::GetNumLights() const
-	{
-		return m_lights.size();
 	}
 
 	void Scene::StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform)

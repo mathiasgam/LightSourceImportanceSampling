@@ -50,6 +50,7 @@ IncludeDir["glfw"] = "Vendor/glfw/include"
 IncludeDir["glad"] = "Vendor/glad/include"
 IncludeDir["glm"] = "Vendor/glm/glm"
 IncludeDir["stb_image"] = "Vendor/stb_image/"
+IncludeDir["entt"] = "Vendor/entt/"
 
 include "Vendor/glfw"
 include "Vendor/glad"
@@ -95,6 +96,7 @@ project "Core"
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.entt}",
 		"%{prj.name}",
 	}
 
@@ -134,4 +136,5 @@ project "PathTracer"
 		"$(OPENCL_PATH)/include",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.glad}",
+		"%{IncludeDir.entt}",
 	}

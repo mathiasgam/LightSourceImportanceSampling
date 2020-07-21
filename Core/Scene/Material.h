@@ -14,7 +14,7 @@ namespace LSIS {
 		Material(std::shared_ptr<Shader> shader, glm::vec4 color);
 		virtual ~Material();
 
-		void Bind(const Transform& transform, const glm::mat4& cam_matrix);
+		void Bind(const glm::mat4& transform, const glm::mat4& cam_matrix);
 
 	private:
 		std::shared_ptr<Shader> m_shader;

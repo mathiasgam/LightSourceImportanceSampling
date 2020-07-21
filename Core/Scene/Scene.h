@@ -5,14 +5,18 @@
 #include <future>
 #include <queue>
 
-#include "Object.h"
+#include "Core.h"
+
 #include "Camera.h"
+#include "Material.h"
 
 #include "Light/Light.h"
 
 #include "Graphics/Shader.h"
 #include "Mesh/Mesh.h"
 #include "Mesh/PointMesh.h"
+
+#include "entt.hpp"
 
 namespace LSIS {
 
@@ -28,8 +32,11 @@ namespace LSIS {
 		Scene();
 		virtual ~Scene();
 
-		void AddObject(std::shared_ptr<Object> object);
 		void AddLight(std::shared_ptr<Light> light);
+
+		entt::entity CreateEntity();
+		void AddTransform(entt::entity entity, const Transform& transform);
+		void AddMesh(entt::entity entity, Ref<Mesh> mesh, Ref<Material> material);
 
 		void LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform);
 
@@ -39,19 +46,20 @@ namespace LSIS {
 		void Update();
 		void Render();
 
-		size_t GetNumObjects() const;
-		size_t GetNumLights() const;
+		size_t GetNumEntities() const { return m_registry.size(); }
+		size_t GetNumLights() const { return m_lights.size(); }
 
 	private:
 
 		static void StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform);
 
 	private:
+		entt::registry m_registry;
+
 
 		std::shared_ptr<PointMesh> m_points;
 		std::shared_ptr<Shader> m_point_shader;
 
-		std::vector<std::shared_ptr<Object>> m_objects;
 		std::vector<std::shared_ptr<Light>> m_lights;
 
 		std::shared_ptr<Shader> m_shader;
@@ -63,5 +71,6 @@ namespace LSIS {
 		std::mutex m_upload_mutex;
 		std::queue<ObjectUpload> m_uploads{};
 	};
+
 
 }

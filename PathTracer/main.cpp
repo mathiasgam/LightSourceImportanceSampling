@@ -5,6 +5,9 @@
 
 #include "PathTracer.h"
 
+#include "entt.hpp"
+#include "Scene/Components.h"
+
 int main(int argc, char** argv) {
 
 	LSIS::Application app = LSIS::Application();

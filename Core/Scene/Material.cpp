@@ -12,11 +12,11 @@ namespace LSIS {
 	{
 	}
 
-	void Material::Bind(const Transform& transform, const glm::mat4& cam_matrix)
+	void Material::Bind(const glm::mat4& transform, const glm::mat4& cam_matrix)
 	{
 		m_shader->Bind();
 		m_shader->UploadUniformfloat4("color", m_color);
-		m_shader->UploadUniformMat4("model", transform.GetModelMatrix());
+		m_shader->UploadUniformMat4("model", transform);
 		m_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 	}
 
