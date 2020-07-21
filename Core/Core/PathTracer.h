@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Core.h"
+#include "Layer.h"
 #include "Graphics/Shader.h"
 
 #include "Compute/AccelerationStructure/AccelerationStructure.h"
@@ -10,7 +11,7 @@
 
 namespace LSIS {
 
-	class PathTracer {
+	class PathTracer : public Layer {
 
 		using PixelBuffer = Compute::TypedBuffer<SHARED::Pixel>;
 		using RayBuffer = Compute::TypedBuffer<SHARED::Ray>;
@@ -24,6 +25,12 @@ namespace LSIS {
 
 		void Update(const cl::CommandQueue& queue);
 		void Render();
+
+		virtual void OnUpdate(float delta) override;
+		virtual bool OnEvent(const Event& e) override;
+		virtual void OnAttach() override;
+		virtual void OnDetach() override;
+		virtual int GetEventCategoriesFlags() override { return EventCategory::EventCategoryApplication; }
 
 		size_t CalculateMemory() const;
 

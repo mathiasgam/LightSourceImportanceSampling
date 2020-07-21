@@ -48,6 +48,24 @@ namespace LSIS {
 	{
 	}
 
+	void PathTracer::OnUpdate(float delta)
+	{
+	}
+
+	bool PathTracer::OnEvent(const Event& e)
+	{
+		std::cout << "PT Event: " << e << std::endl;
+		return false;
+	}
+
+	void PathTracer::OnAttach()
+	{
+	}
+
+	void PathTracer::OnDetach()
+	{
+	}
+
 	size_t PathTracer::CalculateMemory() const
 	{
 		size_t mem_size = 0;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PathTracer.h"
+#include "Layer.h"
 
 #include "Window.h"
 #include "Scene/Scene.h"
@@ -25,6 +25,8 @@ namespace LSIS {
 		void Init();
 		void Destroy();
 		void Run();
+
+		void AddLayer(Ref<Layer> layer);
 
 		const cl::Context& GetContext();
 		const cl::Device& GetDevice();
@@ -52,7 +54,7 @@ namespace LSIS {
 		Scope<Scene> m_scene;
 		Ref<Camera> m_cam;
 
-		Scope<PathTracer> m_path_tracer;
+		std::vector<Ref<Layer>> m_layers{};
 	};
 
 }

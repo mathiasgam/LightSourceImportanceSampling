@@ -91,9 +91,6 @@ namespace LSIS {
 
 		LoadScene();
 
-		auto size = m_window->GetSize();
-		m_path_tracer = std::make_unique<PathTracer>(m_context, size.x, size.y);
-
 		std::cout << "Application Initialized\n";
 		Initialized = true;
 	}
@@ -121,19 +118,20 @@ namespace LSIS {
 
 		while (!m_window->IsCloseRequested()) {
 			time = glfwGetTime();
-			double delta = time - last;
+			float delta = (float)(time - last);
 			last = time;
 
 			m_window->Clear();
 
-			Input::Update((float)delta);
+			Input::Update(delta);
 			UpdateCam();
 
 			m_scene->Update();
 			m_scene->Render();
 
-			m_path_tracer->Update(m_queue);
-			m_path_tracer->Render();
+			for (auto& layer : m_layers) {
+				layer->OnUpdate(delta);
+			}
 
 			// Do rendering
 
@@ -142,6 +140,12 @@ namespace LSIS {
 			m_window->PollEvents();
 		}
 	}
+
+	void Application::AddLayer(Ref<Layer> layer)
+	{
+		m_layers.push_back(layer);
+	}
+
 
 	const cl::Context& Application::GetContext()
 	{
@@ -161,14 +165,23 @@ namespace LSIS {
 	void Application::OnEvent(const Event& e)
 	{
 		EventType type = e.GetEventType();
-		int category_flags = e.GetCategoryFlags();
+		int event_flags = e.GetCategoryFlags();
 
-		if (category_flags & EventCategory::EventCategoryInput) {
+		if (event_flags & EventCategory::EventCategoryInput) {
 			Input::OnEvent(e);
 		}
-		if (category_flags & EventCategory::EventCategoryApplication) {
+		if (event_flags & EventCategory::EventCategoryApplication) {
 			if (type == EventType::WindowResize) {
 				OnWindowResizedEvent((const WindowResizeEvent&)e);
+			}
+		}
+
+		for (auto& layer : m_layers) {
+			int layer_flags = layer->GetEventCategoriesFlags();
+			if ((layer_flags & event_flags) != 0) {
+				if (layer->OnEvent(e)) {
+					break;
+				}
 			}
 		}
 	}
