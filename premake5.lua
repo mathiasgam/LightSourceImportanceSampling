@@ -1,8 +1,12 @@
 workspace "LSIS"
 	architecture "x64"
 	cppdialect "c++17"
-	startproject "LSIS"
+	startproject "PathTracer"
 	systemversion "latest"
+
+	defines {
+		"APP_LSIS"
+	}
 
 	configurations {
 		"Debug",
@@ -51,7 +55,7 @@ include "Vendor/glfw"
 include "Vendor/glad"
 
 project "Core"
-	kind "ConsoleApp"
+	kind "StaticLib"
 	location "Core"
 	language "C++"
 	cppdialect "C++17"
@@ -96,6 +100,35 @@ project "Core"
 
 	defines {
 		"GLFW_INCLUDE_NONE",
-		"APP_LSIS"
 	}
 
+project "PathTracer"
+	kind "ConsoleApp"
+	location "PathTracer"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	targetdir ("bin/" .. outputdir)
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files {
+		"%{prj.name}/**.h",
+		"%{prj.name}/**.hpp",
+		"%{prj.name}/**.cpp"
+	}
+
+	libdirs {
+		"Core"
+	}
+
+	links {
+		"Core"
+	}
+
+	includedirs {
+		"Core",
+		"$(OPENCL_PATH)/include",
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.glad}",
+	}

@@ -154,7 +154,7 @@ namespace LSIS::Compute {
 	{
 		std::string str = ReadFile(filename);
 		cl::Program::Sources source(1, std::make_pair(str.c_str(), str.length() + 1));
-		cl::Program program_copy(context, source);
+		cl::Program program(context, source);
 #ifdef DEBUG
 		auto err = program_copy.build("-I src/kernels -D DEBUG");
 #else
@@ -163,20 +163,20 @@ namespace LSIS::Compute {
 
 		if (err) {
 			std::cout << "Failed to build kernel program!!!\n";
-			std::string buildlog = program_copy.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+			std::string buildlog = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
 			std::cerr << "Build log: " << GET_CL_ERROR_CODE(err) << "\n" << "at: " << filename << "\n" << buildlog << "\n";
 		}
-		return program_copy;
+		return program;
 	}
 
 	cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name)
 	{
 		cl_int err;
-		cl::Kernel kernel_copy(program, function_name.c_str(), &err);
+		cl::Kernel kernel(program, function_name.c_str(), &err);
 		if (err != 0) {
 			std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << "\n";
 		}
-		return kernel_copy;
+		return kernel;
 	}
 
 }
