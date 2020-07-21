@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "Core/Application.h"
-#include "Core/PathTracer.h"
+#include "PathTracer.h"
 
 int main(int argc, char** argv) {
 
