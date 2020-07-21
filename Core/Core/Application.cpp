@@ -38,6 +38,7 @@ namespace LSIS {
 		m_scene = std::make_unique<Scene>();
 
 		m_cam = std::make_shared<Camera>();
+		m_cam->SetPosition({ -3.0f,1.0f,3.0f });
 		m_scene->SetCamera(m_cam);
 
 		auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
@@ -63,8 +64,8 @@ namespace LSIS {
 	}
 
 	void Application::CreateWindow() {
-		m_window = std::make_unique<Window>();
-		m_window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+		Window::WindowData win_props{ "LSIS", 720, 512, BIND_EVENT_FN(Application::OnEvent) };
+		m_window = std::make_unique<Window>(win_props);
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 	}
 
