@@ -40,7 +40,7 @@ namespace LSIS {
 		m_cam = std::make_shared<Camera>();
 		m_scene->SetCamera(m_cam);
 
-		auto flat = Shader::Create("Kernels/flat.vert", "Kernels/flat.frag");
+		auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 		auto m1 = std::make_shared<Material>(flat, glm::vec4(1, 0, 0, 1));
 		auto m2 = std::make_shared<Material>(flat, glm::vec4(0, 1, 0, 1));
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0, 0, 1, 1));
@@ -49,10 +49,10 @@ namespace LSIS {
 		auto square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
 
-		m_scene->LoadObject("../models/bunny.obj", m1, Transform({ -1,0,-1 }));
-		m_scene->LoadObject("../models/cube.obj", m2, Transform({ 1,0,1 }));
-		m_scene->LoadObject("../models/cube.obj", m3, Transform({ -1,0,1 }));
-		m_scene->LoadObject("../models/cube.obj", m4, Transform({ 1,0,-1 }));
+		m_scene->LoadObject("../Assets/Models/bunny.obj", m1, Transform({ -1,0,-1 }));
+		m_scene->LoadObject("../Assets/Models/cube.obj", m2, Transform({ 1,0,1 }));
+		m_scene->LoadObject("../Assets/Models/cube.obj", m3, Transform({ -1,0,1 }));
+		m_scene->LoadObject("../Assets/Models/cube.obj", m4, Transform({ 1,0,-1 }));
 
 		m_scene->AddObject(std::make_shared<Object>(MeshLoader::CreateRect({ 10.0,10.0 }), m4, Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 })));
 

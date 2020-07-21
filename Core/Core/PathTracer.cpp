@@ -9,7 +9,7 @@ namespace LSIS {
 	{
 		//m_context = context;
 		m_texture = std::make_unique<Compute::SharedTexture2D>(context, width, height);
-		m_window_shader = Shader::Create("Kernels/texture.vert", "Kernels/texture.frag");
+		m_window_shader = Shader::Create("../Assets/Kernels/texture.vert", "../Assets/Kernels/texture.frag");
 		PrepareCameraRays(context);
 	}
 

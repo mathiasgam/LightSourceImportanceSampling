@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Compute/Buffer.h"
-#include "Kernels/shared_defines.h"
+#include "../Assets/Kernels/shared_defines.h"
 
 #include "Mesh/Mesh.h"
 

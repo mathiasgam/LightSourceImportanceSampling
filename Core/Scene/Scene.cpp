@@ -9,7 +9,7 @@ namespace LSIS {
 
 	Scene::Scene()
 	{
-		m_point_shader = Shader::Create("Kernels/point.vert", "Kernels/point.frag");
+		m_point_shader = Shader::Create("../Assets/Shaders/point.vert", "../Assets/Shaders/point.frag");
 	}
 
 	Scene::~Scene()

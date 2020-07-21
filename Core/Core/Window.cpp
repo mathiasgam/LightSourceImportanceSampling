@@ -36,8 +36,8 @@ namespace LSIS {
 		return os << "[" << vec.x << "," << vec.y << "]";
 	}
 
-	const char* vertex_path = "kernels/window.vert";
-	const char* fragment_path = "kernels/window.frag";
+	const char* vertex_path = "../Assets/Shaders/window.vert";
+	const char* fragment_path = "../Assets/Shaders/window.frag";
 
 	Window::Window(WindowData data)
 	{
