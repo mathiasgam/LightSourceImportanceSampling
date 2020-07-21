@@ -78,7 +78,7 @@ namespace LSIS {
 			in.close();
 		}
 		else {
-			std::cout << "Failed to read file!\n";
+			std::cout << "Failed to read file: " << filepath << std::endl;
 		}
 	}
 
