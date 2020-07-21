@@ -30,7 +30,6 @@ namespace LSIS {
 		virtual bool OnEvent(const Event& e) override;
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
-		virtual int GetEventCategoriesFlags() override { return EventCategory::EventCategoryApplication; }
 
 		size_t CalculateMemory() const;
 

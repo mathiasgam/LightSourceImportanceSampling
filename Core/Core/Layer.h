@@ -7,15 +7,16 @@ namespace LSIS {
 	class Layer {
 	public:
 
-		virtual void OnUpdate(float delta) = 0;
+		virtual void OnUpdate(float delta) {};
 		virtual bool OnEvent(const Event& e) { return false; }
-		virtual void OnAttach() = 0;
-		virtual void OnDetach() = 0;
+		virtual void OnAttach() {};
+		virtual void OnDetach() {};
 
-		virtual int GetEventCategoriesFlags() { return EventCategory::None; }
+		void SetEventCategoryFlags(int flags) { m_category_flags = flags; }
+		int GetEventCategoriesFlags() { return m_category_flags; }
 
 	private:
-
+		int m_category_flags = EventCategory::None;
 	};
 
 }
