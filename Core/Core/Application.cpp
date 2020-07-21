@@ -18,6 +18,7 @@
 #include "Mesh/MeshLoader.h"
 
 #include "Graphics/RenderCommand.h"
+#include "Graphics/PointRenderer.h"
 
 #include "Compute/Compute.h"
 
@@ -95,6 +96,8 @@ namespace LSIS {
 	{
 		CreateWindow();
 		CreateCLContext();
+
+		PointRenderer::Init();
 
 		LoadScene();
 

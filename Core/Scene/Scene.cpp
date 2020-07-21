@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "Scene.h"
+
 #include "Mesh/MeshLoader.h"
+
 #include "Graphics/RenderCommand.h"
+#include "Graphics/PointRenderer.h"
 
 #include <iostream>
 
@@ -21,22 +24,6 @@ namespace LSIS {
 	void Scene::AddLight(std::shared_ptr<Light> light)
 	{
 		m_lights.push_back(light);
-
-		std::vector<Point> points{};
-		points.reserve(m_lights.size());
-		for (auto& light : m_lights) {
-			Point p{};
-			glm::vec3 pos = light->GetPosition();
-			glm::vec3 col = light->GetColor();
-			p.position[0] = pos.x;
-			p.position[1] = pos.y;
-			p.position[2] = pos.z;
-			p.color[0] = col.x;
-			p.color[1] = col.y;
-			p.color[2] = col.z;
-			points.push_back(p);
-		}
-		m_points = std::make_shared<PointMesh>(points);
 	}
 
 	entt::entity Scene::CreateEntity()
@@ -106,10 +93,22 @@ namespace LSIS {
 			RenderCommand::RenderGeometryBuffer(mesh.mesh);
 		}
 		
+
 		m_point_shader->Bind();
 		m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
-		m_points->Bind();
-		RenderCommand::RenderPointMesh(m_points);
+		
+		PointRenderer::ResetStats();
+		PointRenderer::BeginBatch();
+
+		for (auto& light : m_lights) {
+			PointRenderer::DrawPoint(light->GetPosition(), light->GetColor());
+		}
+		PointRenderer::EndBatch();
+		PointRenderer::Flush();
+
+		//m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
+		//m_points->Bind();
+		//RenderCommand::RenderPointMesh(m_points);
 	}
 
 	void Scene::StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform)
