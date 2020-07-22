@@ -19,6 +19,7 @@
 
 #include "Graphics/RenderCommand.h"
 #include "Graphics/PointRenderer.h"
+#include "Graphics/Renderer2D.h"
 
 #include "Compute/Compute.h"
 
@@ -98,6 +99,7 @@ namespace LSIS {
 		CreateCLContext();
 
 		PointRenderer::Init();
+		LineRenderer::Init();
 
 		LoadScene();
 

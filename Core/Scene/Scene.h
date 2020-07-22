@@ -51,6 +51,7 @@ namespace LSIS {
 
 	private:
 
+		void RenderGrid();
 		static void StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform);
 
 	private:

@@ -5,6 +5,7 @@
 
 #include "Graphics/RenderCommand.h"
 #include "Graphics/PointRenderer.h"
+#include "Graphics/Renderer2D.h"
 
 #include <iostream>
 
@@ -44,7 +45,7 @@ namespace LSIS {
 
 	void Scene::LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform)
 	{
-		m_Futures.push_back(std::async(std::launch::async, StaticLoadObject , &m_uploads, filepath, material, transform));
+		m_Futures.push_back(std::async(std::launch::async, StaticLoadObject, &m_uploads, filepath, material, transform));
 	}
 
 	void Scene::SetCamera(std::shared_ptr<Camera> camera)
@@ -92,23 +93,64 @@ namespace LSIS {
 			mesh.mesh->Bind();
 			RenderCommand::RenderGeometryBuffer(mesh.mesh);
 		}
-		
+
 
 		m_point_shader->Bind();
 		m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
-		
+
 		PointRenderer::ResetStats();
 		PointRenderer::BeginBatch();
+		LineRenderer::ResetStats();
+		LineRenderer::BeginBatch();
 
+		std::vector<glm::vec3> path{};
+		path.push_back({ 0,0,0 });
 		for (auto& light : m_lights) {
 			PointRenderer::DrawPoint(light->GetPosition(), light->GetColor());
+			path.push_back(light->GetPosition());
 		}
+
+		LineRenderer::DrawLines(path.data(), path.size(), { 1,0,0 });
+
+		RenderGrid();
+
+
 		PointRenderer::EndBatch();
 		PointRenderer::Flush();
+
+		LineRenderer::EndBatch();
+		LineRenderer::Flush();
+
+		auto line_stat = LineRenderer::GetStats();
+		auto point_stat = PointRenderer::GetStats();
+
+		std::cout << "Lines:  " << line_stat.LineCount << std::endl;
+		std::cout << "Points: " << point_stat.PointCount << std::endl;
+
 
 		//m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 		//m_points->Bind();
 		//RenderCommand::RenderPointMesh(m_points);
+	}
+
+	void Scene::RenderGrid()
+	{
+		glm::vec3 center = { 0,0,0 };
+		glm::vec3 color = { 0.2,0.2,0.2 };
+		float d = 1.0f;
+		int n = 6;
+
+		const float b = d * n;
+		LineRenderer::DrawLine({ -b,0,0 }, { b,0,0 }, color);
+		LineRenderer::DrawLine({ 0,0,-b }, { 0,0,b }, color);
+
+		for (int i = 0; i < n; i++) {
+			const float a = d * (i + 1);
+			LineRenderer::DrawLine({ a, 0,-b }, { a, 0,b }, color);
+			LineRenderer::DrawLine({ -a, 0,-b }, { -a, 0,b }, color);
+			LineRenderer::DrawLine({ -b, 0,a }, { b, 0,a }, color);
+			LineRenderer::DrawLine({ -b, 0,-a }, { b, 0,-a }, color);
+		}
 	}
 
 	void Scene::StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform)
