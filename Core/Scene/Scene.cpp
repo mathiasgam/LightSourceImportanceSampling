@@ -121,13 +121,6 @@ namespace LSIS {
 		LineRenderer::EndBatch();
 		LineRenderer::Flush();
 
-		auto line_stat = LineRenderer::GetStats();
-		auto point_stat = PointRenderer::GetStats();
-
-		std::cout << "Lines:  " << line_stat.LineCount << std::endl;
-		std::cout << "Points: " << point_stat.PointCount << std::endl;
-
-
 		//m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 		//m_points->Bind();
 		//RenderCommand::RenderPointMesh(m_points);
