@@ -126,6 +126,62 @@ namespace LSIS {
 		//RenderCommand::RenderPointMesh(m_points);
 	}
 
+
+
+	Ref<MeshData> Scene::GetCollectiveMeshData()
+	{
+		size_t num_vertices = 0;
+		size_t num_indices = 0;
+		std::vector<VertexData> vertices{};
+		std::vector<uint32_t> indices{};
+		
+		// Find size of all mesh data
+		auto view = m_registry.view<MeshComponent, TransformComponent>();
+		for (auto entity : view) {
+			auto& [mesh,Transform] = view.get<MeshComponent, TransformComponent>(entity);
+			num_vertices += mesh.mesh->GetNumVertices();
+			num_indices += mesh.mesh->GetNumIndices();
+		}
+		
+
+		// resize vectors
+		vertices.resize(num_vertices);
+		indices.resize(num_indices);
+
+		// Read data
+		uint32_t index_idx = 0;
+		uint32_t index_vtx = 0;
+		for (auto entity : view) {
+			auto& [mesh, transform] = view.get<MeshComponent, TransformComponent>(entity);
+			auto data = mesh.mesh->Download();
+
+			auto vertex_data = data->GetVertices();
+			auto index_data = data->GetIndices();
+
+			for (size_t i = 0; i < data->GetNumIndices(); i++) {
+				indices[index_idx++] = index_data[i] + index_vtx;
+			}
+
+			for (size_t i = 0; i < data->GetNumVertices(); i++) {
+				glm::vec4 p = transform.Transform * glm::vec4(vertex_data[i].position[0], vertex_data[i].position[1], vertex_data[i].position[2], 1.0f);
+				glm::vec4 n = transform.Transform * glm::vec4(vertex_data[i].normal[0], vertex_data[i].normal[1], vertex_data[i].normal[2], 0.0f);
+				VertexData d{};
+				d.position[0] = p.x;
+				d.position[1] = p.y;
+				d.position[2] = p.z;
+				d.normal[0] = n.x;
+				d.normal[1] = n.y;
+				d.normal[2] = n.z;
+				d.uv[0] = vertex_data->uv[0];
+				d.uv[1] = vertex_data->uv[1];
+				vertices[index_vtx++] = d;
+			}
+		}
+		
+
+		return std::make_shared<MeshData>(vertices, indices);
+	}
+
 	void Scene::RenderGrid()
 	{
 		glm::vec3 center = { 0,0,0 };

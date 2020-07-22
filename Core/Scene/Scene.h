@@ -49,13 +49,15 @@ namespace LSIS {
 		size_t GetNumEntities() const { return m_registry.size(); }
 		size_t GetNumLights() const { return m_lights.size(); }
 
+		Ref<MeshData> GetCollectiveMeshData();
+
 	private:
 
 		void RenderGrid();
 		static void StaticLoadObject(std::queue<ObjectUpload>* queue, const std::string filepath, std::shared_ptr<Material> material, Transform transform);
 
 	private:
-		entt::registry m_registry;
+		entt::registry m_registry{};
 
 
 		std::shared_ptr<PointMesh> m_points;
