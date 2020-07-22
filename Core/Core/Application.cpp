@@ -38,7 +38,7 @@ namespace LSIS {
 	};
 
 	void Application::LoadScene() {
-		m_scene = std::make_unique<Scene>();
+		m_scene = std::make_shared<Scene>();
 
 		m_cam = std::make_shared<Camera>();
 		m_cam->SetPosition({ -3.0f,1.0f,3.0f });
@@ -202,6 +202,12 @@ namespace LSIS {
 	{
 		m_cam->SetResolution({ e.GetWidth(), e.GetHeight() });
 		RenderCommand::SetViewPort(0, 0, e.GetWidth(), e.GetHeight());
+	}
+
+	Application* Application::Get()
+	{
+		static Application app = Application();
+		return &app;
 	}
 
 	Application::Application()
