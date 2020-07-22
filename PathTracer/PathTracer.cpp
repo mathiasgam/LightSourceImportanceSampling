@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "PathTracer.h"
 
+#include "Core/Application.h"
+#include "Event/Event.h"
+#include "Input/KeyCodes.h"
+
+#include "AccelerationStructure/LBVHStructure.h"
+
 namespace LSIS {
 
 
@@ -11,7 +17,9 @@ namespace LSIS {
 		m_texture = std::make_unique<Compute::SharedTexture2D>(context, width, height);
 		m_window_shader = Shader::Create("../Assets/Shaders/texture.vert", "../Assets/Shaders/texture.frag");
 		PrepareCameraRays(context);
-		SetEventCategoryFlags(EventCategory::EventCategoryApplication);
+		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
+
+		m_tracing_structure = std::make_shared<Compute::LBVHStructure>();
 	}
 
 	PathTracer::~PathTracer()
@@ -56,11 +64,21 @@ namespace LSIS {
 	bool PathTracer::OnEvent(const Event& e)
 	{
 		std::cout << "PT Event: " << e << std::endl;
+		if (e.GetEventType() == EventType::KeyPressed) {
+			auto key_event = (const KeyPressedEvent&)e;
+			auto key = key_event.GetKey();
+			if (key == KEY_B) {
+				auto app = Application::Get();
+				auto geometry = app->GetScene()->GetCollectiveMeshData();
+				m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
+			}
+		}
 		return false;
 	}
 
 	void PathTracer::OnAttach()
 	{
+		
 	}
 
 	void PathTracer::OnDetach()

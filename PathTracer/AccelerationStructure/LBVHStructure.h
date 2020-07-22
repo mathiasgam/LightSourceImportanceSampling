@@ -8,28 +8,25 @@ namespace LSIS::Compute {
 
 	};
 
-	struct Vertex {
-
-	};
-
-	struct Face {
-
-	};
-
 	class LBVHStructure : public AccelerationStructure{
 	public:
 		LBVHStructure();
 		virtual ~LBVHStructure();
 
-		virtual void Build(std::vector<Mesh>& meshes) override;
+		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) override;
 		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) override;
 
 	private:
-		cl_program m_program;
-		cl_kernel m_kernel;
+		void CompileKernels();
+		void LoadGeometryBuffers();
+		void LoadBVHBuffer();
 
-		//ObjectBuffer<Node> m_nodes;
-		//ObjectBuffer<Vertex> m_vertices;
-		//ObjectBuffer<Face> m_faces;
+	private:
+		cl::Program m_program;
+		cl::Kernel m_kernel;
+
+		cl::Buffer m_buffer_bvh;
+		cl::Buffer m_buffer_faces;
+		cl::Buffer m_buffer_vertices;
 	};
 }
