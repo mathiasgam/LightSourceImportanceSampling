@@ -5,6 +5,7 @@ namespace LSIS {
 	
 	LBVHStructure::LBVHStructure()
 	{
+		CompileKernels();
 	}
 
 	LBVHStructure::~LBVHStructure()
@@ -24,10 +25,12 @@ namespace LSIS {
 
 	void LBVHStructure::CompileKernels()
 	{
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "../Assets/Kernels/bvh.cl");
+		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
 	}
 
 	void LBVHStructure::LoadGeometryBuffers()
-	{	
+	{
 	}
 
 	void LBVHStructure::LoadBVHBuffer()
