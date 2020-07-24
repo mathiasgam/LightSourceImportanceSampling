@@ -35,6 +35,9 @@ namespace LSIS {
 		void LoadBVHBuffer(const Node* nodes, size_t num_nodes);
 
 	private:
+
+		bool isBuild = false;
+
 		cl::Program m_program;
 		cl::Kernel m_kernel;
 

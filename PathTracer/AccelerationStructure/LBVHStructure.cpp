@@ -21,6 +21,11 @@ namespace LSIS {
 
 	void LBVHStructure::TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer)
 	{
+		if (!isBuild) {
+			std::cout << "Error: BVH not yet build!\n";
+			return;
+		}
+
 		// Get ray count;
 		cl_uint num_rays = ray_buffer.Count();
 
