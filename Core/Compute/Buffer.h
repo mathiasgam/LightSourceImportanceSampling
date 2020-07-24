@@ -2,7 +2,7 @@
 
 #include "Compute.h"
 
-namespace LSIS::Compute {
+namespace LSIS {
 
 	template<class T>
 	class TypedBuffer {

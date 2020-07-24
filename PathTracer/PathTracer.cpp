@@ -10,28 +10,28 @@
 namespace LSIS {
 
 
-	PathTracer::PathTracer(const cl::Context& context, size_t width, size_t height)
+	PathTracer::PathTracer(size_t width, size_t height)
 		: m_image_width(width), m_image_height(height)
 	{
 		//m_context = context;
-		m_texture = std::make_unique<Compute::SharedTexture2D>(context, width, height);
+		m_texture = std::make_unique<SharedTexture2D>(Compute::GetContext(), width, height);
 		m_window_shader = Shader::Create("../Assets/Shaders/texture.vert", "../Assets/Shaders/texture.frag");
-		PrepareCameraRays(context);
+		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
-		m_tracing_structure = std::make_shared<Compute::LBVHStructure>();
+		m_tracing_structure = std::make_shared<LBVHStructure>();
 	}
 
 	PathTracer::~PathTracer()
 	{
 	}
 
-	void PathTracer::SetImageSize(const cl::Context& context, const size_t width, const size_t height)
+	void PathTracer::SetImageSize(const size_t width, const size_t height)
 	{
 		m_image_width = width;
 		m_image_height = height;
 
-		PrepareCameraRays(context);
+		PrepareCameraRays(Compute::GetContext());
 	}
 
 

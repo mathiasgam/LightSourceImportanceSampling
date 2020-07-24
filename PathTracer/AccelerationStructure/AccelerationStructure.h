@@ -5,7 +5,7 @@
 
 #include "Mesh/Mesh.h"
 
-namespace LSIS::Compute {
+namespace LSIS {
 
 	struct Vertex {
 		float4 position;

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "LBVHStructure.h"
 
-namespace LSIS::Compute {
+namespace LSIS {
 	
 	LBVHStructure::LBVHStructure()
 	{

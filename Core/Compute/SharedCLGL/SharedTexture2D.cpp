@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "SharedTexture2D.h"
 
-namespace LSIS::Compute {
+namespace LSIS {
 
 	SharedTexture2D::SharedTexture2D(const cl::Context& context, size_t width, size_t height)
 		: m_width(width), m_height(height), m_texture_id(0), m_cl_shared_texture(0)

@@ -2,7 +2,7 @@
 
 #include "AccelerationStructure.h"
 
-namespace LSIS::Compute {
+namespace LSIS {
 
 	struct Node {
 

@@ -17,37 +17,59 @@
 #define CHECK(_openclcall_) _openclcall_
 #endif // DEBUG
 
+#include "Core/Application.h"
+
 namespace LSIS {
 
-	namespace Compute {
+	class Compute {
+		// Give application access to private methods
+		friend class LSIS::Application;
+	public:
 
 		// Platform
-		std::string GetName(cl::Platform platform);
-		std::string GetVendor(cl::Platform platform);
-		std::string GetProfile(cl::Platform platform);
-		std::string GetVersion(cl::Platform platform);
-		std::vector<std::string> GetExtensions(cl::Platform platform);
+		static std::string GetName(cl::Platform platform);
+		static std::string GetVendor(cl::Platform platform);
+		static std::string GetProfile(cl::Platform platform);
+		static std::string GetVersion(cl::Platform platform);
+		static std::vector<std::string> GetExtensions(cl::Platform platform);
 
-		std::vector<cl::Platform> GetPlatforms();
-		cl::Platform GetPreferedPlatform(std::vector<std::string> prefered_platforms);
+		static std::vector<cl::Platform> GetPlatforms();
+		static cl::Platform GetPreferedPlatform(std::vector<std::string> prefered_platforms);
 
 		// Device
-		std::string GetName(cl::Device device);
-		std::string GetVendor(cl::Device device);
-		std::string GetVersion(cl::Device device);
-		std::string GetProfile(cl::Device device);
-		std::vector<std::string> GetExtensions(cl::Device device);
+		static std::string GetName(cl::Device device);
+		static std::string GetVendor(cl::Device device);
+		static std::string GetVersion(cl::Device device);
+		static std::string GetProfile(cl::Device device);
+		static std::vector<std::string> GetExtensions(cl::Device device);
 
-		cl::Device GetPreferedDevice(cl::Platform platform, std::vector<std::string> prefered_devices);
+		static cl::Device GetPreferedDevice(cl::Platform platform, std::vector<std::string> prefered_devices);
 
 		// Context
-		cl::Context CreateContext(std::vector<cl_context_properties>& properties, const cl::Device& device);
+		static cl::Context CreateContext(std::vector<cl_context_properties>& properties, const cl::Device& device);
 
 		// Command queue
-		cl::CommandQueue CreateCommandQueue(const cl::Context& context, const cl::Device& device);
+		static cl::CommandQueue CreateCommandQueue(const cl::Context& context, const cl::Device& device);
 
-		cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename);
-		cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name);
+		static cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename);
+		static cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name);
 
-	}
+		// Getters for static compute context
+		static const cl::Platform& GetPlatform();
+		static const cl::Device& GetDevice();
+		static const cl::Context& GetContext();
+		static const cl::CommandQueue& GetCommandQueue();
+
+	private:
+		static cl::Platform& GetDynamicPlatform();
+		static cl::Device& GetDynamicDevice();
+		static cl::Context& GetDynamicContext();
+		static cl::CommandQueue& GetDynamicCommandQueue();
+
+		static void SetPlatform(cl::Platform& platform);
+		static void SetDevice(cl::Device& device);
+		static void SetContext(cl::Context& context);
+		static void SetCommandQueue(cl::CommandQueue& queue);
+
+	};
 }

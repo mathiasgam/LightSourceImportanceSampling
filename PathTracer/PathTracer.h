@@ -13,15 +13,15 @@ namespace LSIS {
 
 	class PathTracer : public Layer {
 
-		using PixelBuffer = Compute::TypedBuffer<SHARED::Pixel>;
-		using RayBuffer = Compute::TypedBuffer<SHARED::Ray>;
-		using IntersectionBuffer = Compute::TypedBuffer<SHARED::Intersection>;
+		using PixelBuffer = TypedBuffer<SHARED::Pixel>;
+		using RayBuffer = TypedBuffer<SHARED::Ray>;
+		using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
 
 	public:
-		PathTracer(const cl::Context& context, size_t width, size_t height);
+		PathTracer(size_t width, size_t height);
 		virtual ~PathTracer();
 
-		void SetImageSize(const cl::Context& context, const size_t width, const size_t height);
+		void SetImageSize(const size_t width, const size_t height);
 
 		void Update(const cl::CommandQueue& queue);
 		void Render();
@@ -48,9 +48,9 @@ namespace LSIS {
 
 		// Rendering
 		Ref<Shader> m_window_shader;
-		std::unique_ptr<Compute::SharedTexture2D> m_texture;
+		std::unique_ptr<SharedTexture2D> m_texture;
 
-		Ref<Compute::AccelerationStructure> m_tracing_structure;
+		Ref<AccelerationStructure> m_tracing_structure;
 
 	};
 

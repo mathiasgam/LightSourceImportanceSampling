@@ -78,19 +78,25 @@ namespace LSIS {
 	}
 
 	void Application::CreateCLContext() {
-		clGetGLContextInfoKHR_fn pclGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(m_platform(), "clGetGLContextInfoKHR");
 
 		// Find a prefered platform and device
-		m_platform = Compute::GetPreferedPlatform(prefered_platforms);
-		m_device = Compute::GetPreferedDevice(m_platform, prefered_devices);
+		auto platform = Compute::GetPreferedPlatform(prefered_platforms);
+		auto device = Compute::GetPreferedDevice(platform, prefered_devices);
 
-		std::cout << "Platform: " << Compute::GetName(m_platform) << std::endl;
-		std::cout << "Device: " << Compute::GetName(m_device) << std::endl;
+		clGetGLContextInfoKHR_fn pclGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platform(), "clGetGLContextInfoKHR");
+
+		std::cout << "Platform: " << Compute::GetName(platform) << std::endl;
+		std::cout << "Device: " << Compute::GetName(device) << std::endl;
 
 		// Create Context
-		auto properties = m_window->GetCLProperties(m_platform());
-		m_context = Compute::CreateContext(properties, m_device);
-		m_queue = Compute::CreateCommandQueue(m_context, m_device);
+		auto properties = m_window->GetCLProperties(platform());
+		auto context = Compute::CreateContext(properties, device);
+		auto queue = Compute::CreateCommandQueue(context, device);
+
+		Compute::SetPlatform(platform);
+		Compute::SetDevice(device);
+		Compute::SetContext(context);
+		Compute::SetCommandQueue(queue);
 	}
 
 	void Application::Init()
@@ -156,22 +162,6 @@ namespace LSIS {
 	void Application::AddLayer(Ref<Layer> layer)
 	{
 		m_layers.push_back(layer);
-	}
-
-
-	const cl::Context& Application::GetContext()
-	{
-		return m_context;
-	}
-
-	const cl::Device& Application::GetDevice()
-	{
-		return m_device;
-	}
-
-	const cl::CommandQueue& Application::GetCommandQueue()
-	{
-		return m_queue;
 	}
 
 	void Application::OnEvent(const Event& e)

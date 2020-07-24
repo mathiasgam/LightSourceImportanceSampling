@@ -9,7 +9,7 @@
 
 #include "Graphics/Texture.h"
 
-namespace LSIS::Compute {
+namespace LSIS{
 
 	class SharedTexture2D : public Texture {
 	public:

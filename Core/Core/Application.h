@@ -26,9 +26,6 @@ namespace LSIS {
 
 		void AddLayer(Ref<Layer> layer);
 
-		const cl::Context& GetContext();
-		const cl::Device& GetDevice();
-		const cl::CommandQueue& GetCommandQueue();
 		const Ref<Scene> GetScene() const { return m_scene; }
 
 		void OnEvent(const Event& e);
@@ -48,12 +45,7 @@ namespace LSIS {
 
 	private:
 		bool Initialized = false;
-
-		cl::Platform m_platform;
-		cl::Device m_device;
-		cl::Context m_context;
-		cl::CommandQueue m_queue;
-
+		
 		Scope<Window> m_window;
 		Ref<Scene> m_scene;
 		Ref<Camera> m_cam;
