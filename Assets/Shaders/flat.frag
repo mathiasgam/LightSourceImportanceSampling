@@ -13,6 +13,6 @@ void main()
 	float ambient = 0.2;
 
 	vec3 norm_color = (v_normal * 0.5) + 0.5;
-	FragColor = color * max(ambient, d);
+	FragColor = vec4(color.rgb * max(ambient, d), 1.0f);
 	//FragColor = vec4(norm_color, 1.0);
 };
