@@ -41,15 +41,7 @@ namespace LSIS {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		//glTexStorage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size[0], size[1]);
-		float pixels[] = {
-			0,0,0,.1f,
-			1,1,1,.1f,
-			1,1,1,.1f,
-			0,0,0,.1f
-		};
-
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2, 2, 0, GL_RGBA, GL_FLOAT, pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		const float x = 1.0f;
