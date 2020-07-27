@@ -24,6 +24,11 @@ namespace LSIS {
 		cl_uint m_width;
 		cl_uint m_height;
 		cl_uint m_multi_sample;
+		cl_uint m_seed = 0;
+
+		cl::Program m_program;
+		cl::Kernel m_kernel;
+
 	};
 
 

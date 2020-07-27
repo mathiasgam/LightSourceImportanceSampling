@@ -7,7 +7,7 @@
 
 #define IN_VAL(type, name) const type name
 #define IN_BUF(type, name) __global const type* const restrict name
-#define OUT_BUF(type, name) __global type* const restrict name
+#define OUT_BUF(type, name) __global type* restrict name
 
 typedef struct mat4
 {

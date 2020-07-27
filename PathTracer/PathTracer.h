@@ -16,9 +16,9 @@ namespace LSIS {
 
 	class PathTracer : public Layer {
 
-		using PixelBuffer = TypedBuffer<SHARED::Pixel>;
-		using RayBuffer = TypedBuffer<SHARED::Ray>;
-		using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
+		//using PixelBuffer = TypedBuffer<SHARED::Pixel>;
+		//using RayBuffer = TypedBuffer<SHARED::Ray>;
+		//using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
 
 	public:
 		PathTracer(uint32_t width, uint32_t height);
@@ -38,19 +38,25 @@ namespace LSIS {
 
 	private:
 
+		void CompileKernels();
 		void TraceRays();
 		void PrepareCameraRays(const cl::Context& context);
 
-	private:
-		size_t m_image_width, m_image_height;
+		void ProcessIntersections();
 
-		CameraRays camera;
+	private:
+		uint32_t m_image_width, m_image_height;
+
+		CameraRays m_camera;
 		PixelViewer m_viewer;
 
+		cl::Program m_program_process;
+		cl::Kernel m_kernel_process;
+
 		// Buffers
-		PixelBuffer m_pixel_buffer;
-		RayBuffer m_ray_buffer;
-		IntersectionBuffer m_intersection_buffer;
+		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
+		TypedBuffer<SHARED::Ray> m_ray_buffer;
+		TypedBuffer<SHARED::Intersection> m_intersection_buffer;
 
 		Scope<AccelerationStructure> m_tracing_structure;
 	};
