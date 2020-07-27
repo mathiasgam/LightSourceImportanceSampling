@@ -5,16 +5,16 @@ typedef struct Vertex {
     float4 position;
     float4 normal;
     float4 uv;
-};
+} Vertex;
 
 typedef struct Face {
     int4 index;
-};
+} Face;
 
 typedef struct Node {
     float4 min; // .w is left child
     float4 max; // .w is right child
-};
+} Node;
 
 
 
