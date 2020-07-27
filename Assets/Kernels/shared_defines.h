@@ -24,6 +24,7 @@ namespace SHARED {
     {
         float4 origin; // xyz is origin, w is t_min
         float4 direction; // xyz is direction, w is t_max
+        uint4 data; // x is source index
     } Ray;
 
     typedef struct Intersection
