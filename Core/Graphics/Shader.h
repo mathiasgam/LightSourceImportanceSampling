@@ -28,6 +28,7 @@ namespace LSIS {
 		void UploadUniformMat4(const std::string& name, const glm::mat4& matrix);
 
 		static std::shared_ptr<Shader> Create(const char* vertex_source, const char* fragment_source);
+		static void CompileShader(const char* source, unsigned int shader_id);
 
 	private:
 		unsigned int m_program;

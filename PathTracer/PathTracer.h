@@ -10,6 +10,7 @@
 #include "Compute/SharedCLGL/SharedTexture2D.h"
 
 #include "CameraRays.h"
+#include "PixelViewer.h"
 
 namespace LSIS {
 
@@ -44,6 +45,7 @@ namespace LSIS {
 		size_t m_image_width, m_image_height;
 
 		CameraRays camera;
+		PixelViewer m_viewer;
 
 		// Buffers
 		PixelBuffer m_pixel_buffer;
