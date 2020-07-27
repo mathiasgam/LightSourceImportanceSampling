@@ -11,7 +11,7 @@ namespace LSIS {
 
 
 	PathTracer::PathTracer(size_t width, size_t height)
-		: m_image_width(width), m_image_height(height)
+		: m_image_width(width), m_image_height(height), camera(width, height)
 	{
 		//m_context = context;
 		m_texture = std::make_unique<SharedTexture2D>(Compute::GetContext(), width, height);

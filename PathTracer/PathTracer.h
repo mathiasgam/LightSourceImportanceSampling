@@ -9,6 +9,8 @@
 #include "AccelerationStructure/AccelerationStructure.h"
 #include "Compute/SharedCLGL/SharedTexture2D.h"
 
+#include "CameraRays.h"
+
 namespace LSIS {
 
 	class PathTracer : public Layer {
@@ -41,6 +43,8 @@ namespace LSIS {
 	private:
 		size_t m_image_width, m_image_height;
 
+		CameraRays camera;
+
 		// Buffers
 		PixelBuffer m_pixel_buffer;
 		//RayBuffer m_ray_buffer;
@@ -51,7 +55,6 @@ namespace LSIS {
 		std::unique_ptr<SharedTexture2D> m_texture;
 
 		Scope<AccelerationStructure> m_tracing_structure;
-
 	};
 
 
