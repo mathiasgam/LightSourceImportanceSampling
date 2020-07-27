@@ -242,6 +242,8 @@ namespace LSIS {
 		delete[] bboxes;
 		delete[] centers;
 		delete[] morton_keys;
+
+		std::cout << "LBVH Build complete\n";
 	}
 
 	void LBVHStructure::TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer)
