@@ -23,7 +23,7 @@ namespace LSIS {
 		"uniform sampler2D ourTexture;\n"
 		"void main()\n"
 		"{\n"
-		"	FragColor = vec4(texture(ourTexture, TexCoord).xyz,0.1);\n"
+		"	FragColor = vec4(texture(ourTexture, TexCoord).xyz,0.5);\n"
 		"}\n";
 
 	PixelViewer::PixelViewer(uint32_t width, uint32_t height)
@@ -44,12 +44,16 @@ namespace LSIS {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, nullptr);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
+		cl_int status = 0;
+		m_shared_texture = clCreateFromGLTexture(Compute::GetContext()(), CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, m_texture, &status);
+		CHECK(status);
+
 		const float x = 1.0f;
 		float vertices[] = {
-			-x, -x, 0.0f, 0.0f, 0.0f,
-			 x, -x, 0.0f, 1.0f, 0.0f,
-			 x,  x, 0.0f, 1.0f, 1.0f,
-			-x,  x, 0.0f, 0.0f, 1.0f
+			-x, -x, 0.99999f, 0.0f, 0.0f,
+			 x, -x, 0.99999f, 1.0f, 0.0f,
+			 x,  x, 0.99999f, 1.0f, 1.0f,
+			-x,  x, 0.99999f, 0.0f, 1.0f
 		};
 
 		glGenBuffers(1, &m_vbo);
@@ -81,6 +85,8 @@ namespace LSIS {
 		if (!success) {
 			glGetProgramInfoLog(m_shader, 512, NULL, infoLog);
 		}
+
+		CompileKernels();
 	}
 
 	PixelViewer::~PixelViewer()
@@ -96,8 +102,23 @@ namespace LSIS {
 		m_height = height;
 	}
 
-	void PixelViewer::UpdateTexture(TypedBuffer<SHARED::Pixel> pixels, uint32_t width, uint32_t height)
+	void PixelViewer::UpdateTexture(const TypedBuffer<SHARED::Pixel>& pixels, uint32_t width, uint32_t height)
 	{
+		const cl::CommandQueue& queue = Compute::GetCommandQueue();
+		clEnqueueAcquireGLObjects(queue(), 1, &m_shared_texture, 0, 0, 0);
+
+		cl_int2 dim{};
+		dim.x = width;
+		dim.y = height;
+		const int num_pixels = width * height;
+
+		m_kernel.setArg(0, pixels.GetBuffer());
+		m_kernel.setArg(1, sizeof(int2), &dim);
+		clSetKernelArg(m_kernel(), 2, sizeof(m_shared_texture), &m_shared_texture);
+
+		queue.enqueueNDRangeKernel(m_kernel, 0, cl::NDRange(num_pixels), cl::NullRange);
+
+		clEnqueueReleaseGLObjects(queue(), 1, &m_shared_texture, 0, 0, NULL);
 	}
 
 	void PixelViewer::UpdateTexture(const glm::vec4* pixels, uint32_t width, uint32_t height)
@@ -112,6 +133,12 @@ namespace LSIS {
 		glBindTexture(GL_TEXTURE_2D, m_texture);
 		glBindVertexArray(m_vao);
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	}
+
+	void PixelViewer::CompileKernels()
+	{
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "../Assets/Kernels/write_pixels.cl");
+		m_kernel = Compute::CreateKernel(m_program, "write_pixels");
 	}
 
 }

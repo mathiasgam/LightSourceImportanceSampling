@@ -15,10 +15,12 @@ namespace LSIS {
 
 		void SetResolution(uint32_t width, uint32_t height);
 
-		void UpdateTexture(TypedBuffer<SHARED::Pixel> pixels, uint32_t width, uint32_t height);
+		void UpdateTexture(const TypedBuffer<SHARED::Pixel>& pixels, uint32_t width, uint32_t height);
 		void UpdateTexture(const glm::vec4* pixels, uint32_t width, uint32_t height);
 
 		void Render();
+
+		void CompileKernels();
 
 	private:
 
@@ -31,6 +33,8 @@ namespace LSIS {
 
 		cl::Program m_program;
 		cl::Kernel m_kernel;
+
+		cl_mem m_shared_texture;
 
 	};
 
