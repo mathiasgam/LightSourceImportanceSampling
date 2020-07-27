@@ -165,9 +165,9 @@ namespace LSIS {
 		cl::Program::Sources source(1, std::make_pair(str.c_str(), str.length() + 1));
 		cl::Program program(context, source);
 #ifdef DEBUG
-		auto err = program.build("-I src/kernels -D DEBUG");
+		auto err = program.build("-I ../Assets/Kernels -D DEBUG");
 #else
-		auto err = program.build("-I src/kernels");
+		auto err = program.build("-I ../Assets/Kernels");
 #endif // DEBUG
 
 		if (err) {

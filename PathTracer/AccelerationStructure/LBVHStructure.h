@@ -23,7 +23,6 @@ namespace LSIS {
 
 		struct Face {
 			cl_uint4 index;
-			Face(uint32_t i0, uint32_t i1, uint32_t i2, uint32_t tex) : index{ i0,i1,i2,tex } {}
 		};
 
 		struct Node {
@@ -34,7 +33,7 @@ namespace LSIS {
 		struct morton_code_64_t {
 			uint64_t code;
 			uint32_t index;
-			morton_code_64_t(glm::vec3 pos, uint32_t index) : code(0), index(index) {}
+			//morton_code_64_t(glm::vec3 pos, uint32_t index) : code(0), index(index) {}
 			bool operator < (const morton_code_64_t& other) const {
 				return code < other.code;
 			}
@@ -72,9 +71,9 @@ namespace LSIS {
 		cl::Buffer m_buffer_faces;
 		cl::Buffer m_buffer_vertices;
 
-		cl_uint m_num_vertices;
-		cl_uint m_num_faces;
-		cl_uint m_num_nodes;
+		size_t m_num_vertices;
+		size_t m_num_faces;
+		size_t m_num_nodes;
 
 	};
 }

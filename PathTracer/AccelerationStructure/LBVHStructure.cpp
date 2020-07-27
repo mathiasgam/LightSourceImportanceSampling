@@ -86,12 +86,12 @@ namespace LSIS {
 
 
 		// process sub-ranges
-		uint64_t num_left = generate(codes, first, split, nodes, idx + 1);
-		uint64_t num_right = generate(codes, split + 1, last, nodes, idx + num_left + 1);
+		uint32_t num_left = generate(codes, first, split, nodes, idx + 1);
+		uint32_t num_right = generate(codes, split + 1, last, nodes, idx + num_left + 1);
 
 		Node node = {};
-		node.min.w = idx + 1;
-		node.max.w = num_left + idx + 1;
+		node.min.w = static_cast<float>(idx + 1);
+		node.max.w = static_cast<float>(num_left + idx + 1);
 		nodes[idx] = node;
 
 		return num_left + num_right + 1;
@@ -133,17 +133,17 @@ namespace LSIS {
 		std::cout << "Num Vertices: " << num_vertices << std::endl;
 		std::cout << "Num Indices: " << num_indices << std::endl;
 
-		const uint32_t N = num_indices / 3;
+		const size_t N = num_indices / 3;
 
 		m_num_faces = N;
 		m_num_vertices = num_vertices;
 
-		Face* faces = (Face*)alloca(sizeof(Face) * N);
-		Vertex* vertices = (Vertex*)alloca(sizeof(Vertex) * num_vertices);
+		Face* faces = new Face[N]; // (Face*)malloc(sizeof(Face) * N);
+		Vertex* vertices = new Vertex[num_vertices]; // (Vertex*)malloc(sizeof(Vertex) * num_vertices);
 
 		// exstract bounding boxes for each face in the scene
-		AABB* bboxes = (AABB*)alloca(sizeof(AABB) * N);
-		glm::vec3* centers = (glm::vec3*) alloca(sizeof(glm::vec3) * N);
+		AABB * bboxes = new AABB[N];// (AABB*)malloc(sizeof(AABB) * N);
+		glm::vec3* centers = new glm::vec3[N]; // (glm::vec3*) malloc(sizeof(glm::vec3) * N);
 
 		// Parse vertices
 		for (size_t i = 0; i < num_vertices; i++) {
@@ -167,9 +167,14 @@ namespace LSIS {
 		// Parse faces
 		for (size_t i = 0; i < N; i++) {
 			size_t index = i * 3;
-			faces[i] = Face(in_indices[index + 0], in_indices[index + 1], in_indices[index + 2], 0);
+			Face f{};
+			f.index.x = in_indices[index + 0];
+			f.index.y = in_indices[index + 1];
+			f.index.z = in_indices[index + 2];
+			f.index.w = 0U;
+			faces[i] = f;
 		}
-		
+
 		// Find scene bounds
 		AABB bounds = AABB();
 		for (size_t i = 0; i < N; i++) {
@@ -201,12 +206,15 @@ namespace LSIS {
 		const glm::vec3 transform = -bounds.p_min * scale;
 
 		// create temporary array on the stack for building the bvh structure
-		morton_code_64_t* morton_keys = (morton_code_64_t*)alloca(sizeof(morton_code_64_t) * N);
-		
+		morton_code_64_t* morton_keys = new morton_code_64_t[N]; // (morton_code_64_t*)malloc(sizeof(morton_code_64_t) * N);
+
 		// generate morton codes based on the bounding boxes in the scene
 		for (int i = 0; i < N; i++) {
 			const glm::vec p = mad(centers[i], scale, transform);
-			morton_keys[i] = morton_code_64_t(p, i);
+			morton_code_64_t key{};
+			key.code = Float3ToInt64(p);
+			key.index = i;
+			morton_keys[i] = key;
 		}
 
 		// sort morton codes
@@ -217,10 +225,10 @@ namespace LSIS {
 		m_num_nodes = N + num_internal_nodes;
 
 		// clear and resize the nodes array to hold the maximum amounds of nodes, based on the number of leaves
-		Node* nodes = (Node*)alloca(sizeof(Node) * m_num_nodes);
+		Node* nodes = new Node[m_num_nodes]; // (Node*)malloc(sizeof(Node) * m_num_nodes);
 
 		// Generate Hiearachy
-		generate(morton_keys, 0, N - 1, nodes, 0);
+		generate(morton_keys, 0, static_cast<uint32_t>(N - 1), nodes, 0);
 
 		// Calculate the bounding boxes
 		calc_bboxes(nodes, bboxes, 0);
@@ -228,6 +236,12 @@ namespace LSIS {
 		// Upload data to the GPU
 		LoadBVHBuffer(nodes, m_num_nodes);
 		LoadGeometryBuffers(vertices, m_num_vertices, faces, m_num_faces);
+
+		delete[] faces;
+		delete[] vertices;
+		delete[] bboxes;
+		delete[] centers;
+		delete[] morton_keys;
 	}
 
 	void LBVHStructure::TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer)
@@ -238,7 +252,7 @@ namespace LSIS {
 		}
 
 		// Get ray count;
-		cl_uint num_rays = ray_buffer.Count();
+		cl_uint num_rays = static_cast<cl_uint>(ray_buffer.Count());
 
 		// safty check ray and intersection match
 		if (intersection_buffer.Count() != num_rays) {

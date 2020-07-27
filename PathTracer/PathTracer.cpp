@@ -19,7 +19,7 @@ namespace LSIS {
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
-		m_tracing_structure = std::make_shared<LBVHStructure>();
+		m_tracing_structure = std::make_unique<LBVHStructure>();
 	}
 
 	PathTracer::~PathTracer()
@@ -63,14 +63,15 @@ namespace LSIS {
 
 	bool PathTracer::OnEvent(const Event& e)
 	{
-		std::cout << "PT Event: " << e << std::endl;
 		if (e.GetEventType() == EventType::KeyPressed) {
 			auto key_event = (const KeyPressedEvent&)e;
 			auto key = key_event.GetKey();
 			if (key == KEY_B) {
+				std::cout << "PT Event: " << e << std::endl;
 				auto app = Application::Get();
 				auto geometry = app->GetScene()->GetCollectiveMeshData();
 				m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
+				return true;
 			}
 		}
 		return false;

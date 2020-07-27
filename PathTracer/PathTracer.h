@@ -50,7 +50,7 @@ namespace LSIS {
 		Ref<Shader> m_window_shader;
 		std::unique_ptr<SharedTexture2D> m_texture;
 
-		Ref<AccelerationStructure> m_tracing_structure;
+		Scope<AccelerationStructure> m_tracing_structure;
 
 	};
 

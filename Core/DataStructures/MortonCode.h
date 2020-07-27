@@ -24,8 +24,10 @@ public:
 	bool operator > (const MortonCode3& other) const;
 
 private:
-	static inline uint64_t SplitBy3(uint64_t);
 };
+
+uint64_t SplitBy3(uint64_t);
+uint64_t Float3ToInt64(const glm::vec3& p);
 
 inline std::ostream& operator<<(std::ostream& os, const MortonCode3& code)
 {
