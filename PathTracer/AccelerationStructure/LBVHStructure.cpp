@@ -272,7 +272,7 @@ namespace LSIS {
 
 		// check for errors
 		if (err != CL_SUCCESS) {
-			std::cout << "Error: " << GET_CL_ERROR_CODE(err) << std::endl;
+			std::cout << "Error: LBVHStructure]" << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 	}
 
