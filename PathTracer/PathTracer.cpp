@@ -10,12 +10,9 @@
 namespace LSIS {
 
 
-	PathTracer::PathTracer(size_t width, size_t height)
+	PathTracer::PathTracer(uint32_t width, uint32_t height)
 		: m_image_width(width), m_image_height(height), camera(width, height), m_viewer(width, height)
 	{
-		//m_context = context;
-		m_texture = std::make_unique<SharedTexture2D>(Compute::GetContext(), width, height);
-		m_window_shader = Shader::Create("../Assets/Shaders/texture.vert", "../Assets/Shaders/texture.frag");
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
@@ -26,7 +23,7 @@ namespace LSIS {
 	{
 	}
 
-	void PathTracer::SetImageSize(const size_t width, const size_t height)
+	void PathTracer::SetImageSize(const uint32_t width, const uint32_t height)
 	{
 		m_image_width = width;
 		m_image_height = height;
@@ -38,19 +35,8 @@ namespace LSIS {
 	void PathTracer::Update(const cl::CommandQueue& queue)
 	{
 		// allocate memory for the image
-		std::vector<float> pixels{};
-		pixels.resize(m_image_width * m_image_height * 4);
-
-		size_t index = 0;
-		for (size_t x = 0; x < m_image_width; x++) {
-			for (size_t y = 0; y < m_image_height; y++) {
-				pixels[index++] = 1.0f;
-				pixels[index++] = 0.0f;
-				pixels[index++] = 0.0f;
-				pixels[index++] = 1.0f;
-			}
-		}
-		m_texture->Update(queue, pixels.data());
+		//std::vector<float> pixels{};
+		//pixels.resize(m_image_width * m_image_height * 4);
 	}
 
 	void PathTracer::Render()

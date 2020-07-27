@@ -21,10 +21,10 @@ namespace LSIS {
 		using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
 
 	public:
-		PathTracer(size_t width, size_t height);
+		PathTracer(uint32_t width, uint32_t height);
 		virtual ~PathTracer();
 
-		void SetImageSize(const size_t width, const size_t height);
+		void SetImageSize(const uint32_t width, const uint32_t height);
 
 		void Update(const cl::CommandQueue& queue);
 		void Render();
@@ -49,12 +49,8 @@ namespace LSIS {
 
 		// Buffers
 		PixelBuffer m_pixel_buffer;
-		//RayBuffer m_ray_buffer;
-		//IntersectionBuffer m_intersection_buffer;
-
-		// Rendering
-		Ref<Shader> m_window_shader;
-		std::unique_ptr<SharedTexture2D> m_texture;
+		RayBuffer m_ray_buffer;
+		IntersectionBuffer m_intersection_buffer;
 
 		Scope<AccelerationStructure> m_tracing_structure;
 	};
