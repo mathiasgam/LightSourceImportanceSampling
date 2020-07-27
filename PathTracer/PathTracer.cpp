@@ -72,6 +72,10 @@ namespace LSIS {
 				auto geometry = app->GetScene()->GetCollectiveMeshData();
 				m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
 				return true;
+			} else if (key == KEY_R){
+				m_tracing_structure->CompileKernels();
+				std::cout << "PT: Kernels Recompiled!\n";
+				return true;
 			}
 		}
 		return false;

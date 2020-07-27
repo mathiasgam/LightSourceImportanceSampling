@@ -26,6 +26,8 @@ namespace LSIS {
 		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) = 0;
 		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) = 0;
 
+		virtual void CompileKernels() {};
+
 	private:
 	};
 

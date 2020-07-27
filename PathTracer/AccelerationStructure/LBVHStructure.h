@@ -12,6 +12,8 @@ namespace LSIS {
 		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) override;
 		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) override;
 
+		virtual void CompileKernels() override;
+
 	private:
 
 		// Defines types for the buffers
@@ -56,7 +58,6 @@ namespace LSIS {
 		static uint32_t generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, Node* nodes, const uint32_t idx);
 		static AABB LBVHStructure::calc_bboxes(Node* nodes, const AABB* bboxes, uint32_t idx);
 
-		void CompileKernels();
 		void LoadGeometryBuffers(const Vertex* vertices, size_t num_vertices, const Face* faces, size_t num_faces);
 		void LoadBVHBuffer(const Node* nodes, size_t num_nodes);
 
