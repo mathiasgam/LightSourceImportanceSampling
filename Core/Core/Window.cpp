@@ -246,6 +246,10 @@ namespace LSIS {
 
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+		// Enable blending for alpha channel
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		RenderCommand::Init();
 		RenderCommand::SetViewPort(0, 0, window_size.x, window_size.y);
 
