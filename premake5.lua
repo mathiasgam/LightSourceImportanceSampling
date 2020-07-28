@@ -37,7 +37,7 @@ workspace "LSIS"
   	filter "configurations:Debug"
   		defines {
             "DEBUG",
-            "CH_ENABLE_ASSERTS"
+            "ENABLE_ASSERTS"
 		}
 		buildoptions "/MTd"
 		symbols "on"
@@ -49,6 +49,7 @@ IncludeDir = {}
 IncludeDir["glfw"] = "Vendor/glfw/include"
 IncludeDir["glad"] = "Vendor/glad/include"
 IncludeDir["glm"] = "Vendor/glm/glm"
+IncludeDir["spdlog"] = "Vendor/spdlog/include"
 IncludeDir["stb_image"] = "Vendor/stb_image/"
 IncludeDir["entt"] = "Vendor/entt/"
 
@@ -95,6 +96,7 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
+		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
 		"%{prj.name}",
@@ -137,4 +139,5 @@ project "PathTracer"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.entt}",
+		"%{IncludeDir.spdlog}",
 	}
