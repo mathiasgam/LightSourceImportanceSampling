@@ -2,15 +2,15 @@
 
 #include <memory>
 
-/*
-#ifdef CH_ENABLE_ASSERTS
-	#define CH_ASSERT(x, ...) { if (!(x)) { CH_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
-	#define CH_CORE_ASSERT(x, ...) { if (!(x)) { CH_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
+
+#ifdef ENABLE_ASSERTS
+	//#define LSIS_ASSERT(x, ...) { if (!(x)) { LOG_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
+	#define CORE_ASSERT(x, ...) { if (!(x)) { CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
 #else
-	#define CH_ASSERT(x, ...)
-	#define CH_CORE_ASSERT(x, ...)
-#endif // CH_ENABLE_ASSERTS
-*/
+	//#define ASSERT(x, ...)
+	#define CORE_ASSERT(x, ...)
+#endif // ENABLE_ASSERTS
+
 
 #define BIND_EVENT_FN(x) std::bind(&x, this, std::placeholders::_1)
 

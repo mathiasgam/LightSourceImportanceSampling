@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Core/Application.h"
+#include "Core/Log.h"
 #include "Input/Input.h"
 
 #include "PathTracer.h"
@@ -9,6 +10,8 @@
 #include "Scene/Components.h"
 
 int main(int argc, char** argv) {
+
+	LSIS::Log::Init();
 
 	LSIS::Application* app = LSIS::Application::Get();
 	LSIS::Input::SetCameraPosition({ -3.0f,1.0f,3.0f,1.0f });

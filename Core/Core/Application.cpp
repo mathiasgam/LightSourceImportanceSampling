@@ -2,6 +2,7 @@
 #include "Application.h"
 
 #include "Core.h"
+#include "Log.h"
 #include "Input/KeyCodes.h"
 #include "Input/Input.h"
 
