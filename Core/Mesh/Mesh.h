@@ -52,7 +52,7 @@ namespace LSIS {
 		inline unsigned int GetNumIndices() const { return m_num_indices; }
 		inline unsigned int GetNumVertices() const { return m_num_vertices; };
 
-		std::shared_ptr<MeshData> Download() const;
+		std::shared_ptr<MeshData> GetData() const;
 
 	private:
 		unsigned int m_num_indices;
@@ -60,6 +60,8 @@ namespace LSIS {
 		unsigned int m_vbo;
 		unsigned int m_ebo;
 		unsigned int m_vao;
+
+		std::shared_ptr<MeshData> m_data;
 	};
 
 }

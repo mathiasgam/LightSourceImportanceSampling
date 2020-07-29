@@ -143,7 +143,6 @@ namespace LSIS {
 			num_indices += mesh.mesh->GetNumIndices();
 		}
 		
-
 		// resize vectors
 		vertices.resize(num_vertices);
 		indices.resize(num_indices);
@@ -153,7 +152,7 @@ namespace LSIS {
 		uint32_t index_vtx = 0;
 		for (auto entity : view) {
 			auto& [mesh, transform] = view.get<MeshComponent, TransformComponent>(entity);
-			auto data = mesh.mesh->Download();
+			auto data = mesh.mesh->GetData();
 
 			auto vertex_data = data->GetVertices();
 			auto index_data = data->GetIndices();

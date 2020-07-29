@@ -20,6 +20,7 @@ namespace LSIS {
 		: m_num_indices(0), m_num_vertices(0), m_vbo(0), m_ebo(0), m_vao(0)
 	{
 		Upload(data);
+		m_data = data;
 	}
 
 	Mesh::~Mesh()
@@ -59,18 +60,9 @@ namespace LSIS {
 		glBindVertexArray(m_vao);
 	}
 
-	std::shared_ptr<MeshData> Mesh::Download() const
+	std::shared_ptr<MeshData> Mesh::GetData() const
 	{
-		std::vector<VertexData> vertices{};
-		std::vector<uint32_t> indices{};
-
-		vertices.resize(m_num_vertices);
-		indices.resize(m_num_indices);
-
-		glGetBufferSubData(m_vbo, 0, m_num_vertices, vertices.data());
-		glGetBufferSubData(m_ebo, 0, m_num_indices, indices.data());
-
-		return std::make_shared<MeshData>(vertices, indices);
+		return m_data;
 	}
 
 }
