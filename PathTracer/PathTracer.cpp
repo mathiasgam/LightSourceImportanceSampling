@@ -17,8 +17,8 @@ namespace LSIS {
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
 		m_tracing_structure = std::make_unique<LBVHStructure>();
-		BuildStructure();
 		CompileKernels();
+		BuildStructure();
 	}
 
 	PathTracer::~PathTracer()
@@ -72,6 +72,7 @@ namespace LSIS {
 				m_viewer.CompileKernels();
 				m_camera.CompileKernels();
 				m_tracing_structure->CompileKernels();
+				BuildStructure();
 				std::cout << "PT: Kernels Recompiled!\n";
 				return true;
 			}
