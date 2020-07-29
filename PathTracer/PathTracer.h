@@ -42,6 +42,8 @@ namespace LSIS {
 		void TraceRays();
 		void PrepareCameraRays(const cl::Context& context);
 
+		void BuildStructure();
+
 		void ProcessIntersections();
 
 	private:

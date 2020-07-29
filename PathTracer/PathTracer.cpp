@@ -17,6 +17,7 @@ namespace LSIS {
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
 		m_tracing_structure = std::make_unique<LBVHStructure>();
+		BuildStructure();
 		CompileKernels();
 	}
 
@@ -64,9 +65,7 @@ namespace LSIS {
 			auto key = key_event.GetKey();
 			if (key == KEY_B) {
 				std::cout << "PT Event: " << e << std::endl;
-				auto app = Application::Get();
-				auto geometry = app->GetScene()->GetCollectiveMeshData();
-				m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
+				BuildStructure();
 				return true;
 			} else if (key == KEY_R){
 				CompileKernels();
@@ -121,6 +120,13 @@ namespace LSIS {
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
+	}
+
+	void PathTracer::BuildStructure()
+	{
+		auto app = Application::Get();
+		auto geometry = app->GetScene()->GetCollectiveMeshData();
+		m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
 	}
 
 	void PathTracer::ProcessIntersections()
