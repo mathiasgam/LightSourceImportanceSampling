@@ -39,6 +39,21 @@ namespace LSIS {
 		//m_direction = glm::normalize(position - m_position);
 	}
 
+	glm::vec3 Camera::GetPosition() const
+	{
+		return m_transform.GetPosition();
+	}
+
+	glm::vec3 Camera::GetRotation() const
+	{
+		return m_transform.GetRotation();
+	}
+
+	glm::mat4 Camera::GetModelMatrix() const
+	{
+		return m_transform.GetModelMatrix();
+	}
+
 	glm::mat4 Camera::GetViewProjectionMatrix() const
 	{
 		float aspect = static_cast<float>(m_resolution.x) / static_cast<float>(m_resolution.y);
