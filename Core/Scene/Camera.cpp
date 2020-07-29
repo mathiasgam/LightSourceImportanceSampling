@@ -54,10 +54,16 @@ namespace LSIS {
 		return m_transform.GetModelMatrix();
 	}
 
-	glm::mat4 Camera::GetViewProjectionMatrix() const
+	glm::mat4 Camera::GetProjectionMatrix() const
 	{
 		float aspect = static_cast<float>(m_resolution.x) / static_cast<float>(m_resolution.y);
 		glm::mat4 P = glm::perspective(glm::radians(m_FOV), aspect, 0.1f, 100.0f);
+		return P;
+	}
+
+	glm::mat4 Camera::GetViewProjectionMatrix() const
+	{
+		glm::mat4 P = GetProjectionMatrix();
 		glm::mat4 V = m_transform.GetModelMatrix();
 		return P * glm::inverse(V);
 	}
