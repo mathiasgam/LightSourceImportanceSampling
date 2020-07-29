@@ -5,6 +5,7 @@ __kernel void generate_rays(
     IN_VAL(uint, height),
     IN_VAL(uint, samples),
     IN_VAL(uint, seed),
+    IN_VAL(mat4, camera_matrix),
     OUT_BUF(Ray, rays),
     OUT_BUF(Intersection, hits))
 {
@@ -28,8 +29,16 @@ __kernel void generate_rays(
 
         float2 screen_pos = (float2)(x * 2.0f - 1.0, y * 2.0 - 1.0);
 
-        float4 pos = (float4)(screen_pos.x, screen_pos.y, 0, 1);
-        float3 dir = normalize((float3)(screen_pos.xy ,1.0));
+        float4 near = (float4)(screen_pos.xy, 0.0, 1.0);
+        float4 far = (float4)(screen_pos.xy ,1.0, 1.0);
+ 
+        near = mul(camera_matrix, near);
+        near /= near.w;
+        far = mul(camera_matrix, far);
+        far /= far.w;
+
+        float3 pos = near.xyz;
+        float3 dir = (far - near).xyz;
 
         ray = CreateRay(pos.xyz, dir.xyz, 0.001, 1000);
         rays[id] = ray;
@@ -40,6 +49,7 @@ __kernel void generate_rays(
         hit.primid = -1;
         hit.pixel_index = id;
         hit.padding0 = 0;
+        hit.uvwt = (float4)(0.0,0.0,0.0,0.0);
         hits[id] = hit;
     }
 }

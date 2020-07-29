@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "CameraRays.h"
 
+#include "gtc/type_ptr.hpp"
+
 namespace LSIS {
 
 
@@ -31,13 +33,21 @@ namespace LSIS {
 		//assert(ray_buffer.Count() == m_width * m_height);
 		//assert(intersection_buffer.Count() == m_width * m_height);
 
+		auto cam = Application::Get()->GetScene()->GetCamera();
+		auto cam_pos = cam->GetPosition();
+		auto cam_rot = cam->GetRotation();
+
+		//glm::mat4 cam_matrix = glm::transpose(cam->GetModelMatrix());
+		glm::mat4 cam_matrix = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
+
 		// Prepare the kernel arguments
 		m_kernel.setArg(0, sizeof(cl_uint), &m_width);
 		m_kernel.setArg(1, sizeof(cl_uint), &m_height);
 		m_kernel.setArg(2, sizeof(cl_uint), &m_multi_sample);
 		m_kernel.setArg(3, sizeof(cl_uint), &m_seed);
-		m_kernel.setArg(4, ray_buffer.GetBuffer());
-		m_kernel.setArg(5, intersection_buffer.GetBuffer());
+		m_kernel.setArg(4, sizeof(cl_float4) * 4, glm::value_ptr(cam_matrix));
+		m_kernel.setArg(5, ray_buffer.GetBuffer());
+		m_kernel.setArg(6, intersection_buffer.GetBuffer());
 
 		// submit kernel
 		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(m_width * m_height));
