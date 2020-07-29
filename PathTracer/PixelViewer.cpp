@@ -23,7 +23,7 @@ namespace LSIS {
 		"uniform sampler2D ourTexture;\n"
 		"void main()\n"
 		"{\n"
-		"	FragColor = vec4(texture(ourTexture, TexCoord).xyz,0.5);\n"
+		"	FragColor = vec4(texture(ourTexture, TexCoord).xyzw);\n"
 		"}\n";
 
 	PixelViewer::PixelViewer(uint32_t width, uint32_t height)
