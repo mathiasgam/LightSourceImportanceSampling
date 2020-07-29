@@ -48,7 +48,7 @@ namespace LSIS {
 		struct AABB {
 			glm::vec3 p_min;
 			glm::vec3 p_max;
-			AABB() : p_min(-10000.0f), p_max(10000.0f) {}
+			AABB() : p_min(10000.0f), p_max(-10000.0f) {}
 			AABB(const AABB& a, const AABB& b) : p_min(min(a.p_min, b.p_min)), p_max(max(a.p_max, b.p_max)) {}
 			AABB(const glm::vec3& p) : p_min(p), p_max(p) {}
 			inline void add_AABB(const AABB& aabb) { p_min = min(p_min, aabb.p_min); p_max = max(p_max, aabb.p_max); }

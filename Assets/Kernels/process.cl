@@ -11,6 +11,8 @@ __kernel void process_intersections(
     int id = get_global_id(0);
     int num_pixels = width * height;
 
+    int center_id = (width / 2) + (height / 2) * width;
+
     if (id < num_rays){
         Ray ray = rays[id];
         Intersection hit = hits[id];
@@ -21,13 +23,26 @@ __kernel void process_intersections(
         x /= width;
         y /= height;
 
+        float3 pos = ray.origin.xyz;
         float3 dir = ray.direction.xyz;
-        dir = dir * 0.5f + 0.5f;
-        float4 color = (float4)(dir,1);
+
+        float4 color = (float4)(dir * 0.5f + 0.5f,1);
+
+        float depth = (float)(hit.padding0);
+        depth = depth / 24.0;
+        depth = 1 - (depth * depth);
+
+        color = (float4)(depth, depth,depth,1.0);
+
+        if (hit.hit > 0){
+
+            color = (float4)(1.0,0.0,0.0,1.0);
+        }
+        
 
         Pixel p = {};
         p.color = color;
-        pixels[id] = p;
+        pixels[hit.pixel_index] = p;
     }else{
         printf("Fail!\n");
     }

@@ -172,6 +172,7 @@ namespace LSIS {
 			f.index.y = in_indices[index + 1];
 			f.index.z = in_indices[index + 2];
 			f.index.w = 0U;
+
 			faces[i] = f;
 		}
 
@@ -204,6 +205,8 @@ namespace LSIS {
 		const float max_dim = max(diagonal);
 		const glm::vec3 scale = glm::vec3(1.0f / max_dim);
 		const glm::vec3 transform = -bounds.p_min * scale;
+
+		printf("Scene bounds1: [%f,%f,%f][%f,%f,%f]", bounds.p_min.x, bounds.p_min.y, bounds.p_min.z, bounds.p_max.x, bounds.p_max.y, bounds.p_max.z);
 
 		// create temporary array on the stack for building the bvh structure
 		morton_code_64_t* morton_keys = new morton_code_64_t[N]; // (morton_code_64_t*)malloc(sizeof(morton_code_64_t) * N);
@@ -243,6 +246,7 @@ namespace LSIS {
 		delete[] centers;
 		delete[] morton_keys;
 
+		isBuild = true;
 		std::cout << "LBVH Build complete\n";
 	}
 
@@ -290,6 +294,11 @@ namespace LSIS {
 		m_num_vertices = num_vertices;
 		m_num_faces = num_faces;
 
+		// Upload data
+		auto queue = Compute::GetCommandQueue();
+		queue.enqueueWriteBuffer(m_buffer_vertices, CL_TRUE, 0, sizeof(Vertex) * num_vertices, static_cast<const void*>(vertices));
+		queue.enqueueWriteBuffer(m_buffer_faces, CL_TRUE, 0, sizeof(Face) * num_faces, static_cast<const void*>(faces));
+
 		// set static kernel arguments
 		m_kernel.setArg(1, m_buffer_faces);
 		m_kernel.setArg(2, m_buffer_vertices);
@@ -302,6 +311,10 @@ namespace LSIS {
 		// initialize buffers
 		m_buffer_bvh = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(Node) * num_nodes);
 		m_num_nodes = num_nodes;
+
+		// Upload data
+		auto queue = Compute::GetCommandQueue();
+		queue.enqueueWriteBuffer(m_buffer_bvh, CL_TRUE, 0, sizeof(Node) * num_nodes, static_cast<const void*>(nodes));
 
 		// set static kernel arguments
 		m_kernel.setArg(0, m_buffer_bvh);

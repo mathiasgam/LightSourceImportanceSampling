@@ -50,10 +50,10 @@ namespace LSIS {
 
 		const float x = 1.0f;
 		float vertices[] = {
-			-x, -x, 0.99999f, 0.0f, 0.0f,
-			 x, -x, 0.99999f, 1.0f, 0.0f,
-			 x,  x, 0.99999f, 1.0f, 1.0f,
-			-x,  x, 0.99999f, 0.0f, 1.0f
+			-x, -x, 0.0f, 0.0f, 0.0f,
+			 x, -x, 0.0f, 1.0f, 0.0f,
+			 x,  x, 0.0f, 1.0f, 1.0f,
+			-x,  x, 0.0f, 0.0f, 1.0f
 		};
 
 		glGenBuffers(1, &m_vbo);

@@ -49,6 +49,8 @@ namespace LSIS {
 	{
 		m_camera.GenerateRays(m_ray_buffer, m_intersection_buffer);
 
+		m_tracing_structure->TraceRays(m_ray_buffer, m_intersection_buffer);
+
 		ProcessIntersections();
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
