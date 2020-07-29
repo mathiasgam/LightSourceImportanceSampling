@@ -133,6 +133,10 @@ namespace LSIS {
 		std::cout << "Num Vertices: " << num_vertices << std::endl;
 		std::cout << "Num Indices: " << num_indices << std::endl;
 
+		if (num_indices == 0 || num_vertices == 0) {
+			return;
+		}
+
 		const size_t N = num_indices / 3;
 
 		m_num_faces = N;
@@ -253,7 +257,6 @@ namespace LSIS {
 	void LBVHStructure::TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer)
 	{
 		if (!isBuild) {
-			std::cout << "Error: BVH not yet build!\n";
 			return;
 		}
 
