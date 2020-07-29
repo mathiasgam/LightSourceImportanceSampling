@@ -55,7 +55,7 @@ inline bool intersect_bbox(float3 pmin, float3 pmax, float3 oxinvdir, float3 inv
     tmin = max(tmin, t_min);
     tmax = min(tmax, t_max);
 
-    return tmax > tmin;
+    return tmax >= tmin;
 }
 
 inline float intersect_triangle(
