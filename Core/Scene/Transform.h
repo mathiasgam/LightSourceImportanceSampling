@@ -16,6 +16,8 @@ namespace LSIS {
 		void SetRotation(glm::vec3 rotation);
 
 		glm::mat4 GetModelMatrix() const;
+		inline glm::vec3 GetPosition() const { return m_position; }
+		inline glm::vec3 GetRotation() const { return m_rotation; }
 
 	private:
 		glm::vec3 m_position;
