@@ -289,6 +289,17 @@ namespace LSIS {
 		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
 	}
 
+	size_t LBVHStructure::CalculateMemory() const
+	{
+		size_t mem_size = 0;
+
+		mem_size += sizeof(Node) * m_num_nodes;
+		mem_size += sizeof(Vertex) * m_num_vertices;
+		mem_size += sizeof(Face) * m_num_faces;
+
+		return mem_size;
+	}
+
 	void LBVHStructure::LoadGeometryBuffers(const Vertex* vertices, size_t num_vertices, const Face* faces, size_t num_faces)
 	{
 		// initialize buffers

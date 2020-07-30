@@ -27,6 +27,7 @@ namespace LSIS {
 		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) = 0;
 
 		virtual void CompileKernels() {};
+		virtual size_t CalculateMemory() const = 0;
 
 	private:
 	};

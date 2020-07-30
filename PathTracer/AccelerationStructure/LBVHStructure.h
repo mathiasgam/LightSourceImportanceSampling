@@ -13,6 +13,7 @@ namespace LSIS {
 		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) override;
 
 		virtual void CompileKernels() override;
+		virtual size_t CalculateMemory() const override;
 
 	private:
 

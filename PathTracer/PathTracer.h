@@ -26,9 +26,6 @@ namespace LSIS {
 
 		void SetImageSize(const uint32_t width, const uint32_t height);
 
-		void Update(const cl::CommandQueue& queue);
-		void Render();
-
 		virtual void OnUpdate(float delta) override;
 		virtual bool OnEvent(const Event& e) override;
 		virtual void OnAttach() override;
@@ -48,6 +45,8 @@ namespace LSIS {
 
 	private:
 		uint32_t m_image_width, m_image_height;
+		uint32_t m_num_pixels;
+		uint32_t m_num_rays;
 
 		CameraRays m_camera;
 		PixelViewer m_viewer;

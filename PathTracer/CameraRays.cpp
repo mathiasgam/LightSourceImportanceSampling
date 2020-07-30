@@ -64,4 +64,9 @@ namespace LSIS {
 		m_kernel = Compute::CreateKernel(m_program, "generate_rays");
 	}
 
+	size_t CameraRays::CalculateMemory() const
+	{
+		return 0;
+	}
+
 }

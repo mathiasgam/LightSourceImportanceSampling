@@ -19,6 +19,7 @@ namespace LSIS {
 		void GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer);
 
 		void CompileKernels();
+		size_t CalculateMemory() const;
 
 	private:
 		cl_uint m_width;

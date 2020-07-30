@@ -141,4 +141,14 @@ namespace LSIS {
 		m_kernel = Compute::CreateKernel(m_program, "write_pixels");
 	}
 
+	size_t PixelViewer::CalculateMemory() const
+	{
+		size_t mem_size = 0;
+
+		// size of texture
+		mem_size += sizeof(float) * m_width * m_height * 4;
+
+		return mem_size;
+	}
+
 }

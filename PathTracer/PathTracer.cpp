@@ -10,8 +10,13 @@
 namespace LSIS {
 
 
-	PathTracer::PathTracer(uint32_t width, uint32_t height)
-		: m_image_width(width), m_image_height(height), m_camera(width, height), m_viewer(width, height)
+	PathTracer::PathTracer(uint32_t width, uint32_t height) :
+		m_image_width(width),
+		m_image_height(height),
+		m_num_pixels(width* height),
+		m_num_rays(width* height),
+		m_camera(width, height),
+		m_viewer(width, height)
 	{
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
@@ -31,19 +36,6 @@ namespace LSIS {
 		m_image_height = height;
 
 		PrepareCameraRays(Compute::GetContext());
-	}
-
-
-	void PathTracer::Update(const cl::CommandQueue& queue)
-	{
-		// allocate memory for the image
-		//std::vector<float> pixels{};
-		//pixels.resize(m_image_width * m_image_height * 4);
-	}
-
-	void PathTracer::Render()
-	{
-		
 	}
 
 	void PathTracer::OnUpdate(float delta)
@@ -67,7 +59,8 @@ namespace LSIS {
 				std::cout << "PT Event: " << e << std::endl;
 				BuildStructure();
 				return true;
-			} else if (key == KEY_R){
+			}
+			else if (key == KEY_R) {
 				CompileKernels();
 				m_viewer.CompileKernels();
 				m_camera.CompileKernels();
@@ -82,7 +75,7 @@ namespace LSIS {
 
 	void PathTracer::OnAttach()
 	{
-		
+
 	}
 
 	void PathTracer::OnDetach()
@@ -93,12 +86,20 @@ namespace LSIS {
 	{
 		size_t mem_size = 0;
 
+		mem_size += sizeof(SHARED::Pixel) * m_num_pixels;
+		mem_size += sizeof(SHARED::Ray) * m_num_rays;
+		mem_size += sizeof(SHARED::Intersection) * m_num_rays;
 		//mem_size += m_ray_buffer.Size();
 		//mem_size += m_intersection_buffer.Size();
 		//mem_size += m_pixel_buffer.Size();
 
+		mem_size += m_camera.CalculateMemory();
+		mem_size += m_viewer.CalculateMemory();
+
+		mem_size += m_tracing_structure->CalculateMemory();
+
 		return mem_size;
-	} 
+	}
 
 	void PathTracer::CompileKernels()
 	{

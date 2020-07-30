@@ -21,6 +21,7 @@ namespace LSIS {
 		void Render();
 
 		void CompileKernels();
+		size_t CalculateMemory() const;
 
 	private:
 
