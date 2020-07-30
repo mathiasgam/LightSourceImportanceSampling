@@ -26,7 +26,12 @@ __kernel void process_intersections(
         float3 pos = ray.origin.xyz;
         float3 dir = ray.direction.xyz;
 
-        float4 color = (float4)(0.0);
+        float3 UP = (float3)(0,1,0);
+
+        float d = max(dot(dir, UP), 0.0f);
+
+        float3 rgb = (float3)(0.58, 0.92, 1.0);
+        float4 color = (float4)(rgb.xyz * d, 1.0);
 
         float depth = (float)(hit.padding0);
         depth = depth / 24.0;
