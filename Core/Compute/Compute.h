@@ -51,7 +51,7 @@ namespace LSIS {
 		// Command queue
 		static cl::CommandQueue CreateCommandQueue(const cl::Context& context, const cl::Device& device);
 
-		static cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename);
+		static cl::Program CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename, const std::vector<std::string>& include_paths);
 		static cl::Kernel CreateKernel(const cl::Program& program, const std::string& function_name);
 
 		// Getters for static compute context

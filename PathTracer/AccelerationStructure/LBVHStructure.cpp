@@ -285,7 +285,7 @@ namespace LSIS {
 
 	void LBVHStructure::CompileKernels()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl");
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", {"Kernels/"});
 		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
 	}
 

@@ -60,7 +60,7 @@ namespace LSIS {
 
 	void CameraRays::CompileKernels()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/camera_rays.cl");
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/camera_rays.cl", {"Kernels/"});
 		m_kernel = Compute::CreateKernel(m_program, "generate_rays");
 	}
 
