@@ -103,7 +103,7 @@ namespace LSIS {
 
 	void PathTracer::CompileKernels()
 	{
-		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "../Assets/Kernels/process.cl");
+		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl");
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 	}
 

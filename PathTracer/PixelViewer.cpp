@@ -137,7 +137,7 @@ namespace LSIS {
 
 	void PixelViewer::CompileKernels()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "../Assets/Kernels/write_pixels.cl");
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/write_pixels.cl");
 		m_kernel = Compute::CreateKernel(m_program, "write_pixels");
 	}
 

@@ -3,7 +3,7 @@
 #include "Compute/Compute.h"
 #include "Compute/Buffer.h"
 
-#include "../Assets/Kernels/shared_defines.h"
+#include "Kernels/shared_defines.h"
 #include "CL/cl.hpp"
 
 namespace LSIS {

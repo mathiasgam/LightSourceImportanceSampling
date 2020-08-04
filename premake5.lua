@@ -140,4 +140,5 @@ project "PathTracer"
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.spdlog}",
+		"%{prj.name}",
 	}
