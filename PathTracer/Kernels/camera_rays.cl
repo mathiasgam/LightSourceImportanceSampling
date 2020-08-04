@@ -50,6 +50,7 @@ __kernel void generate_rays(
         hit.pixel_index = id;
         hit.padding0 = 0;
         hit.uvwt = (float4)(0.0,0.0,0.0,0.0);
+        hit.throughput = (float4)(1.0,1.0,1.0,1.0);
         hits[id] = hit;
     }
 }
