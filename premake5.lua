@@ -122,7 +122,8 @@ project "PathTracer"
 	files {
 		"%{prj.name}/**.h",
 		"%{prj.name}/**.hpp",
-		"%{prj.name}/**.cpp"
+		"%{prj.name}/**.cpp",
+		"%{prj.name}/**.cl"
 	}
 
 	libdirs {
