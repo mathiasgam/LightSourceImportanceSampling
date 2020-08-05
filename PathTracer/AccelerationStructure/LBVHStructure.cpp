@@ -205,8 +205,6 @@ namespace LSIS {
 		const glm::vec3 scale = glm::vec3(1.0f / max_dim);
 		const glm::vec3 transform = -bounds.p_min * scale;
 
-		printf("Scene bounds1: [%f,%f,%f][%f,%f,%f]", bounds.p_min.x, bounds.p_min.y, bounds.p_min.z, bounds.p_max.x, bounds.p_max.y, bounds.p_max.z);
-
 		// create temporary array on the stack for building the bvh structure
 		morton_code_64_t* morton_keys = new morton_code_64_t[N]; // (morton_code_64_t*)malloc(sizeof(morton_code_64_t) * N);
 
@@ -246,7 +244,6 @@ namespace LSIS {
 		delete[] morton_keys;
 
 		isBuild = true;
-		std::cout << "LBVH Build complete\n";
 	}
 
 	void LBVHStructure::LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces)
@@ -261,7 +258,6 @@ namespace LSIS {
 		auto queue = Compute::GetCommandQueue();
 		queue.enqueueWriteBuffer(m_buffer_vertices.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Vertex) * num_vertices, static_cast<const void*>(vertices));
 		queue.enqueueWriteBuffer(m_buffer_faces.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
-
 	}
 
 	void LBVHStructure::LoadBVHBuffer(const SHARED::Node* nodes, size_t num_nodes)
