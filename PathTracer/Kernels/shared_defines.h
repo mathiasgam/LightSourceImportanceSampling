@@ -43,7 +43,6 @@ namespace SHARED {
     typedef struct Vertex {
         float4 position;
         float4 normal;
-        float4 uv;
     } Vertex;
 
     typedef struct Face {

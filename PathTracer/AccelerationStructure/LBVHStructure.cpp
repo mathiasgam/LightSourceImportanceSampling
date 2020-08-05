@@ -157,15 +157,11 @@ namespace LSIS {
 			v.position.x = vtx.position[0];
 			v.position.y = vtx.position[1];
 			v.position.z = vtx.position[2];
-			v.position.w = 0.0f;
+			v.position.w = vtx.uv[0];
 			v.normal.x = vtx.normal[0];
 			v.normal.y = vtx.normal[1];
 			v.normal.z = vtx.normal[2];
-			v.normal.w = 0.0f;
-			v.uv.x = vtx.uv[0];
-			v.uv.y = vtx.uv[1];
-			v.uv.z = 0.0f;
-			v.uv.w = 0.0f;
+			v.normal.w = vtx.uv[1];
 			vertices[i] = v;
 		}
 
@@ -176,7 +172,7 @@ namespace LSIS {
 			f.index.x = in_indices[index + 0];
 			f.index.y = in_indices[index + 1];
 			f.index.z = in_indices[index + 2];
-			f.index.w = 0U;
+			f.index.w = 0U; // material index
 
 			faces[i] = f;
 		}
