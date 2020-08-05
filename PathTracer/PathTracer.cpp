@@ -40,9 +40,13 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		m_camera.GenerateRays(m_ray_buffer, m_intersection_buffer);
+		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
 
-		m_tracing_structure->TraceRays(m_ray_buffer, m_intersection_buffer);
+		m_tracing_structure->TraceRays(m_ray_bufferA, m_intersection_bufferA);
+
+		ProcessIntersections();
+
+		m_tracing_structure->TraceRays(m_ray_bufferB, m_intersection_bufferB);
 
 		ProcessIntersections();
 
@@ -109,7 +113,7 @@ namespace LSIS {
 
 	void PathTracer::TraceRays()
 	{
-		m_camera.GenerateRays(m_ray_buffer, m_intersection_buffer);
+		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		//m_tracing_structure->TraceRays(m_ray_buffer, m_intersection_buffer);
@@ -119,8 +123,10 @@ namespace LSIS {
 	{
 		size_t num_pixels = m_image_width * m_image_height;
 
-		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
-		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_ray_bufferA = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_ray_bufferB = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_intersection_bufferA = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_intersection_bufferB = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
 	}
 
@@ -128,18 +134,45 @@ namespace LSIS {
 	{
 		auto app = Application::Get();
 		auto geometry = app->GetScene()->GetCollectiveMeshData();
-		m_tracing_structure->Build(geometry->GetVertices(), geometry->GetNumVertices(), geometry->GetIndices(), geometry->GetNumIndices());
+
+		auto num_vertices = geometry->GetNumVertices();
+		auto num_indices = geometry->GetNumIndices();
+
+		m_tracing_structure->Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
+
+		auto context = Compute::GetContext();
+
+		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(context, CL_MEM_READ_ONLY, num_vertices);
+		m_face_buffer = TypedBuffer<SHARED::Face>(context, CL_MEM_READ_ONLY, num_indices / 3);
 	}
 
 	void PathTracer::ProcessIntersections()
 	{
 		cl_uint num_rays = m_image_width * m_image_height;
+		cl_uint num_vertices = m_vertex_buffer.Count();
+		cl_uint num_faces = m_face_buffer.Count();
+
 		m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width);
 		m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height);
 		m_kernel_process.setArg(2, sizeof(cl_uint), &num_rays);
-		m_kernel_process.setArg(3, m_ray_buffer.GetBuffer());
-		m_kernel_process.setArg(4, m_intersection_buffer.GetBuffer());
-		m_kernel_process.setArg(5, m_pixel_buffer.GetBuffer());
+		m_kernel_process.setArg(3, sizeof(cl_uint), &num_vertices);
+		m_kernel_process.setArg(4, sizeof(cl_uint), &num_faces);
+		m_kernel_process.setArg(5, m_vertex_buffer.GetBuffer());
+		m_kernel_process.setArg(6, m_face_buffer.GetBuffer());
+		
+		if (buffer_switch) {
+			m_kernel_process.setArg(7, m_ray_bufferA.GetBuffer());
+			m_kernel_process.setArg(8, m_intersection_bufferA.GetBuffer());
+			m_kernel_process.setArg(9, m_ray_bufferB.GetBuffer());
+			m_kernel_process.setArg(10, m_intersection_bufferB.GetBuffer());
+		}
+		else {
+			m_kernel_process.setArg(7, m_ray_bufferB.GetBuffer());
+			m_kernel_process.setArg(8, m_intersection_bufferB.GetBuffer());
+			m_kernel_process.setArg(9, m_ray_bufferA.GetBuffer());
+			m_kernel_process.setArg(10, m_intersection_bufferA.GetBuffer());
+		}
+		m_kernel_process.setArg(11, m_pixel_buffer.GetBuffer());
 
 		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays));
 

@@ -7,7 +7,7 @@
 
 namespace LSIS {
 
-	struct Vertex {
+	/*struct Vertex {
 		float4 position;
 		float4 normal;
 		float4 uv;
@@ -18,13 +18,13 @@ namespace LSIS {
 	};
 
 	using RayBuffer = TypedBuffer<SHARED::Ray>;
-	using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
+	using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;*/
 
 	class AccelerationStructure {
 	public:
 
 		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) = 0;
-		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) = 0;
+		virtual void TraceRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer) = 0;
 
 		virtual void CompileKernels() {};
 		virtual size_t CalculateMemory() const = 0;

@@ -39,6 +39,17 @@ namespace SHARED {
         float4 throughput;
     } Intersection;
 
+    // Defines types for the buffers
+    typedef struct Vertex {
+        float4 position;
+        float4 normal;
+        float4 uv;
+    } Vertex;
+
+    typedef struct Face {
+        uint4 index;
+    } Face;
+
     typedef struct Pixel {
         float4 color;
     } Pixel;

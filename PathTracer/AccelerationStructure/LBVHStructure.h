@@ -1,32 +1,27 @@
 #pragma once
 
 #include "AccelerationStructure.h"
+#include "Kernel.h"
 
 namespace LSIS {
 
-	class LBVHStructure : public AccelerationStructure {
+	class LBVHStructure : public AccelerationStructure, Kernel {
 	public:
 		LBVHStructure();
 		virtual ~LBVHStructure();
 
 		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) override;
-		virtual void TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer) override;
+		virtual void TraceRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer) override;
+
+		void SetBuffers(const TypedBuffer<SHARED::Vertex>& vertex_buffer, const TypedBuffer<SHARED::Face>& face_buffer);
+		void SetBuffers(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer);
+
+		virtual void Compile();
 
 		virtual void CompileKernels() override;
 		virtual size_t CalculateMemory() const override;
 
 	private:
-
-		// Defines types for the buffers
-		struct Vertex {
-			cl_float4 position;
-			cl_float4 normal;
-			cl_float4 uv;
-		};
-
-		struct Face {
-			cl_uint4 index;
-		};
 
 		struct Node {
 			cl_float4 min; // .w is left neighbor
@@ -59,7 +54,7 @@ namespace LSIS {
 		static uint32_t generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, Node* nodes, const uint32_t idx);
 		static AABB LBVHStructure::calc_bboxes(Node* nodes, const AABB* bboxes, uint32_t idx);
 
-		void LoadGeometryBuffers(const Vertex* vertices, size_t num_vertices, const Face* faces, size_t num_faces);
+		void LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces);
 		void LoadBVHBuffer(const Node* nodes, size_t num_nodes);
 
 	private:

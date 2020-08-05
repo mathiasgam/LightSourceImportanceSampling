@@ -54,10 +54,16 @@ namespace LSIS {
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
 
+		bool buffer_switch = true;
+
 		// Buffers
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
-		TypedBuffer<SHARED::Ray> m_ray_buffer;
-		TypedBuffer<SHARED::Intersection> m_intersection_buffer;
+		TypedBuffer<SHARED::Ray> m_ray_bufferA;
+		TypedBuffer<SHARED::Ray> m_ray_bufferB;
+		TypedBuffer<SHARED::Intersection> m_intersection_bufferA;
+		TypedBuffer<SHARED::Intersection> m_intersection_bufferB;
+		TypedBuffer<SHARED::Vertex> m_vertex_buffer;
+		TypedBuffer<SHARED::Face> m_face_buffer;
 
 		Scope<AccelerationStructure> m_tracing_structure;
 	};

@@ -129,6 +129,7 @@ namespace LSIS {
 	   
 	void LBVHStructure::Build(const VertexData* in_vertices, size_t num_vertices, const uint32_t* in_indices, size_t num_indices)
 	{
+
 		std::cout << "Building LBVH\n";
 		std::cout << "Num Vertices: " << num_vertices << std::endl;
 		std::cout << "Num Indices: " << num_indices << std::endl;
@@ -142,8 +143,8 @@ namespace LSIS {
 		m_num_faces = N;
 		m_num_vertices = num_vertices;
 
-		Face* faces = new Face[N]; // (Face*)malloc(sizeof(Face) * N);
-		Vertex* vertices = new Vertex[num_vertices]; // (Vertex*)malloc(sizeof(Vertex) * num_vertices);
+		SHARED::Face* faces = new SHARED::Face[N]; // (Face*)malloc(sizeof(Face) * N);
+		SHARED::Vertex* vertices = new SHARED::Vertex[num_vertices]; // (Vertex*)malloc(sizeof(Vertex) * num_vertices);
 
 		// exstract bounding boxes for each face in the scene
 		AABB * bboxes = new AABB[N];// (AABB*)malloc(sizeof(AABB) * N);
@@ -152,7 +153,7 @@ namespace LSIS {
 		// Parse vertices
 		for (size_t i = 0; i < num_vertices; i++) {
 			const VertexData& vtx = in_vertices[i];
-			Vertex v{};
+			SHARED::Vertex v{};
 			v.position.x = vtx.position[0];
 			v.position.y = vtx.position[1];
 			v.position.z = vtx.position[2];
@@ -171,7 +172,7 @@ namespace LSIS {
 		// Parse faces
 		for (size_t i = 0; i < N; i++) {
 			size_t index = i * 3;
-			Face f{};
+			SHARED::Face f{};
 			f.index.x = in_indices[index + 0];
 			f.index.y = in_indices[index + 1];
 			f.index.z = in_indices[index + 2];
@@ -183,11 +184,11 @@ namespace LSIS {
 		// Find scene bounds
 		AABB bounds = AABB();
 		for (size_t i = 0; i < N; i++) {
-			const Face& face = faces[i];
+			const SHARED::Face& face = faces[i];
 
-			const Vertex& v0 = vertices[face.index.x];
-			const Vertex& v1 = vertices[face.index.y];
-			const Vertex& v2 = vertices[face.index.z];
+			const SHARED::Vertex& v0 = vertices[face.index.x];
+			const SHARED::Vertex& v1 = vertices[face.index.y];
+			const SHARED::Vertex& v2 = vertices[face.index.z];
 
 			glm::vec3 p0 = { v0.position.x, v0.position.y, v0.position.z };
 			glm::vec3 p1 = { v1.position.x, v1.position.y, v1.position.z };
@@ -254,7 +255,7 @@ namespace LSIS {
 		std::cout << "LBVH Build complete\n";
 	}
 
-	void LBVHStructure::TraceRays(RayBuffer& ray_buffer, IntersectionBuffer& intersection_buffer)
+	void LBVHStructure::TraceRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer)
 	{
 		if (!isBuild) {
 			return;
@@ -283,6 +284,14 @@ namespace LSIS {
 		}
 	}
 
+	void LBVHStructure::SetBuffers(const TypedBuffer<SHARED::Vertex>& vertex_buffer, const TypedBuffer<SHARED::Face>& face_buffer)
+	{
+	}
+
+	void LBVHStructure::Compile()
+	{
+	}
+
 	void LBVHStructure::CompileKernels()
 	{
 		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", {"Kernels/"});
@@ -294,24 +303,24 @@ namespace LSIS {
 		size_t mem_size = 0;
 
 		mem_size += sizeof(Node) * m_num_nodes;
-		mem_size += sizeof(Vertex) * m_num_vertices;
-		mem_size += sizeof(Face) * m_num_faces;
+		mem_size += sizeof(SHARED::Vertex) * m_num_vertices;
+		mem_size += sizeof(SHARED::Face) * m_num_faces;
 
 		return mem_size;
 	}
 
-	void LBVHStructure::LoadGeometryBuffers(const Vertex* vertices, size_t num_vertices, const Face* faces, size_t num_faces)
+	void LBVHStructure::LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces)
 	{
 		// initialize buffers
-		m_buffer_vertices = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(Vertex) * num_vertices);
-		m_buffer_faces = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(Face) * num_faces);
+		m_buffer_vertices = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(SHARED::Vertex) * num_vertices);
+		m_buffer_faces = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(SHARED::Face) * num_faces);
 		m_num_vertices = num_vertices;
 		m_num_faces = num_faces;
 
 		// Upload data
 		auto queue = Compute::GetCommandQueue();
-		queue.enqueueWriteBuffer(m_buffer_vertices, CL_TRUE, 0, sizeof(Vertex) * num_vertices, static_cast<const void*>(vertices));
-		queue.enqueueWriteBuffer(m_buffer_faces, CL_TRUE, 0, sizeof(Face) * num_faces, static_cast<const void*>(faces));
+		queue.enqueueWriteBuffer(m_buffer_vertices, CL_TRUE, 0, sizeof(SHARED::Vertex) * num_vertices, static_cast<const void*>(vertices));
+		queue.enqueueWriteBuffer(m_buffer_faces, CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
 
 		// set static kernel arguments
 		m_kernel.setArg(1, m_buffer_faces);
