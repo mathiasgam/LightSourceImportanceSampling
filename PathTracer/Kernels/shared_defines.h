@@ -49,6 +49,11 @@ namespace SHARED {
         uint4 index;
     } Face;
 
+    typedef struct Node {
+        float4 min; // .w is left neighbor
+        float4 max; // .w is right neighbor
+    } Node;
+
     typedef struct Pixel {
         float4 color;
     } Pixel;

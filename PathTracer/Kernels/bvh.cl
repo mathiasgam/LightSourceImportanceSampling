@@ -1,12 +1,6 @@
 
 #include "commonCL.h"
 
-typedef struct Node {
-    float4 min; // .w is left child
-    float4 max; // .w is right child
-} Node;
-
-
 inline float min_component(float3 f)
 {
     return min(min(f.x, f.y), f.z);

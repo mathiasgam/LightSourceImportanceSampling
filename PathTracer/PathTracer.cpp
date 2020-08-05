@@ -16,12 +16,12 @@ namespace LSIS {
 		m_num_pixels(width* height),
 		m_num_rays(width* height),
 		m_camera(width, height),
-		m_viewer(width, height)
+		m_viewer(width, height),
+		m_bvh()
 	{
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
-		m_tracing_structure = std::make_unique<LBVHStructure>();
 		CompileKernels();
 		BuildStructure();
 	}
@@ -42,11 +42,11 @@ namespace LSIS {
 	{
 		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
 
-		m_tracing_structure->TraceRays(m_ray_bufferA, m_intersection_bufferA);
+		m_bvh.Trace(m_ray_bufferA, m_intersection_bufferA);
 
 		ProcessIntersections();
 
-		m_tracing_structure->TraceRays(m_ray_bufferB, m_intersection_bufferB);
+		m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
 
 		ProcessIntersections();
 
@@ -68,7 +68,7 @@ namespace LSIS {
 				CompileKernels();
 				m_viewer.CompileKernels();
 				m_camera.CompileKernels();
-				m_tracing_structure->CompileKernels();
+				m_bvh.Compile();
 				BuildStructure();
 				std::cout << "PT: Kernels Recompiled!\n";
 				return true;
@@ -100,7 +100,6 @@ namespace LSIS {
 		mem_size += m_camera.CalculateMemory();
 		mem_size += m_viewer.CalculateMemory();
 
-		mem_size += m_tracing_structure->CalculateMemory();
 
 		return mem_size;
 	}
@@ -138,19 +137,25 @@ namespace LSIS {
 		auto num_vertices = geometry->GetNumVertices();
 		auto num_indices = geometry->GetNumIndices();
 
-		m_tracing_structure->Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
+		LBVHStructure structure = LBVHStructure();
+		structure.Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
 
 		auto context = Compute::GetContext();
 
-		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(context, CL_MEM_READ_ONLY, num_vertices);
-		m_face_buffer = TypedBuffer<SHARED::Face>(context, CL_MEM_READ_ONLY, num_indices / 3);
+		m_vertex_buffer = structure.GetVertices();
+		m_face_buffer = structure.GetFaces();
+		m_bvh_buffer = structure.GetNodes();
+
+		m_bvh.SetBVHBuffer(m_bvh_buffer);
+		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
+
 	}
 
 	void PathTracer::ProcessIntersections()
 	{
 		cl_uint num_rays = m_image_width * m_image_height;
-		cl_uint num_vertices = m_vertex_buffer.Count();
-		cl_uint num_faces = m_face_buffer.Count();
+		cl_uint num_vertices = static_cast<cl_uint>(m_vertex_buffer.Count());
+		cl_uint num_faces = static_cast<cl_uint>(m_face_buffer.Count());
 
 		m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width);
 		m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height);

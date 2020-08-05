@@ -1,32 +1,23 @@
 #pragma once
 
-#include "AccelerationStructure.h"
-#include "Kernel.h"
+#include "Kernels/shared_defines.h"
+#include "Mesh/Mesh.h"
+#include "Compute/Buffer.h"
 
 namespace LSIS {
 
-	class LBVHStructure : public AccelerationStructure, Kernel {
+	class LBVHStructure {
 	public:
 		LBVHStructure();
 		virtual ~LBVHStructure();
 
-		virtual void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices) override;
-		virtual void TraceRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer) override;
-
-		void SetBuffers(const TypedBuffer<SHARED::Vertex>& vertex_buffer, const TypedBuffer<SHARED::Face>& face_buffer);
-		void SetBuffers(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer);
-
-		virtual void Compile();
-
-		virtual void CompileKernels() override;
-		virtual size_t CalculateMemory() const override;
+		void Build(const VertexData* vertices, size_t num_vertices, const uint32_t* indices, size_t num_indices);
+			   
+		TypedBuffer<SHARED::Vertex> GetVertices() const { return m_buffer_vertices; }
+		TypedBuffer<SHARED::Face> GetFaces() const { return m_buffer_faces; }
+		TypedBuffer<SHARED::Node> GetNodes() const { return m_buffer_bvh; }
 
 	private:
-
-		struct Node {
-			cl_float4 min; // .w is left neighbor
-			cl_float4 max; // .w is right neighbor
-		};
 
 		struct morton_code_64_t {
 			uint64_t code;
@@ -51,22 +42,19 @@ namespace LSIS {
 		};
 
 		static uint32_t findSplit(const morton_code_64_t* codes, const uint32_t first, const uint32_t last);
-		static uint32_t generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, Node* nodes, const uint32_t idx);
-		static AABB LBVHStructure::calc_bboxes(Node* nodes, const AABB* bboxes, uint32_t idx);
+		static uint32_t generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, SHARED::Node* nodes, const uint32_t idx);
+		static AABB LBVHStructure::calc_bboxes(SHARED::Node* nodes, const AABB* bboxes, uint32_t idx);
 
 		void LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces);
-		void LoadBVHBuffer(const Node* nodes, size_t num_nodes);
+		void LoadBVHBuffer(const SHARED::Node* nodes, size_t num_nodes);
 
 	private:
 
 		bool isBuild = false;
 
-		cl::Program m_program;
-		cl::Kernel m_kernel;
-
-		cl::Buffer m_buffer_bvh;
-		cl::Buffer m_buffer_faces;
-		cl::Buffer m_buffer_vertices;
+		TypedBuffer<SHARED::Node> m_buffer_bvh;
+		TypedBuffer<SHARED::Face> m_buffer_faces;
+		TypedBuffer<SHARED::Vertex> m_buffer_vertices;
 
 		size_t m_num_vertices;
 		size_t m_num_faces;

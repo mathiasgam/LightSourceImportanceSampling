@@ -10,7 +10,6 @@ namespace LSIS {
 
 	LBVHStructure::LBVHStructure()
 	{
-		CompileKernels();
 	}
 
 	LBVHStructure::~LBVHStructure()
@@ -71,10 +70,10 @@ namespace LSIS {
 		return static_cast<uint32_t>(split);
 	}
 
-	uint32_t LBVHStructure::generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, Node* nodes, const uint32_t idx) {
+	uint32_t LBVHStructure::generate(const morton_code_64_t* codes, const uint32_t first, const uint32_t last, SHARED::Node* nodes, const uint32_t idx) {
 
 		if (first == last) {
-			Node node = {};
+			SHARED::Node node = {};
 			node.min.w = -1;
 			node.max.w = static_cast<float>(codes[first].index);
 			nodes[idx] = node;
@@ -91,7 +90,7 @@ namespace LSIS {
 		uint32_t num_left = generate(codes, first, split, nodes, idx + 1);
 		uint32_t num_right = generate(codes, split + 1, last, nodes, idx + num_left + 1);
 
-		Node node = {};
+		SHARED::Node node = {};
 		node.min.w = static_cast<float>(idx + 1);
 		node.max.w = static_cast<float>(num_left + idx + 1);
 		nodes[idx] = node;
@@ -99,8 +98,8 @@ namespace LSIS {
 		return num_left + num_right + 1;
 	}
 
-	LBVHStructure::AABB LBVHStructure::calc_bboxes(Node* nodes, const AABB* bboxes, uint32_t idx) {
-		Node& node = nodes[idx];
+	LBVHStructure::AABB LBVHStructure::calc_bboxes(SHARED::Node* nodes, const AABB* bboxes, uint32_t idx) {
+		SHARED::Node& node = nodes[idx];
 
 		// if leaf
 		if (node.min.w == -1) {
@@ -228,7 +227,7 @@ namespace LSIS {
 		m_num_nodes = N + num_internal_nodes;
 
 		// clear and resize the nodes array to hold the maximum amounds of nodes, based on the number of leaves
-		Node* nodes = new Node[m_num_nodes]; // (Node*)malloc(sizeof(Node) * m_num_nodes);
+		SHARED::Node* nodes = new SHARED::Node[m_num_nodes]; // (Node*)malloc(sizeof(Node) * m_num_nodes);
 
 		// Generate Hiearachy
 		generate(morton_keys, 0, static_cast<uint32_t>(N - 1), nodes, 0);
@@ -250,93 +249,31 @@ namespace LSIS {
 		std::cout << "LBVH Build complete\n";
 	}
 
-	void LBVHStructure::TraceRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer)
-	{
-		if (!isBuild) {
-			return;
-		}
-
-		// Get ray count;
-		cl_uint num_rays = static_cast<cl_uint>(ray_buffer.Count());
-
-		// safty check ray and intersection match
-		if (intersection_buffer.Count() != num_rays) {
-			std::cout << "Error: ray and intersection buffer does not match in size\n";
-			return;
-		}
-
-		// Bind dynamic kernel arguments
-		m_kernel.setArg(3, ray_buffer.GetBuffer());
-		m_kernel.setArg(7, sizeof(uint32_t), &num_rays);
-		m_kernel.setArg(8, intersection_buffer.GetBuffer());
-
-		// submit kernel
-		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(num_rays));
-
-		// check for errors
-		if (err != CL_SUCCESS) {
-			std::cout << "Error: LBVHStructure]" << GET_CL_ERROR_CODE(err) << std::endl;
-		}
-	}
-
-	void LBVHStructure::SetBuffers(const TypedBuffer<SHARED::Vertex>& vertex_buffer, const TypedBuffer<SHARED::Face>& face_buffer)
-	{
-	}
-
-	void LBVHStructure::Compile()
-	{
-	}
-
-	void LBVHStructure::CompileKernels()
-	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", {"Kernels/"});
-		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
-	}
-
-	size_t LBVHStructure::CalculateMemory() const
-	{
-		size_t mem_size = 0;
-
-		mem_size += sizeof(Node) * m_num_nodes;
-		mem_size += sizeof(SHARED::Vertex) * m_num_vertices;
-		mem_size += sizeof(SHARED::Face) * m_num_faces;
-
-		return mem_size;
-	}
-
 	void LBVHStructure::LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces)
 	{
 		// initialize buffers
-		m_buffer_vertices = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(SHARED::Vertex) * num_vertices);
-		m_buffer_faces = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(SHARED::Face) * num_faces);
+		m_buffer_vertices = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
+		m_buffer_faces = TypedBuffer<SHARED::Face>(Compute::GetContext(), CL_MEM_READ_ONLY, num_faces);
 		m_num_vertices = num_vertices;
 		m_num_faces = num_faces;
 
 		// Upload data
 		auto queue = Compute::GetCommandQueue();
-		queue.enqueueWriteBuffer(m_buffer_vertices, CL_TRUE, 0, sizeof(SHARED::Vertex) * num_vertices, static_cast<const void*>(vertices));
-		queue.enqueueWriteBuffer(m_buffer_faces, CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
+		queue.enqueueWriteBuffer(m_buffer_vertices.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Vertex) * num_vertices, static_cast<const void*>(vertices));
+		queue.enqueueWriteBuffer(m_buffer_faces.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
 
-		// set static kernel arguments
-		m_kernel.setArg(1, m_buffer_faces);
-		m_kernel.setArg(2, m_buffer_vertices);
-		m_kernel.setArg(5, sizeof(uint32_t), &m_num_faces);
-		m_kernel.setArg(6, sizeof(uint32_t), &m_num_vertices);
 	}
 
-	void LBVHStructure::LoadBVHBuffer(const Node* nodes, size_t num_nodes)
+	void LBVHStructure::LoadBVHBuffer(const SHARED::Node* nodes, size_t num_nodes)
 	{
 		// initialize buffers
-		m_buffer_bvh = cl::Buffer(Compute::GetContext(), CL_MEM_READ_ONLY, sizeof(Node) * num_nodes);
+		m_buffer_bvh = TypedBuffer<SHARED::Node>(Compute::GetContext(), CL_MEM_READ_ONLY, num_nodes);
 		m_num_nodes = num_nodes;
 
 		// Upload data
 		auto queue = Compute::GetCommandQueue();
-		queue.enqueueWriteBuffer(m_buffer_bvh, CL_TRUE, 0, sizeof(Node) * num_nodes, static_cast<const void*>(nodes));
+		queue.enqueueWriteBuffer(m_buffer_bvh.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Node) * num_nodes, static_cast<const void*>(nodes));
 
-		// set static kernel arguments
-		m_kernel.setArg(0, m_buffer_bvh);
-		m_kernel.setArg(4, sizeof(uint32_t), &m_num_nodes);
 	}
 
 }

@@ -6,11 +6,11 @@
 #include "Core/Layer.h"
 #include "Graphics/Shader.h"
 
-#include "AccelerationStructure/AccelerationStructure.h"
 #include "Compute/SharedCLGL/SharedTexture2D.h"
 
 #include "CameraRays.h"
 #include "PixelViewer.h"
+#include "BVH.h"
 
 namespace LSIS {
 
@@ -50,22 +50,26 @@ namespace LSIS {
 
 		CameraRays m_camera;
 		PixelViewer m_viewer;
-
+		BVH m_bvh;
+		
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
 
 		bool buffer_switch = true;
 
-		// Buffers
+		// Result Buffers
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
+
+		// Ray Buffers
 		TypedBuffer<SHARED::Ray> m_ray_bufferA;
 		TypedBuffer<SHARED::Ray> m_ray_bufferB;
 		TypedBuffer<SHARED::Intersection> m_intersection_bufferA;
 		TypedBuffer<SHARED::Intersection> m_intersection_bufferB;
+
+		// Geometry Buffers
 		TypedBuffer<SHARED::Vertex> m_vertex_buffer;
 		TypedBuffer<SHARED::Face> m_face_buffer;
-
-		Scope<AccelerationStructure> m_tracing_structure;
+		TypedBuffer<SHARED::Node> m_bvh_buffer;
 	};
 
 
