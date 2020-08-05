@@ -5,6 +5,27 @@ inline float4 ColorFromNormal(float3 normal){
     return (float4)(col.xyz, 1.0f);
 }
 
+inline float3 CalcGeometricNormal(float3 v0, float3 v1, float3 v2){
+    float3 e0 = v1 - v0;
+    float3 e1 = v2 - v0;
+
+    return normalize(cross(e0,e1));
+}
+
+inline float4 GetBackground(float3 dir){
+    const float3 UP = (float3)(0,1,0);
+    float d = 1.0f - max(dot(dir, UP), 0.0f);
+
+    float3 sky = (float3)(0.58f, 0.92f, 1.0f);
+    float3 ground = (float3)(0.55f, 0.40f, 0.17f);
+
+    if (d == 1.0f){
+        return (float4)(0.2f,0.2f,0.2f,1.0f);
+    }
+
+    return (float4)(mix(sky, ground, d*d),1.0f);
+}
+
 __kernel void process_intersections(
     IN_VAL(uint, width),
     IN_VAL(uint, height),
@@ -28,35 +49,26 @@ __kernel void process_intersections(
         Ray ray = rays[id];
         Intersection hit = hits[id];
 
-        float x = (float)(id % width);
-        float y = (float)(id / width);
-
-        x /= width;
-        y /= height;
-
         float3 pos = ray.origin.xyz;
         float3 dir = ray.direction.xyz;
 
-        float3 UP = (float3)(0,1,0);
+        float4 color;
 
-        float d = max(dot(dir, UP), 0.0f);
-
-        float3 rgb = (float3)(0.58, 0.92, 1.0);
-        float4 color = (float4)(rgb.xyz * d, 0.2);
-
-        float depth = (float)(hit.padding0);
-        depth = depth / 24.0;
-        depth = 1 - (depth * depth);
 
         if (hit.hit > 0){
-            color = (float4)(depth,depth,depth,0.2);
-            float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
-            hit_pos *= 0.2f;
-            hit_pos += 0.5f;
-            color = (float4)(hit_pos.xyz, 0.2f);
+            //float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
+
+            const Face face = faces[hit.primid];
+            const Vertex v0 = vertices[face.index.x];
+            const Vertex v1 = vertices[face.index.y];
+            const Vertex v2 = vertices[face.index.z];
+
+            float3 normal = CalcGeometricNormal(v0.position.xyz, v1.position.xyz, v2.position.xyz);
+            color = ColorFromNormal(normal);
+        }else{
+            color = GetBackground(dir);
         }
         
-
         Pixel p = {};
         p.color = color;
         pixels[hit.pixel_index] = p;
