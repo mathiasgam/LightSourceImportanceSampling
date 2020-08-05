@@ -4,6 +4,8 @@
 #include <intrin.h>
 #include "DataStructures/MortonCode.h"
 
+#include "Core/Timer.h"
+
 namespace LSIS {
 
 	LBVHStructure::LBVHStructure()
@@ -129,10 +131,7 @@ namespace LSIS {
 	   
 	void LBVHStructure::Build(const VertexData* in_vertices, size_t num_vertices, const uint32_t* in_indices, size_t num_indices)
 	{
-
-		std::cout << "Building LBVH\n";
-		std::cout << "Num Vertices: " << num_vertices << std::endl;
-		std::cout << "Num Indices: " << num_indices << std::endl;
+		PROFILE_SCOPE("LBVH Build");
 
 		if (num_indices == 0 || num_vertices == 0) {
 			return;
