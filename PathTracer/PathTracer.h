@@ -47,6 +47,7 @@ namespace LSIS {
 		uint32_t m_image_width, m_image_height;
 		uint32_t m_num_pixels;
 		uint32_t m_num_rays;
+		uint32_t m_num_samples = 0;
 
 		CameraRays m_camera;
 		PixelViewer m_viewer;

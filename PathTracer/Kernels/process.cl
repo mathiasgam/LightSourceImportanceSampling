@@ -29,6 +29,7 @@ inline float4 GetBackground(float3 dir){
 __kernel void process_intersections(
     IN_VAL(uint, width),
     IN_VAL(uint, height),
+    IN_VAL(uint, num_samples),
     IN_VAL(uint, num_rays),
     IN_VAL(uint, num_vertices),
     IN_VAL(uint, num_faces),
@@ -69,8 +70,10 @@ __kernel void process_intersections(
             color = GetBackground(dir);
         }
         
-        Pixel p = {};
-        p.color = color;
+        float f = 1.0f / (num_samples + 1);
+        Pixel p = pixels[hit.pixel_index];
+        float4 current = p.color;
+        p.color = mix(current, color, f);
         pixels[hit.pixel_index] = p;
     }else{
         printf("Fail!\n");

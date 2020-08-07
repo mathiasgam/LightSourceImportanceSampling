@@ -28,7 +28,9 @@ namespace LSIS {
 		MouseScrolled,
 		MouseButtonPressed,
 		MouseButtonRepeat,
-		MouseButtonReleased
+		MouseButtonReleased,
+
+		CameraUpdated
 	};
 
 	enum EventCategory {

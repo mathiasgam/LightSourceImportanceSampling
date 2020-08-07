@@ -46,12 +46,13 @@ namespace LSIS {
 
 		ProcessIntersections();
 
-		m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
-
-		ProcessIntersections();
+		//m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
+		//ProcessIntersections();
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
+
+		m_num_samples++;
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -62,6 +63,7 @@ namespace LSIS {
 			if (key == KEY_B) {
 				std::cout << "PT Event: " << e << std::endl;
 				BuildStructure();
+				m_num_samples = 0;
 				return true;
 			}
 			else if (key == KEY_R) {
@@ -73,6 +75,10 @@ namespace LSIS {
 				std::cout << "PT: Kernels Recompiled!\n";
 				return true;
 			}
+		}
+		if (e.GetEventType() == EventType::CameraUpdated) {
+			std::cout << "Cam Update\n";
+			m_num_samples = 0;
 		}
 		return false;
 	}
@@ -159,25 +165,26 @@ namespace LSIS {
 
 		m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width);
 		m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height);
-		m_kernel_process.setArg(2, sizeof(cl_uint), &num_rays);
-		m_kernel_process.setArg(3, sizeof(cl_uint), &num_vertices);
-		m_kernel_process.setArg(4, sizeof(cl_uint), &num_faces);
-		m_kernel_process.setArg(5, m_vertex_buffer.GetBuffer());
-		m_kernel_process.setArg(6, m_face_buffer.GetBuffer());
+		m_kernel_process.setArg(2, sizeof(cl_uint), &m_num_samples);
+		m_kernel_process.setArg(3, sizeof(cl_uint), &num_rays);
+		m_kernel_process.setArg(4, sizeof(cl_uint), &num_vertices);
+		m_kernel_process.setArg(5, sizeof(cl_uint), &num_faces);
+		m_kernel_process.setArg(6, m_vertex_buffer.GetBuffer());
+		m_kernel_process.setArg(7, m_face_buffer.GetBuffer());
 		
 		if (buffer_switch) {
-			m_kernel_process.setArg(7, m_ray_bufferA.GetBuffer());
-			m_kernel_process.setArg(8, m_intersection_bufferA.GetBuffer());
-			m_kernel_process.setArg(9, m_ray_bufferB.GetBuffer());
-			m_kernel_process.setArg(10, m_intersection_bufferB.GetBuffer());
+			m_kernel_process.setArg(8, m_ray_bufferA.GetBuffer());
+			m_kernel_process.setArg(9, m_intersection_bufferA.GetBuffer());
+			m_kernel_process.setArg(10, m_ray_bufferB.GetBuffer());
+			m_kernel_process.setArg(11, m_intersection_bufferB.GetBuffer());
 		}
 		else {
-			m_kernel_process.setArg(7, m_ray_bufferB.GetBuffer());
-			m_kernel_process.setArg(8, m_intersection_bufferB.GetBuffer());
-			m_kernel_process.setArg(9, m_ray_bufferA.GetBuffer());
-			m_kernel_process.setArg(10, m_intersection_bufferA.GetBuffer());
+			m_kernel_process.setArg(8, m_ray_bufferB.GetBuffer());
+			m_kernel_process.setArg(9, m_intersection_bufferB.GetBuffer());
+			m_kernel_process.setArg(10, m_ray_bufferA.GetBuffer());
+			m_kernel_process.setArg(11, m_intersection_bufferA.GetBuffer());
 		}
-		m_kernel_process.setArg(11, m_pixel_buffer.GetBuffer());
+		m_kernel_process.setArg(12, m_pixel_buffer.GetBuffer());
 
 		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays));
 

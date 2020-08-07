@@ -122,6 +122,7 @@ namespace LSIS {
 	void Application::UpdateCam() {
 		m_cam->SetPosition(Input::GetCameraPosition());
 		m_cam->SetRotation(Input::GetcameraRotation());
+		OnEvent(CameraUpdatedEvent(m_cam));
 	}
 
 	void Application::Run()
@@ -143,7 +144,9 @@ namespace LSIS {
 			m_window->Clear();
 
 			Input::Update(delta);
-			UpdateCam();
+			if (Input::HasCameraMoved()) {
+				UpdateCam();
+			}
 
 			m_scene->Update();
 			m_scene->Render();

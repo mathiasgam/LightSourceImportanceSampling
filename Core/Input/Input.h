@@ -12,6 +12,7 @@ namespace LSIS {
 		glm::vec4 GetCameraPosition();
 		glm::vec4 GetCameraVelocity();
 		glm::vec3 GetcameraRotation();
+		bool HasCameraMoved();
 
 		void SetCameraPosition(glm::vec4 position);
 		void SetCameraRotation(glm::vec3 rotation);
