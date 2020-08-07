@@ -29,6 +29,7 @@ namespace LSIS {
 
 	void CameraRays::GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer)
 	{
+		m_seed++;
 		// Test that the buffers are the correct size
 		//assert(ray_buffer.Count() == m_width * m_height);
 		//assert(intersection_buffer.Count() == m_width * m_height);
