@@ -1,6 +1,8 @@
 
 #include "commonCL.h"
 
+#define MAX_DEPTH 24
+
 inline float min_component(float3 f)
 {
     return min(min(f.x, f.y), f.z);
@@ -62,14 +64,8 @@ inline float intersect_triangle(
     float const b2 = dot(ray.direction.xyz, s2) * invd;
     float const temp = dot(e2, s2) * invd;
 
-    if (b1 < 0.f || b1 > 1.f || b2 < 0.f || b1 + b2 > 1.f || temp < 0.f || temp > t_max)
-    {
-        return t_max;
-    }
-    else
-    {
-        return temp;
-    }
+    bool hasHit = b1 < 0.f || b1 > 1.f || b2 < 0.f || b1 + b2 > 1.f || temp < 0.f || temp > t_max;
+    return hasHit ? t_max : temp;
 }
 
 __kernel void intersect_bvh(
@@ -85,13 +81,9 @@ __kernel void intersect_bvh(
 ){
     const int id = get_global_id(0);
 
-    //if (id == 0){
-    //    printf("Nodes: %d, Faces: %d, Vertices: %d, Rays: %d\n", num_nodes, num_faces, num_vertices, num_rays);
-    //}
+    // fixed size queue, for storing the nodes not yet taken when iterating through the tree
+    int queue[MAX_DEPTH];
 
-    int queue[24];
-
-    barrier(CLK_GLOBAL_MEM_FENCE);
     if (id < num_rays) {
         Ray ray = rays[id];
         Intersection intersection = intersections[id];
@@ -120,31 +112,30 @@ __kernel void intersect_bvh(
             float3 pmin = node.min.xyz;
             float3 pmax = node.max.xyz;
 
+            // Make sure all threads are ready
             barrier(CLK_LOCAL_MEM_FENCE);
-
 
             // Intersects bbox
             if (intersect_bbox(pmin, pmax, oxinvdir, invdir, t_min, t_max)) {
                 if (left == -1) { // node is a leaf
-                    Face face = faces[right];
 
+                    // Fetch the vertices of the triangle
+                    Face face = faces[right];
                     Vertex v0 = vertices[face.index.x];
                     Vertex v1 = vertices[face.index.y];
                     Vertex v2 = vertices[face.index.z];
 
-                    //printf("v0:[%f,%f,%f]\n", v0.position.x, v0.position.y, v0.position.z);
-                    //printf("v1:[%f,%f,%f]\n", v1.position.x, v1.position.y, v1.position.z);
-                    //printf("v2:[%f,%f,%f]\n", v2.position.x, v2.position.y, v2.position.z);
-
+                    // Check if the ray hit the contained triangle and store the distance in f if hit
                     float f = intersect_triangle(ray, v0.position.xyz, v1.position.xyz, v2.position.xyz);
 
+                    // if the hit is closer than the currently closest hit
                     if (f < t_max) {
                         t_max = f;
                         prim_id = right;
                         hits += 1;
                     }
 
-                    // get the next node from the queue
+                    // get the next node from the queue if any is left
                     next = count > 0 ? queue[--count] : -1;
                 }
                 else { // node is internal
@@ -156,9 +147,7 @@ __kernel void intersect_bvh(
                 // get the next node from the queue
                 next = count > 0 ? queue[--count] : -1;
             }
-            if (count > depth){
-                depth = count;  
-            }
+            depth = max(count, depth);
         }
         
         // save intersection info
