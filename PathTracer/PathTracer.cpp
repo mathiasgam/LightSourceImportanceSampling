@@ -6,6 +6,7 @@
 #include "Input/KeyCodes.h"
 
 #include "AccelerationStructure/LBVHStructure.h"
+#include "AccelerationStructure/BVHBuilder.h"
 
 namespace LSIS {
 
@@ -143,6 +144,8 @@ namespace LSIS {
 		auto num_vertices = geometry->GetNumVertices();
 		auto num_indices = geometry->GetNumIndices();
 
+		BVHBuilder builder = BVHBuilder();
+
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
 
@@ -151,6 +154,8 @@ namespace LSIS {
 		m_vertex_buffer = structure.GetVertices();
 		m_face_buffer = structure.GetFaces();
 		m_bvh_buffer = structure.GetNodes();
+
+		auto node_buffer = builder.Build(m_vertex_buffer, m_face_buffer);
 
 		m_bvh.SetBVHBuffer(m_bvh_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);

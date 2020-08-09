@@ -4,15 +4,29 @@
 #include "Compute/Buffer.h"
 #include "Compute/Compute.h"
 
+#include "Kernel.h"
+
 namespace LSIS {
 
-	class BVHBuilderRecursive {
+	class BVHBuilder : Kernel {
+
 	public:
-		BVHBuilderRecursive(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces);
-		virtual ~BVHBuilderRecursive();
-		
+		BVHBuilder();
+		virtual ~BVHBuilder();
+
+		virtual void Compile() override;
+
+		const TypedBuffer<SHARED::Node> Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces);
+
 	private:
-		std::vector<SHARED::Node> m_nodes;
+
+	private:
+		cl::Program m_program;
+		cl::Kernel m_kernel_prepare;
+		cl::Kernel m_kernel_scene_bounds;
+		cl::Kernel m_kernel_morton_code;
+		cl::Kernel m_kernel_sort;
+		cl::Kernel m_kernel_hireachy;
 	};
 
 }

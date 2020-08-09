@@ -199,6 +199,8 @@ namespace LSIS {
 			bounds.add_AABB(bbox);
 		}
 
+		//printf("Scene Bounds: [%f,%f,%f][%f,%f,%f]\n", bounds.p_min.x, bounds.p_min.y, bounds.p_min.z, bounds.p_max.x, bounds.p_max.y, bounds.p_max.z);
+
 		// calculate transforms to project the coordinates into the range [0,1]
 		glm::vec3 diagonal = bounds.p_max - bounds.p_min;
 		const float max_dim = max(diagonal);
