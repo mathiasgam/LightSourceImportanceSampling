@@ -71,6 +71,7 @@ namespace LSIS {
 		TypedBuffer<SHARED::Vertex> m_vertex_buffer;
 		TypedBuffer<SHARED::Face> m_face_buffer;
 		TypedBuffer<SHARED::Node> m_bvh_buffer;
+		TypedBuffer<SHARED::AABB> m_bboxes_buffer;
 	};
 
 

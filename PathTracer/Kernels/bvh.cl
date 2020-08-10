@@ -70,6 +70,7 @@ inline float intersect_triangle(
 
 __kernel void intersect_bvh(
     IN_BUF(Node, nodes),
+    IN_BUF(AABB, bboxes),
     IN_BUF(Face, faces),
     IN_BUF(Vertex, vertices),
     IN_BUF(Ray, rays),
@@ -102,15 +103,17 @@ __kernel void intersect_bvh(
         int count = 0;
         int next = 0;
         Node node;
+        AABB bbox;
 
         int depth = 0;
 
         while (next != -1) {
             node = nodes[next];
-            int left = (int)node.min.w;
-            int right = (int)node.max.w;
-            float3 pmin = node.min.xyz;
-            float3 pmax = node.max.xyz;
+            bbox = bboxes[next];
+            int left = node.left;
+            int right = node.right;
+            float3 pmin = bbox.min.xyz;
+            float3 pmax = bbox.max.xyz;
 
             // Make sure all threads are ready
             barrier(CLK_LOCAL_MEM_FENCE);

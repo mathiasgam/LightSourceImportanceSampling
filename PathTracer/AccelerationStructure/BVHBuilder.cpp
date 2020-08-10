@@ -51,6 +51,7 @@ namespace LSIS {
 		TypedBuffer<morton_key> codes_sorted = TypedBuffer<morton_key>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<cl_uint> indices = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<SHARED::Node> nodes = TypedBuffer<SHARED::Node>(context, CL_MEM_READ_WRITE, num_nodes);
+		TypedBuffer<SHARED::AABB> bboxes = TypedBuffer<SHARED::AABB>(context, CL_MEM_READ_WRITE, num_nodes);
 
 		//size_t local_size = 32;
 		//size_t num_groups = (num_faces / local_size) + (num_faces % local_size > 0);

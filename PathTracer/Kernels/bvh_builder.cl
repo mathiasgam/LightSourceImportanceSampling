@@ -224,5 +224,20 @@ __kernel void sort_codes(
 
 }
 
-__kernel void generate_hierachy() {
+__kernel void generate_hierachy(
+	IN_VAL(uint, num_primitives),
+	IN_VAL(uint, num_nodes),
+	IN_BUF(morton_key, codes),
+	OUT_BUF(Node, nodes)
+){
+
+
+}
+
+__kernel void refit_bounds(
+	IN_VAL(uint, num_primitives),
+	OUT_BUF(Node, nodes),
+	OUT_BUF(uint, flags)
+) {
+
 }

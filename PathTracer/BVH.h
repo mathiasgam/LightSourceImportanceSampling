@@ -14,7 +14,7 @@ namespace LSIS {
 		virtual ~BVH();
 
 		void SetGeometryBuffers(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces);
-		void SetBVHBuffer(const TypedBuffer<SHARED::Node>& nodes);
+		void SetBVHBuffer(const TypedBuffer<SHARED::Node>& nodes, const TypedBuffer<SHARED::AABB>& bboxes);
 
 		virtual void Compile() override;
 

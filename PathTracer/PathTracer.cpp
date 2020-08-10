@@ -154,10 +154,11 @@ namespace LSIS {
 		m_vertex_buffer = structure.GetVertices();
 		m_face_buffer = structure.GetFaces();
 		m_bvh_buffer = structure.GetNodes();
+		m_bboxes_buffer = structure.GetBBoxes();
 
 		auto node_buffer = builder.Build(m_vertex_buffer, m_face_buffer);
 
-		m_bvh.SetBVHBuffer(m_bvh_buffer);
+		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
 	}

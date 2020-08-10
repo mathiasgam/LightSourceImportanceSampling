@@ -50,9 +50,16 @@ namespace SHARED {
     } Face;
 
     typedef struct Node {
-        float4 min; // .w is left neighbor
-        float4 max; // .w is right neighbor
+        int parent;
+        int left;
+        int right;
+        int next;
     } Node;
+
+    typedef struct AABB {
+        float4 min;
+        float4 max;
+    } AABB;
 
     typedef struct Pixel {
         float4 color;

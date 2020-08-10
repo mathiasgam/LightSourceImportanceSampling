@@ -62,20 +62,4 @@ inline float max3(float x, float y, float z) {
 	return max(x, max(y, z));
 }
 
-inline float3 min3(float3 x, float3 y, float3 z) {
-	return min(x, min(y, z));
-}
-
-inline float3 max3(float3 x, float3 y, float3 z) {
-	return max(x, max(y, z));
-}
-
-inline float4 min3(float4 x, float4 y, float4 z) {
-	return min(x, min(y, z));
-}
-
-inline float4 max3(float4 x, float4 y, float4 z) {
-	return max(x, max(y, z));
-}
-
 #endif // COMMON_CL

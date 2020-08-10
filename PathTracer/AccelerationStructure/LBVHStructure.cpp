@@ -77,8 +77,8 @@ namespace LSIS {
 
 		if (first == last) {
 			SHARED::Node node = {};
-			node.min.w = -1;
-			node.max.w = static_cast<float>(codes[first].index);
+			node.left = -1;
+			node.right =codes[first].index;
 			nodes[idx] = node;
 			//printf("idx: %d, leaf\n", idx);
 			return 1;
@@ -94,39 +94,39 @@ namespace LSIS {
 		uint32_t num_right = generate(codes, split + 1, last, nodes, idx + num_left + 1);
 
 		SHARED::Node node = {};
-		node.min.w = static_cast<float>(idx + 1);
-		node.max.w = static_cast<float>(num_left + idx + 1);
+		node.left = idx + 1;
+		node.right = num_left + idx + 1;
 		nodes[idx] = node;
 
 		return num_left + num_right + 1;
 	}
 
-	LBVHStructure::AABB LBVHStructure::calc_bboxes(SHARED::Node* nodes, const AABB* bboxes, uint32_t idx) {
+	LBVHStructure::AABB LBVHStructure::calc_bboxes(SHARED::Node* nodes, SHARED::AABB* nodes_bboxes, const AABB* bboxes, uint32_t idx) {
 		SHARED::Node& node = nodes[idx];
-
+		SHARED::AABB& node_bbox = nodes_bboxes[idx];
 		// if leaf
-		if (node.min.w == -1) {
-			uint32_t face_idx = static_cast<uint32_t>(node.max.w);
+		if (node.left == -1) {
+			uint32_t face_idx = static_cast<uint32_t>(node.right);
 			const AABB& bbox = bboxes[face_idx];
-			node.min.x = bbox.p_min.x;
-			node.min.y = bbox.p_min.y;
-			node.min.z = bbox.p_min.z;
-			node.max.x = bbox.p_max.x;
-			node.max.y = bbox.p_max.y;
-			node.max.z = bbox.p_max.z;
+			node_bbox.min.x = bbox.p_min.x;
+			node_bbox.min.y = bbox.p_min.y;
+			node_bbox.min.z = bbox.p_min.z;
+			node_bbox.max.x = bbox.p_max.x;
+			node_bbox.max.y = bbox.p_max.y;
+			node_bbox.max.z = bbox.p_max.z;
 			return bbox;
 		}
 
 		// internal node
-		uint32_t left = static_cast<uint32_t>(node.min.w);
-		uint32_t right = static_cast<uint32_t>(node.max.w);
-		AABB bbox = AABB(calc_bboxes(nodes, bboxes, left), calc_bboxes(nodes, bboxes, right));
-		node.min.x = bbox.p_min.x;
-		node.min.y = bbox.p_min.y;
-		node.min.z = bbox.p_min.z;
-		node.max.x = bbox.p_max.x;
-		node.max.y = bbox.p_max.y;
-		node.max.z = bbox.p_max.z;
+		uint32_t left = node.left;
+		uint32_t right = node.right;
+		AABB bbox = AABB(calc_bboxes(nodes, nodes_bboxes, bboxes, left), calc_bboxes(nodes, nodes_bboxes, bboxes, right));
+		node_bbox.min.x = bbox.p_min.x;
+		node_bbox.min.y = bbox.p_min.y;
+		node_bbox.min.z = bbox.p_min.z;
+		node_bbox.max.x = bbox.p_max.x;
+		node_bbox.max.y = bbox.p_max.y;
+		node_bbox.max.z = bbox.p_max.z;
 
 		return bbox;
 	}
@@ -231,15 +231,16 @@ namespace LSIS {
 
 		// clear and resize the nodes array to hold the maximum amounds of nodes, based on the number of leaves
 		SHARED::Node* nodes = new SHARED::Node[m_num_nodes]; // (Node*)malloc(sizeof(Node) * m_num_nodes);
+		SHARED::AABB* nodes_bboxes = new SHARED::AABB[m_num_nodes];
 
 		// Generate Hiearachy
 		generate(morton_keys, 0, static_cast<uint32_t>(N - 1), nodes, 0);
 
 		// Calculate the bounding boxes
-		calc_bboxes(nodes, bboxes, 0);
+		calc_bboxes(nodes, nodes_bboxes, bboxes, 0);
 
 		// Upload data to the GPU
-		LoadBVHBuffer(nodes, m_num_nodes);
+		LoadBVHBuffer(nodes, nodes_bboxes, m_num_nodes);
 		LoadGeometryBuffers(vertices, m_num_vertices, faces, m_num_faces);
 
 		delete[] faces;
@@ -265,15 +266,17 @@ namespace LSIS {
 		queue.enqueueWriteBuffer(m_buffer_faces.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
 	}
 
-	void LBVHStructure::LoadBVHBuffer(const SHARED::Node* nodes, size_t num_nodes)
+	void LBVHStructure::LoadBVHBuffer(const SHARED::Node* nodes, const SHARED::AABB* bboxes, size_t num_nodes)
 	{
 		// initialize buffers
 		m_buffer_bvh = TypedBuffer<SHARED::Node>(Compute::GetContext(), CL_MEM_READ_ONLY, num_nodes);
+		m_buffer_bboxes = TypedBuffer<SHARED::AABB>(Compute::GetContext(), CL_MEM_READ_ONLY, num_nodes);
 		m_num_nodes = num_nodes;
 
 		// Upload data
 		auto queue = Compute::GetCommandQueue();
 		queue.enqueueWriteBuffer(m_buffer_bvh.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Node) * num_nodes, static_cast<const void*>(nodes));
+		queue.enqueueWriteBuffer(m_buffer_bboxes.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::AABB) * num_nodes, static_cast<const void*>(bboxes));
 
 	}
 
