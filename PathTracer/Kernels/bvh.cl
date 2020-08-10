@@ -68,6 +68,31 @@ inline float intersect_triangle(
     return hasHit ? t_max : temp;
 }
 
+inline float2 calculate_triangle_barycentrics(float3 p, float3 v0, float3 v1, float3 v2) {
+    float3 const e1 = v1 - v0;
+    float3 const e2 = v2 - v0;
+    float3 const e = p - v0;
+    float const d00 = dot(e1, e1);
+    float const d01 = dot(e1, e2);
+    float const d11 = dot(e2, e2);
+    float const d20 = dot(e, e1);
+    float const d21 = dot(e, e2);
+
+    float denom = (d00 * d11 - d01 * d01);
+
+    if (denom == 0.f)
+    {
+        return (float2)(0.0f,0.0f);
+    }
+
+    float const invdenom = 1.f / denom;
+
+    float const b1 = (d11 * d20 - d01 * d21) * invdenom;
+    float const b2 = (d00 * d21 - d01 * d20) * invdenom;
+
+    return (float2)(b1, b2);
+}
+
 __kernel void intersect_bvh(
     IN_BUF(Node, nodes),
     IN_BUF(AABB, bboxes),
@@ -152,12 +177,23 @@ __kernel void intersect_bvh(
             }
             depth = max(count, depth);
         }
+
+        float2 uv = (float2)(0.5,0.5);
+        if (hits) {
+            Face face = faces[prim_id];
+            Vertex v0 = vertices[face.index.x];
+            Vertex v1 = vertices[face.index.y];
+            Vertex v2 = vertices[face.index.z];
+
+            float3 hit_pos = ray.origin.xyz + ray.direction.xyz * t_max;
+            uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
+        }
         
         // save intersection info
         intersection.hit = hits;
         intersection.primid = prim_id;
         intersection.padding0 = depth;
-        intersection.uvwt = (float4)(0.5f, 0.5f, t_max, 0.0f);
+        intersection.uvwt = (float4)(uv.x, uv.y, t_max, 0.0f);
         intersections[id] = intersection;
     }
 

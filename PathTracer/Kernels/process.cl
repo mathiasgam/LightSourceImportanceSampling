@@ -64,8 +64,13 @@ __kernel void process_intersections(
             const Vertex v1 = vertices[face.index.y];
             const Vertex v2 = vertices[face.index.z];
 
-            float3 normal = CalcGeometricNormal(v0.position.xyz, v1.position.xyz, v2.position.xyz);
-            color = ColorFromNormal(normal);
+            float u = hit.uvwt.x;
+            float v = hit.uvwt.y;
+            const float3 normal_shading = mix(mix(v0.normal.xyz, v1.normal.xyz,u), v2.normal.xyz, v);
+            const float3 normal_geometric = CalcGeometricNormal(v0.position.xyz, v1.position.xyz, v2.position.xyz);
+
+            color = ColorFromNormal(normal_shading);
+            //color = (float4)(hit.uvwt.xy, 0.0f, 1.0f);
         }else{
             color = GetBackground(dir);
         }
