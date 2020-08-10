@@ -18,13 +18,7 @@ typedef struct mat4
 } mat4;
 
 float4 mul(const mat4 mat, const float4 f) {
-	//float4 row0 = (float4)(mat.x.x, mat.y.x, mat.z.x, mat.w.x);
-	//float4 row1 = (float4)(mat.x.y, mat.y.y, mat.z.y, mat.w.y);
-	//float4 row2 = (float4)(mat.x.z, mat.y.z, mat.z.z, mat.w.z);
-	//float4 row3 = (float4)(mat.x.w, mat.y.w, mat.z.w, mat.w.w);
-
 	return (float4)(dot(mat.x, f), dot(mat.y, f), dot(mat.z, f), dot(mat.w, f));
-	//return mat.x * f.x + mat.y * f.y + mat.z * f.z + mat.w * f.w;
 }
 
 Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
@@ -58,6 +52,30 @@ inline float rand(uint* state) {
 	uint t = hash1(*state);
 	*state = t;
 	return uintToRangedFloat(t);
+}
+
+inline float min3(float x, float y, float z) {
+	return min(x, min(y, z));
+}
+
+inline float max3(float x, float y, float z) {
+	return max(x, max(y, z));
+}
+
+inline float3 min3(float3 x, float3 y, float3 z) {
+	return min(x, min(y, z));
+}
+
+inline float3 max3(float3 x, float3 y, float3 z) {
+	return max(x, max(y, z));
+}
+
+inline float4 min3(float4 x, float4 y, float4 z) {
+	return min(x, min(y, z));
+}
+
+inline float4 max3(float4 x, float4 y, float4 z) {
+	return max(x, max(y, z));
 }
 
 #endif // COMMON_CL
