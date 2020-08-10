@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "LBVHStructure.h"
 
+#include <algorithm>
+#include <execution>
+
 #include <intrin.h>
 #include "DataStructures/MortonCode.h"
 
@@ -220,7 +223,7 @@ namespace LSIS {
 		}
 
 		// sort morton codes
-		std::sort(morton_keys, morton_keys + N);
+		std::sort(std::execution::seq,morton_keys, morton_keys + N);
 
 		// internal nodes is equal to N-1 and where N is the amount of leaves.
 		size_t num_internal_nodes = N - 1;

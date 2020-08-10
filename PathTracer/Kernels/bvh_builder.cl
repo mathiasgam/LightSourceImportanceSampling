@@ -117,7 +117,7 @@ __kernel void generate_morton_codes(
 	IN_VAL(uint, N),
 	IN_BUF(float3, centers),
 	IN_BUF(float3, bounds),
-	OUT_BUF(ulong, codes)
+	OUT_BUF(morton_key, codes)
 ) {
 	const int id = get_global_id(0);
 
@@ -136,23 +136,23 @@ __kernel void generate_morton_codes(
 
 		// calculate the morton code
 		const float3 p = center * scale + transform;
-		ulong code = MortonCode(p);
+		morton_key key = {};
+		key.code = MortonCode(p);
+		key.index = id;
 
 		// Save result
-		codes[id] = code;
+		codes[id] = key;
 	}
 
 }
 
+#define SORT_GROUP_SIZE 64
+#define BYTE_MASK 0xff
+#define BYTE_RANGE 256
+
 inline uint RadixByte(ulong x, uint shift) {
-	return (x >> shift) & 0xff;
+	return (x >> shift) & BYTE_MASK;
 }
-
-inline uint RadixBit(ulong x, uint shift) {
-	return (x >> shift) & 0b1;
-}
-
-#define SORT_GROUP_SIZE 1
 
 __attribute__((work_group_size_hint(SORT_GROUP_SIZE, 1, 1)))
 __kernel void sort_codes(
@@ -164,35 +164,64 @@ __kernel void sort_codes(
 	const uint id = get_global_id(0);
 	const uint id_local = get_local_id(0);
 
-	const uint stride = N / SORT_GROUP_SIZE + (N % SORT_GROUP_SIZE > 0);
+	const uint stride = N / SORT_GROUP_SIZE + (N % SORT_GROUP_SIZE > 0) + 1;
 	const uint start = stride * id_local;
 	const uint end = min(start + stride, N);
 
+	//printf("id: %d, range[%d,%d], N: %d\n", id, start, end, N);
+
+	volatile __local uint count_global[BYTE_RANGE];
+	__local uint offset_global[BYTE_RANGE];
+
 	if (id == 0) {
-		uint count_table[256];
-		for (uint i = 0; i < 256; i++) {
-			count_table[i] = 0;
-		}
-
-		for (uint i = 0; i < N; i++) {
-			morton_key code = codes[i];
-			uint prefix = RadixByte(code.code, shift);
-			count_table[prefix]++;
-		}
-
-		uint offset_table[256];
-		offset_table[0] = 0;
-		for (uint i = 1; i < 256; i++) {
-			offset_table[i] = offset_table[i - 1] + count_table[i - 1];
-		}
-
-		for (uint i = 0; i < N; i++) {
-			morton_key code = codes[i];
-			uint prefix = RadixByte(code.code, shift);
-			uint offset = offset_table[prefix]++;
-			codes_sorted[offset] = code;
+		for (uint i = 0; i < BYTE_RANGE; i++) {
+			count_global[i] = 0;
 		}
 	}
+
+	uint count_table[BYTE_RANGE];
+	for (uint i = 0; i < BYTE_RANGE; i++) {
+		count_table[i] = 0;
+	}
+
+	for (uint i = start; i < end; i++) {
+		morton_key key = codes[i];
+		uint prefix = RadixByte(key.code, shift);
+		count_table[prefix]++;
+	}
+
+	// calculate local offsets
+	uint offset_table[BYTE_RANGE];
+	for (uint i = 0; i < BYTE_RANGE; i++) {
+		offset_table[i] = atomic_add(&count_global[i], count_table[i]);
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// calculate global offsets of each key
+	if (id == 0) {
+		offset_global[0] = 0;
+		for (uint i = 1; i < BYTE_RANGE; i++) {
+			offset_global[i] = offset_global[i - 1] + count_global[i - 1];
+			//printf("index: %d, count: %d, offset: %d\n", i, count_global[i], offset_global[i]);
+		}
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+	// Add global offset to local offset
+	for (uint i = 0; i < BYTE_RANGE; i++) {
+		offset_table[i] += offset_global[i];
+		//printf("index: %d, offset: %d\n", i, offset_table[i]);
+	}
+
+	for (uint i = start; i < end; i++) {
+		morton_key key = codes[i];
+		uint prefix = RadixByte(key.code, shift);
+		uint offset = offset_table[prefix]++;
+		codes_sorted[offset] = key;
+	}
+
 }
 
 __kernel void generate_hierachy() {

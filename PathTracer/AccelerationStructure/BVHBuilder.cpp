@@ -47,8 +47,8 @@ namespace LSIS {
 		TypedBuffer<cl_float3> p_mins = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<cl_float3> p_maxs = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<cl_float3> bounds = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, 2);
-		TypedBuffer<cl_ulong> morton_codes = TypedBuffer<cl_ulong>(context, CL_MEM_READ_WRITE, num_faces);
-		TypedBuffer<cl_ulong> codes_sorted = TypedBuffer<cl_ulong>(context, CL_MEM_READ_WRITE, num_faces);
+		TypedBuffer<morton_key> morton_codes = TypedBuffer<morton_key>(context, CL_MEM_READ_WRITE, num_faces);
+		TypedBuffer<morton_key> codes_sorted = TypedBuffer<morton_key>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<cl_uint> indices = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<SHARED::Node> nodes = TypedBuffer<SHARED::Node>(context, CL_MEM_READ_WRITE, num_nodes);
 
@@ -92,30 +92,26 @@ namespace LSIS {
 			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 		
-
+		/*
 		cl_uint N = num_faces;
 		std::vector<morton_key> A = std::vector<morton_key>(N);
 		for (size_t i = 0; i < N; i++) {
-			A[i].code = rand() % 0b11111111;
+			A[i].code = rand() % 0xff;
 			A[i].index = i;
 			//std::cout << "index: " << i << ", " << A[i] << std::endl;
 		}
-
-		auto temp_buffer_A = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(morton_key) * N);
-		auto temp_buffer_B = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(morton_key) * N);
-		queue.enqueueWriteBuffer(temp_buffer_A, CL_TRUE, 0, sizeof(morton_key) * N, (void*)A.data());
-
-		auto source_buffer = temp_buffer_A;
-		auto target_buffer = temp_buffer_B;
+		*/
+		auto source_buffer = morton_codes;
+		auto target_buffer = codes_sorted;
 		for (cl_uint shift = 0; shift < 64; shift += 8) {
-
+		//cl_uint shift = 0;
 			// Sort codes
-			m_kernel_sort.setArg(0, sizeof(cl_uint), &N);
+			m_kernel_sort.setArg(0, sizeof(cl_uint), &num_faces);
 			m_kernel_sort.setArg(1, sizeof(cl_uint), &shift);
-			m_kernel_sort.setArg(2, source_buffer);
-			m_kernel_sort.setArg(3, target_buffer);
+			m_kernel_sort.setArg(2, source_buffer.GetBuffer());
+			m_kernel_sort.setArg(3, target_buffer.GetBuffer());
 
-			err = queue.enqueueNDRangeKernel(m_kernel_sort, cl::NullRange, cl::NDRange(1), cl::NDRange(1));
+			err = queue.enqueueNDRangeKernel(m_kernel_sort, cl::NullRange, cl::NDRange(32), cl::NDRange(32));
 			auto tmp = source_buffer;
 			source_buffer = target_buffer;
 			target_buffer = tmp;
@@ -124,20 +120,24 @@ namespace LSIS {
 			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 
-
-		//std::vector<morton_key> B = std::vector<morton_key>(N);
-		//err = queue.enqueueReadBuffer(source_buffer, CL_TRUE, 0, sizeof(morton_key) * N, (void*)B.data());
+		codes_sorted = source_buffer;
+		/*
+		std::vector<morton_key> A = std::vector<morton_key>(num_faces);
+		std::vector<morton_key> B = std::vector<morton_key>(num_faces);
+		err = queue.enqueueReadBuffer(codes_sorted.GetBuffer(), CL_TRUE, 0, sizeof(morton_key) * num_faces, (void*)A.data());
+		err = queue.enqueueReadBuffer(codes_sorted.GetBuffer(), CL_TRUE, 0, sizeof(morton_key) * num_faces, (void*)B.data());
 		if (err != CL_SUCCESS) {
 			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 
-		//std::sort(A.begin(), A.end(), [](morton_key a, morton_key b) {return a.code < b.code; });
-		/*
-		for (size_t i = 0; i < N; i++) {
-			std::cout << "A: " << (uint32_t)A[i].code << ", B: " << (uint32_t)B[i].code << " index: " << (uint32_t)B[i].index << std::endl;
+		std::sort(A.begin(), A.end(), [](morton_key a, morton_key b) {return a.code < b.code; });
+		
+		for (size_t i = 0; i < num_faces; i++) {
+			std::cout << "A: " << A[i].code << ", B: " << B[i].code << " index: " << B[i].index << std::endl;
 		}
 		*/
-
+		
+		
 		// Generate hierachy
 
 
