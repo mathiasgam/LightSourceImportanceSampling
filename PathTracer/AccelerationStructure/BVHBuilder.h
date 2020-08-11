@@ -27,6 +27,7 @@ namespace LSIS {
 		cl::Kernel m_kernel_morton_code;
 		cl::Kernel m_kernel_sort;
 		cl::Kernel m_kernel_hireachy;
+		cl::Kernel m_kernel_refit;
 	};
 
 }

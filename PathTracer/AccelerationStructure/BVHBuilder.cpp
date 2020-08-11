@@ -116,6 +116,9 @@ namespace LSIS {
 		// Generate hierachy
 
 
+		// Refit bounding boxes
+
+
 		// TODO copy nodes to readonly buffer
 		auto result = TypedBuffer<SHARED::Node>(context, CL_MEM_READ_ONLY, num_nodes);
 		queue.enqueueCopyBuffer(nodes.GetBuffer(), result.GetBuffer(), 0, 0, num_nodes);

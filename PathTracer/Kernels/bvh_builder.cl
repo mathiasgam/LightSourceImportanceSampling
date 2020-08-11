@@ -224,20 +224,121 @@ __kernel void sort_codes(
 
 }
 
+inline int longest_common_prefix(__global morton_key const* restrict morton_keys, int num_primitives, int i0, int i1) {
+	// select left and right 
+	int left = min(i0, i1);
+	int right = max(i0, i1);
+
+	// check the left and right is within the range of the primitives
+	if (left < 0 || right >= num_primitives) {
+		return -1;
+	}
+
+	// Load codes from buffer
+	ulong left_code = morton_keys[left].code;
+	ulong right_code = morton_keys[right].code;
+
+	// in case the codes are the same, find common prefix for the indices instead.
+	return left_code != right_code ? clz(left_code ^ right_code) : (64 + clz(left ^ right));
+}
+
+inline int2 find_span(__global morton_key const* restrict keys, int num_primitives, int index) {
+	// direction for the range
+	int d = sign((float)(longest_common_prefix(keys, index, index + 1) - longest_common_prefix(keys, index, index - 1)));
+
+	int delta_min = longest_common_prefix(keys, index, index - d);
+
+	// Max rough estimate for far end
+	int lmax = 2;
+	while (longest_common_prefix(keys, index, index + lmax * d) > delta_min)
+		lmax *= 2;
+
+	// Search back for the exact bound in the span
+	int l = 0;
+	int t = lmax;
+	do {
+		t /= 2;
+		if (longest_common_prefix(keys, index, index + (l + t) * d) > delta_min) {
+			l = l + t;
+		}
+	} while (t > 1);
+
+	return (float2)(min(index, index + l * d), max(index, index + l * d));
+}
+
+inline int find_split(__global morton_key const* restrict keys, int num_primitives, int2 span) {
+	int left = span.x;
+	int right = span.y;
+
+	int num_common = longest_common_prefix(keys, left, right);
+
+	do {
+		// propose new split in the middle of the range [left,right]
+		int split = (right + left) / 2;
+
+		if (longest_common_prefix(keys, left, split) > num_common) {
+			left = split;
+		}
+		else {
+			right = split;
+		}
+
+	} while (right > left + 1);
+
+	return left;
+}
+
+#define LEAFIDX(i) ((num_prims-1) + i)
+#define NODEIDX(i) (i)
+
 __kernel void generate_hierachy(
 	IN_VAL(uint, num_primitives),
 	IN_VAL(uint, num_nodes),
 	IN_BUF(morton_key, codes),
-	OUT_BUF(Node, nodes)
+	IN_BUF(AABB, bboxes),
+	OUT_BUF(Node, nodes),
+	OUT_BUF(AABB, nodes_bboxes)
 ){
+	const uint id = get_global_id(0);
 
+	// Create leaf nodes
+	if (id < num_primitives) {
+		// Have all the leaves in the back half of the buffer
+		const uint leaf_index = (num_primitives - 1) + id;
+		Node node = {};
+		node.left = -1;
+		node.right = codes[id].index;
+		nodes[leaf_index] = node;
+
+		nodes_bboxes[leaf_index] = bboxes[id];
+	}
+
+	// Create internal nodes
+	if (id < num_primitives - 1) {
+		// find the range the current node covers
+		int2 range = find_span(codes, num_primitives, id);
+
+		// find the split position in that range
+		int split = find_split(codes, num_primitives, range);
+
+		// Create child nodes if necessary
+		int child_left = (split == range.x) ? (num_primitives - 1) + split : split;
+		int child_right = (split + 1 == range.y) ? num_primitives - split : split + 1;
+
+		nodes[id].left = child_left;
+		nodes[id].right = child_right;
+		nodes[child_left].parent = id;
+		nodes[child_right].parent = id;
+	}
 
 }
 
 __kernel void refit_bounds(
 	IN_VAL(uint, num_primitives),
-	OUT_BUF(Node, nodes),
+	IN_BUF(Node, nodes),
+	OUT_BUF(AABB, bboxes),
 	OUT_BUF(uint, flags)
 ) {
+
 
 }
