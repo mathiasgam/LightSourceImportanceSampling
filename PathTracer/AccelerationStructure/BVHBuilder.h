@@ -16,7 +16,7 @@ namespace LSIS {
 
 		virtual void Compile() override;
 
-		const TypedBuffer<SHARED::Node> Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces);
+		const std::pair<TypedBuffer<SHARED::Node>, TypedBuffer<SHARED::AABB>> Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces);
 
 	private:
 

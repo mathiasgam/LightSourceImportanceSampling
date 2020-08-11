@@ -5,6 +5,13 @@ typedef struct morton_key {
 	uint index;
 } morton_key;
 
+AABB bbox_union(AABB a, AABB b){
+	AABB bbox = {};
+	bbox.min.xyz = min(a.min.xyz,b.min.xyz);
+	bbox.max.xyz = max(a.max.xyz,b.max.xyz);
+	return bbox;
+}
+
 inline ulong SplitBy3(ulong x)
 {
 	x &= 0x1fffff; // we only look at the first 21 bits
@@ -42,8 +49,7 @@ __kernel void prepare_geometry_data(
 	IN_BUF(Vertex, vertices),
 	IN_BUF(Face, faces),
 	OUT_BUF(float3, centers),
-	OUT_BUF(float3, p_mins),
-	OUT_BUF(float3, p_maxs)
+	OUT_BUF(AABB, bounds)
 ) {
 	const uint id = get_global_id(0);
 	if (id < num_faces) {
@@ -59,8 +65,10 @@ __kernel void prepare_geometry_data(
 		float3 p_max = max(v0, max(v1, v2));
 
 		centers[id] = center;
-		p_mins[id] = p_min;
-		p_maxs[id] = p_max;
+		AABB bbox = {};
+		bbox.min = (float4)(p_min, 0.0f);
+		bbox.max = (float4)(p_max, 0.0f);
+		bounds[id] = bbox;
 	}
 }
 
@@ -69,9 +77,8 @@ __kernel void prepare_geometry_data(
 __attribute__((work_group_size_hint(WORKGROUP_SIZE, 1, 1)))
 __kernel void calc_scene_bounds(
 	IN_VAL(uint, N),
-	IN_BUF(float3, p_mins),
-	IN_BUF(float3, p_maxs),
-	OUT_BUF(float3, bounds) // [p_min, p_max]
+	IN_BUF(AABB, bounds),
+	OUT_BUF(float3, scene_bounds) // [p_min, p_max]
 ) {
 	__local float3 min_array[WORKGROUP_SIZE];
 	__local float3 max_array[WORKGROUP_SIZE];
@@ -87,8 +94,9 @@ __kernel void calc_scene_bounds(
 	float3 p_max = (float3)(-INFINITY);
 
 	for (uint i = start; i < end; i++) {
-		p_min = min(p_min, p_mins[i]);
-		p_max = max(p_max, p_maxs[i]);
+		AABB bbox = bounds[i];
+		p_min = min(p_min, bbox.min.xyz);
+		p_max = max(p_max, bbox.max.xyz);
 	}
 
 	min_array[id_local] = p_min;
@@ -106,9 +114,9 @@ __kernel void calc_scene_bounds(
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	if (id == 0) {
-		bounds[0] = min_array[0];
-		bounds[1] = max_array[0];
-		//printf("Scene Bounds: [%f,%f,%f][%f,%f,%f]\n", min_array[0].x,min_array[0].y,min_array[0].z,max_array[0].x,max_array[0].y,max_array[0].z);
+		scene_bounds[0] = min_array[0];
+		scene_bounds[1] = max_array[0];
+		printf("Scene Bounds: [%f,%f,%f][%f,%f,%f]\n", min_array[0].x,min_array[0].y,min_array[0].z,max_array[0].x,max_array[0].y,max_array[0].z);
 	}
 
 }
@@ -244,13 +252,13 @@ inline int longest_common_prefix(__global morton_key const* restrict morton_keys
 
 inline int2 find_span(__global morton_key const* restrict keys, int num_primitives, int index) {
 	// direction for the range
-	int d = sign((float)(longest_common_prefix(keys, index, index + 1) - longest_common_prefix(keys, index, index - 1)));
+	int d = sign((float)(longest_common_prefix(keys, num_primitives, index, index + 1) - longest_common_prefix(keys, num_primitives, index, index - 1)));
 
-	int delta_min = longest_common_prefix(keys, index, index - d);
+	int delta_min = longest_common_prefix(keys, num_primitives, index, index - d);
 
 	// Max rough estimate for far end
 	int lmax = 2;
-	while (longest_common_prefix(keys, index, index + lmax * d) > delta_min)
+	while (longest_common_prefix(keys, num_primitives, index, index + lmax * d) > delta_min)
 		lmax *= 2;
 
 	// Search back for the exact bound in the span
@@ -258,25 +266,25 @@ inline int2 find_span(__global morton_key const* restrict keys, int num_primitiv
 	int t = lmax;
 	do {
 		t /= 2;
-		if (longest_common_prefix(keys, index, index + (l + t) * d) > delta_min) {
+		if (longest_common_prefix(keys, num_primitives, index, index + (l + t) * d) > delta_min) {
 			l = l + t;
 		}
 	} while (t > 1);
 
-	return (float2)(min(index, index + l * d), max(index, index + l * d));
+	return (int2)(min(index, index + l * d), max(index, index + l * d));
 }
 
 inline int find_split(__global morton_key const* restrict keys, int num_primitives, int2 span) {
 	int left = span.x;
 	int right = span.y;
 
-	int num_common = longest_common_prefix(keys, left, right);
+	int num_common = longest_common_prefix(keys, num_primitives, left, right);
 
 	do {
 		// propose new split in the middle of the range [left,right]
 		int split = (right + left) / 2;
 
-		if (longest_common_prefix(keys, left, split) > num_common) {
+		if (longest_common_prefix(keys, num_primitives, left, split) > num_common) {
 			left = split;
 		}
 		else {
@@ -288,9 +296,6 @@ inline int find_split(__global morton_key const* restrict keys, int num_primitiv
 	return left;
 }
 
-#define LEAFIDX(i) ((num_prims-1) + i)
-#define NODEIDX(i) (i)
-
 __kernel void generate_hierachy(
 	IN_VAL(uint, num_primitives),
 	IN_VAL(uint, num_nodes),
@@ -299,17 +304,14 @@ __kernel void generate_hierachy(
 	OUT_BUF(Node, nodes),
 	OUT_BUF(AABB, nodes_bboxes)
 ){
-	const uint id = get_global_id(0);
+	const int id = get_global_id(0);
 
 	// Create leaf nodes
 	if (id < num_primitives) {
 		// Have all the leaves in the back half of the buffer
 		const uint leaf_index = (num_primitives - 1) + id;
-		Node node = {};
-		node.left = -1;
-		node.right = codes[id].index;
-		nodes[leaf_index] = node;
-
+		nodes[leaf_index].left = -1;
+		nodes[leaf_index].right = codes[id].index;
 		nodes_bboxes[leaf_index] = bboxes[id];
 	}
 
@@ -323,7 +325,7 @@ __kernel void generate_hierachy(
 
 		// Create child nodes if necessary
 		int child_left = (split == range.x) ? (num_primitives - 1) + split : split;
-		int child_right = (split + 1 == range.y) ? num_primitives - split : split + 1;
+		int child_right = (split + 1 == range.y) ? (num_primitives - 1) + split + 1 : split + 1;
 
 		nodes[id].left = child_left;
 		nodes[id].right = child_right;
@@ -336,9 +338,32 @@ __kernel void generate_hierachy(
 __kernel void refit_bounds(
 	IN_VAL(uint, num_primitives),
 	IN_BUF(Node, nodes),
-	OUT_BUF(AABB, bboxes),
+	OUT_BUF(AABB, bounds),
 	OUT_BUF(uint, flags)
 ) {
+	const uint id = get_global_id(0);
 
+	if (id < num_primitives){
+		uint index = (num_primitives - 1) + id;
+
+		do {
+			index = nodes[index].parent;
+
+			if (atomic_cmpxchg(flags + index, 0, 1) == 1){
+				int child_left = nodes[index].left;
+				int child_right = nodes[index].right;
+
+				AABB bbox = bbox_union(bounds[child_left], bounds[child_right]);
+				//printf("id: %d,idx: %d\n", id, index);
+
+				bounds[index] = bbox;
+
+				//printf("idx: %d, l:%d, r:%d, p:%d, bound[%f,%f,%f][%f,%f,%f]\n", index, child_left, child_right, nodes[index].parent, bbox.min.x,bbox.min.y,bbox.min.z,bbox.max.x,bbox.max.y,bbox.max.z);
+			}else{
+				break;
+			}
+			
+		} while(index != 0);
+	}
 
 }

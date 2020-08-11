@@ -22,9 +22,10 @@ namespace LSIS {
 		m_kernel_morton_code = Compute::CreateKernel(m_program, "generate_morton_codes");
 		m_kernel_sort = Compute::CreateKernel(m_program, "sort_codes");
 		m_kernel_hireachy = Compute::CreateKernel(m_program, "generate_hierachy");
+		m_kernel_refit = Compute::CreateKernel(m_program, "refit_bounds");
 	}
 
-	const TypedBuffer<SHARED::Node> BVHBuilder::Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces)
+	const std::pair<TypedBuffer<SHARED::Node>, TypedBuffer<SHARED::AABB>> BVHBuilder::Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces)
 	{
 		PROFILE_SCOPE("BVH Build GPU");
 		cl_int err;
@@ -44,9 +45,8 @@ namespace LSIS {
 
 		// Allocate temporary buffers
 		TypedBuffer<cl_float3> centers = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_faces);
-		TypedBuffer<cl_float3> p_mins = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_faces);
-		TypedBuffer<cl_float3> p_maxs = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_faces);
-		TypedBuffer<cl_float3> bounds = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, 2);
+		TypedBuffer<SHARED::AABB> bounds = TypedBuffer<SHARED::AABB>(context, CL_MEM_READ_WRITE, num_faces);
+		TypedBuffer<cl_float3> scene_bounds = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, 2);
 		TypedBuffer<morton_key> morton_codes = TypedBuffer<morton_key>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<morton_key> codes_sorted = TypedBuffer<morton_key>(context, CL_MEM_READ_WRITE, num_faces);
 		TypedBuffer<cl_uint> indices = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_faces);
@@ -65,32 +65,30 @@ namespace LSIS {
 		m_kernel_prepare.setArg(2, vertices.GetBuffer());
 		m_kernel_prepare.setArg(3, faces.GetBuffer());
 		m_kernel_prepare.setArg(4, centers.GetBuffer());
-		m_kernel_prepare.setArg(5, p_mins.GetBuffer());
-		m_kernel_prepare.setArg(6, p_maxs.GetBuffer());
+		m_kernel_prepare.setArg(5, bounds.GetBuffer());
 		err = queue.enqueueNDRangeKernel(m_kernel_prepare, cl::NullRange, cl::NDRange(global_size));
 		if (err != CL_SUCCESS) {
-			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
+			std::cout << "Error [BVHBuilder prep]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 
 		// reduce scene bounds
 		m_kernel_scene_bounds.setArg(0, sizeof(cl_uint), &num_faces);
-		m_kernel_scene_bounds.setArg(1, p_mins.GetBuffer());
-		m_kernel_scene_bounds.setArg(2, p_maxs.GetBuffer());
-		m_kernel_scene_bounds.setArg(3, bounds.GetBuffer());
+		m_kernel_scene_bounds.setArg(1, bounds.GetBuffer());
+		m_kernel_scene_bounds.setArg(2, scene_bounds.GetBuffer());
 		err = queue.enqueueNDRangeKernel(m_kernel_scene_bounds, cl::NullRange, cl::NDRange(32), cl::NDRange(32));
 		if (err != CL_SUCCESS) {
-			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
+			std::cout << "Error [BVHBuilder scene bounds]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 
 		// calc_morton codes
 		m_kernel_morton_code.setArg(0, sizeof(cl_uint), &num_faces);
 		m_kernel_morton_code.setArg(1, centers.GetBuffer());
-		m_kernel_morton_code.setArg(2, bounds.GetBuffer());
+		m_kernel_morton_code.setArg(2, scene_bounds.GetBuffer());
 		m_kernel_morton_code.setArg(3, morton_codes.GetBuffer());
 
 		err = queue.enqueueNDRangeKernel(m_kernel_morton_code, cl::NullRange, cl::NDRange(global_size));
 		if (err != CL_SUCCESS) {
-			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
+			std::cout << "Error [BVHBuilder morton]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 		
 		// Sort codes
@@ -108,22 +106,48 @@ namespace LSIS {
 			target_buffer = tmp;
 		}
 		if (err != CL_SUCCESS) {
-			std::cout << "Error [BVHBuilder]: " << GET_CL_ERROR_CODE(err) << std::endl;
+			std::cout << "Error [BVHBuilder sort]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 
 		codes_sorted = source_buffer;
 		
 		// Generate hierachy
+		m_kernel_hireachy.setArg(0, sizeof(cl_uint), &num_faces);
+		m_kernel_hireachy.setArg(1, sizeof(cl_uint), &num_nodes);
+		m_kernel_hireachy.setArg(2, codes_sorted.GetBuffer());
+		m_kernel_hireachy.setArg(3, bounds.GetBuffer());
+		m_kernel_hireachy.setArg(4, nodes.GetBuffer());
+		m_kernel_hireachy.setArg(5, bboxes.GetBuffer());
 
+		err = queue.enqueueNDRangeKernel(m_kernel_hireachy, cl::NullRange, cl::NDRange(num_faces));
+		if (err != CL_SUCCESS) {
+			std::cout << "Error [BVHBuilder hireachy]: " << GET_CL_ERROR_CODE(err) << std::endl;
+		}
 
 		// Refit bounding boxes
+		cl::Buffer flags = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint) * num_faces-1);
+		err = queue.enqueueFillBuffer(flags, 0, 0, sizeof(cl_uint)* num_faces-1);
+		if (err != CL_SUCCESS) {
+			std::cout << "Error [BVHBuilder fill]: " << GET_CL_ERROR_CODE(err) << std::endl;
+		}
+		m_kernel_refit.setArg(0, sizeof(cl_uint), &num_faces);
+		m_kernel_refit.setArg(1, nodes.GetBuffer());
+		m_kernel_refit.setArg(2, bboxes.GetBuffer());
+		m_kernel_refit.setArg(3, flags);
 
+		err = queue.enqueueNDRangeKernel(m_kernel_refit, cl::NullRange, cl::NDRange(num_faces));
+		if (err != CL_SUCCESS) {
+			std::cout << "Error [BVHBuilder refit]: " << GET_CL_ERROR_CODE(err) << std::endl;
+		}
 
 		// TODO copy nodes to readonly buffer
-		auto result = TypedBuffer<SHARED::Node>(context, CL_MEM_READ_ONLY, num_nodes);
-		queue.enqueueCopyBuffer(nodes.GetBuffer(), result.GetBuffer(), 0, 0, num_nodes);
-
+		/*
+		auto out_nodes = TypedBuffer<SHARED::Node>(context, CL_MEM_READ_ONLY, num_nodes);
+		auto out_bboxes = TypedBuffer<SHARED::AABB>(context, CL_MEM_READ_ONLY, num_nodes);
+		queue.enqueueCopyBuffer(nodes.GetBuffer(), out_nodes.GetBuffer(), 0, 0, num_nodes);
+		queue.enqueueCopyBuffer(bboxes.GetBuffer(), out_bboxes.GetBuffer(), 0, 0, num_nodes);
+		*/
 		queue.finish();
-		return result;
+		return {nodes, bboxes};
 	}
 }
