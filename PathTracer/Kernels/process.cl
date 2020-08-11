@@ -74,6 +74,8 @@ __kernel void process_intersections(
         }else{
             color = GetBackground(dir);
         }
+        //int depth = hit.padding0;
+        //color = (float4)(depth / 6.0f, (depth-6) / 6.0f, (depth-12) / 6.0f, 1.0f);
         
         float f = 1.0f / (num_samples + 1);
         Pixel p = pixels[hit.pixel_index];
