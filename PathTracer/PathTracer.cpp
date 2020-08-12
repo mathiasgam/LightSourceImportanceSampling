@@ -144,7 +144,7 @@ namespace LSIS {
 		auto num_vertices = geometry->GetNumVertices();
 		auto num_indices = geometry->GetNumIndices();
 
-		BVHBuilder builder = BVHBuilder();
+		//BVHBuilder builder = BVHBuilder();
 
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
@@ -156,7 +156,7 @@ namespace LSIS {
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
 
-		auto pair = builder.Build(m_vertex_buffer, m_face_buffer);
+		//auto pair = builder.Build(m_vertex_buffer, m_face_buffer);
 		//m_bvh_buffer = pair.first;
 		//m_bboxes_buffer = pair.second;
 

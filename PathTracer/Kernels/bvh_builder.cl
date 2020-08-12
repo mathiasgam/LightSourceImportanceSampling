@@ -26,6 +26,15 @@ inline ulong SplitBy3(ulong x)
 
 inline ulong MortonCode(float3 p) {
 
+	if (p.x > 1 || p.x < -0.0f)
+		printf("FAIL X! [%f]\n", p.x);
+
+	if (p.y > 1 || p.y < -0.0f)
+		printf("FAIL Y! [%f]\n", p.y);
+
+	if (p.z > 1 || p.z < -0.0f)
+		printf("FAIL Z! [%f]\n", p.z);
+
 	// points must be in the range [0,1]
 	//assert(p[0] <= 1 && p[0] >= 0); // x-component out of range [0,1]
 	//assert(p[1] <= 1 && p[1] >= 0); // y-component out of range [0,1]
@@ -139,7 +148,7 @@ __kernel void generate_morton_codes(
 
 		// Calculate the scale and transform, to map the positions into the range [0.0,1.0]
 		const float3 diagonal = p_max - p_min;
-		const float scale = max(diagonal.x, max(diagonal.y, diagonal.z));
+		const float scale = 1.0f / max(diagonal.x, max(diagonal.y, diagonal.z));
 		const float3 transform = -p_min * scale;
 
 		// calculate the morton code
@@ -298,7 +307,6 @@ inline int find_split(__global morton_key const* restrict keys, int num_primitiv
 
 __kernel void generate_hierachy(
 	IN_VAL(uint, num_primitives),
-	IN_VAL(uint, num_nodes),
 	IN_BUF(morton_key, codes),
 	IN_BUF(AABB, bboxes),
 	OUT_BUF(Node, nodes),

@@ -215,7 +215,7 @@ namespace LSIS {
 
 		// generate morton codes based on the bounding boxes in the scene
 		for (int i = 0; i < N; i++) {
-			const glm::vec p = mad(centers[i], scale, transform);
+			const glm::vec p = (centers[i] - bounds.p_min) / diagonal;
 			morton_code_64_t key{};
 			key.code = Float3ToInt64(p);
 			key.index = i;
