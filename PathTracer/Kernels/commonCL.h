@@ -66,6 +66,18 @@ inline float rand(uint* state) {
 	return uintToRangedFloat(t);
 }
 
+inline float2 random_float2(uint* state) {
+	return (float2)(rand(state), rand(state));
+}
+
+inline float3 random_float3(uint* state) {
+	return (float3)(rand(state), rand(state), rand(state));
+}
+
+inline float4 random_float4(uint* state) {
+	return (float4)(rand(state), rand(state), rand(state), rand(state));
+}
+
 inline float min3(float x, float y, float z) {
 	return min(x, min(y, z));
 }
@@ -73,5 +85,18 @@ inline float min3(float x, float y, float z) {
 inline float max3(float x, float y, float z) {
 	return max(x, max(y, z));
 }
+/*
+inline float3 sample_hemisphere(uint* state) {
+	float3 vec = random_float3(state);
+	float sqr_dist = dot(vec, vec);
+
+	while (sqr_dist > 1.0f) {
+		vec = random_float3(state);
+		sqr_dist = dot(vec, vec);
+	}
+
+	return normalize(vec);
+}
+*/
 
 #endif // COMMON_CL
