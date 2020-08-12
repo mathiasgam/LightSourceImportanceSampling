@@ -67,9 +67,11 @@ inline std::string GET_CL_ERROR_CODE(cl_int err) {
 	case CL_INVALID_LINKER_OPTIONS:						return "CL_INVALID_LINKER_OPTIONS";
 	case CL_INVALID_DEVICE_PARTITION_COUNT:				return "CL_INVALID_DEVICE_PARTITION_COUNT";
 	//case CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR:		return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
-	default:
-		return "CODE NOT RECOCNIZED!!!";
 	}
+
+	std::stringstream ss{};
+	ss << "CODE_NOT_RECOCNIZED[" << err << "]";
+	return ss.str();
 }
 
 #endif // !CL_ERROR_CODE
