@@ -55,6 +55,7 @@ namespace LSIS {
 		
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
+		cl::Kernel m_kernel_lightsample;
 
 		bool buffer_switch = true;
 

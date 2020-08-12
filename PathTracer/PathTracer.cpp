@@ -43,12 +43,15 @@ namespace LSIS {
 	{
 		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
 
+		buffer_switch = true;
 		m_bvh.Trace(m_ray_bufferA, m_intersection_bufferA);
-
 		ProcessIntersections();
 
-		//m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
-		//ProcessIntersections();
+		/*
+		buffer_switch = false;
+		m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
+		ProcessIntersections();
+		*/
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
@@ -115,6 +118,7 @@ namespace LSIS {
 	{
 		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
+		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
 	}
 
 	void PathTracer::TraceRays()
