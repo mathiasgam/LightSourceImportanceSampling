@@ -9,7 +9,24 @@
 #include "entt.hpp"
 #include "Scene/Components.h"
 
+#ifdef LSIS_PLATFORM_WIN
+int setenv(const char* name, const char* value, int overwrite)
+{
+	int errcode = 0;
+	if (!overwrite) {
+		size_t envsize = 0;
+		errcode = getenv_s(&envsize, NULL, 0, name);
+		if (errcode || envsize) return errcode;
+	}
+	return _putenv_s(name, value);
+}
+#endif // LSIS_PLATFORM_WIN
+
 int main(int argc, char** argv) {
+
+#ifdef DEBUG
+	setenv("CUDA_CACHE_DISABLE", "1", 1);
+#endif // DEBUG
 
 	LSIS::Log::Init();
 
