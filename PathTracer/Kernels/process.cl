@@ -5,6 +5,10 @@ inline float4 ColorFromNormal(float3 normal){
     return (float4)(col.xyz, 1.0f);
 }
 
+inline float4 ColorFromUV(float2 uv){
+    return (float4)(uv.x, 0.0f, uv.y, 1.0f);
+}
+
 inline float3 CalcGeometricNormal(float3 v0, float3 v1, float3 v2){
     float3 e0 = v1 - v0;
     float3 e1 = v2 - v0;
@@ -24,6 +28,14 @@ inline float4 GetBackground(float3 dir){
     }
 
     return (float4)(mix(sky, ground, d*d),1.0f);
+}
+
+inline float2 InterpolateFloat2(float2 f0, float2 f1, float2 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
+}
+
+inline float3 InterpolateFloat3(float3 f0, float3 f1, float3 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
 }
 
 __kernel void process_intersections(
@@ -64,18 +76,17 @@ __kernel void process_intersections(
             const Vertex v1 = vertices[face.index.y];
             const Vertex v2 = vertices[face.index.z];
 
-            float u = hit.uvwt.x;
-            float v = hit.uvwt.y;
-            const float3 normal_shading = mix(mix(v0.normal.xyz, v1.normal.xyz,u), v2.normal.xyz, v);
-            const float3 normal_geometric = CalcGeometricNormal(v0.position.xyz, v1.position.xyz, v2.position.xyz);
+            float2 uv = hit.uvwt.xy;
+            const float3 normal_shading = InterpolateFloat3(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
+            const float2 tex_coord = InterpolateFloat2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
-            color = ColorFromNormal(normal_shading);
+
+            //color = ColorFromNormal(normal_shading);
+            color = ColorFromUV(tex_coord);
             //color = (float4)(hit.uvwt.xy, 0.0f, 1.0f);
         }else{
             color = GetBackground(dir);
         }
-        int depth = hit.padding0;
-        //color = (float4)(depth / 6.0f, (depth-6) / 6.0f, (depth-12) / 6.0f, 1.0f);
         
         float f = 1.0f / (num_samples + 1);
         Pixel p = pixels[hit.pixel_index];

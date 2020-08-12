@@ -28,6 +28,18 @@ Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
 	return ray;
 }
 
+inline float2 GetVertexUV(Vertex v){
+	return (float2)(v.position.w, v.normal.w);
+}
+
+inline float3 GetVertexNormal(Vertex v){
+	return (float3)(v.normal.xyz);
+}
+
+inline float3 GetVertexPosition(Vertex v){
+	return (float3)(v.position.xyz);
+}
+
 inline uint hash1(uint t) {
 	t ^= t << 13;
 	t ^= t >> 17;
