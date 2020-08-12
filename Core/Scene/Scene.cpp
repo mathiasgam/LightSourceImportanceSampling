@@ -171,8 +171,8 @@ namespace LSIS {
 				d.normal[0] = n.x;
 				d.normal[1] = n.y;
 				d.normal[2] = n.z;
-				d.uv[0] = vertex_data->uv[0];
-				d.uv[1] = vertex_data->uv[1];
+				d.uv[0] = vertex_data[i].uv[0];
+				d.uv[1] = vertex_data[i].uv[1];
 				vertices[index_vtx++] = d;
 			}
 		}
