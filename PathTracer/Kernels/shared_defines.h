@@ -70,6 +70,11 @@ namespace SHARED {
         float4 normal;
         float4 incoming;
         float4 throughput;
+        float4 result;
+        int is_active;
+        int pixel_index;
+        int material_index;
+        int prim_id;
     } Sample;
 
     typedef struct Pixel {
