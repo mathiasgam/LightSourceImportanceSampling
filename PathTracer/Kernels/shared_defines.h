@@ -36,7 +36,6 @@ namespace SHARED {
 
         // uv - hit barycentrics, w - ray distance
         float4 uvwt;
-        float4 throughput;
     } Intersection;
 
     // Defines types for the buffers
