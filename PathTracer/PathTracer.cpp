@@ -81,8 +81,7 @@ namespace LSIS {
 			}
 		}
 		if (e.GetEventType() == EventType::CameraUpdated) {
-			std::cout << "Cam Update\n";
-			m_num_samples = 0;
+			ResetSamples();
 		}
 		return false;
 	}
@@ -203,6 +202,11 @@ namespace LSIS {
 		if (err != CL_SUCCESS) {
 			std::cout << "Error [PathTracer]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
+	}
+
+	void PathTracer::ResetSamples()
+	{
+		m_num_samples = 0;
 	}
 
 }

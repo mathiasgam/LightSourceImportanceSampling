@@ -43,6 +43,8 @@ namespace LSIS {
 
 		void ProcessIntersections();
 
+		void ResetSamples();
+
 	private:
 		uint32_t m_image_width, m_image_height;
 		uint32_t m_num_pixels;
