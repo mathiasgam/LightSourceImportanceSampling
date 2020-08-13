@@ -63,6 +63,7 @@ namespace LSIS {
 
 		// Result Buffers
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
+		TypedBuffer<SHARED::Sample> m_sample_buffer;
 
 		// Ray Buffers
 		TypedBuffer<SHARED::Ray> m_ray_bufferA;
@@ -75,6 +76,8 @@ namespace LSIS {
 		TypedBuffer<SHARED::Face> m_face_buffer;
 		TypedBuffer<SHARED::Node> m_bvh_buffer;
 		TypedBuffer<SHARED::AABB> m_bboxes_buffer;
+
+
 	};
 
 

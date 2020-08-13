@@ -137,6 +137,7 @@ namespace LSIS {
 		m_intersection_bufferA = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_intersection_bufferB = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_pixels);
 	}
 
 	void PathTracer::BuildStructure()
