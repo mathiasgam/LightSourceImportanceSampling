@@ -58,6 +58,8 @@ __kernel void process_intersections(
 
     int center_id = (width / 2) + (height / 2) * width;
 
+    uint rng = hash2(hash2(id) ^ hash1(num_samples));
+
     if (id < num_rays){
         Ray ray = rays[id];
         Intersection hit = hits[id];
@@ -69,7 +71,7 @@ __kernel void process_intersections(
 
 
         if (hit.hit > 0){
-            //float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
+            const float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
 
             const Face face = faces[hit.primid];
             const Vertex v0 = vertices[face.index.x];
@@ -81,8 +83,8 @@ __kernel void process_intersections(
             const float2 tex_coord = InterpolateFloat2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
 
-            //color = ColorFromNormal(normal_shading);
-            color = ColorFromUV(tex_coord);
+            color = ColorFromNormal(normal_shading);
+            //color = ColorFromUV(tex_coord);
             //color = (float4)(hit.uvwt.xy, 0.0f, 1.0f);
         }else{
             color = GetBackground(dir);
@@ -97,5 +99,29 @@ __kernel void process_intersections(
         printf("Fail!\n");
     }
     
+
+}
+
+__kernel void process_light_sample(
+    IN_VAL(uint, num_rays),
+    IN_VAL(uint, num_samples),
+    IN_BUF(LightSample, samples),
+    IN_BUF(Ray, rays),
+    IN_BUF(Intersection, hits),
+    OUT_BUF(Pixel, pixels)
+) {
+    const uint id = get_global_id(0);
+
+    if (id < num_rays){
+        Intersection hit = hits[id];
+
+        if (hit.hit == 0){
+            uint pixel_index = hit.pixel_index;
+            Pixel p = pixels[pixel_index];
+            p.color += 0.1f;
+            pixels[pixel_index] = p;
+        }
+
+    }
 
 }
