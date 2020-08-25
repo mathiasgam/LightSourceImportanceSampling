@@ -28,6 +28,14 @@ Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
 	return ray;
 }
 
+Intersection CreateIntersectionInfo(int num_hits, int closest_primitive, float2 uv, float tmax) {
+	Intersection hit = {};
+	hit.hit = num_hits;
+	hit.primid = closest_primitive;
+	hit.uvwt = (float4)(uv, 0.0f, tmax);
+	return hit;
+}
+
 inline float2 GetVertexUV(Vertex v){
 	return (float2)(v.position.w, v.normal.w);
 }
