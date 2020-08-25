@@ -67,6 +67,7 @@ inline std::string GET_CL_ERROR_CODE(cl_int err) {
 	case CL_INVALID_LINKER_OPTIONS:						return "CL_INVALID_LINKER_OPTIONS";
 	case CL_INVALID_DEVICE_PARTITION_COUNT:				return "CL_INVALID_DEVICE_PARTITION_COUNT";
 	//case CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR:		return "CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR";
+	case -9999:											return "NVIDIA_Illegal_read_or_write_to_a_buffer";
 	}
 
 	std::stringstream ss{};
