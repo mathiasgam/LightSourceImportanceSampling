@@ -192,7 +192,6 @@ __kernel void intersect_bvh(
         // save intersection info
         intersection.hit = hits;
         intersection.primid = prim_id;
-        intersection.padding0 = depth;
         intersection.uvwt = (float4)(uv.x, uv.y, t_max, 0.0f);
         intersections[id] = intersection;
     }

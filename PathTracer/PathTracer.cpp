@@ -41,7 +41,7 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
+		m_camera.GenerateRays(m_ray_bufferA, m_sample_buffer);
 
 		buffer_switch = true;
 		m_bvh.Trace(m_ray_bufferA, m_intersection_bufferA);
@@ -122,7 +122,7 @@ namespace LSIS {
 
 	void PathTracer::TraceRays()
 	{
-		m_camera.GenerateRays(m_ray_bufferA, m_intersection_bufferA);
+		m_camera.GenerateRays(m_ray_bufferA, m_sample_buffer);
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		//m_tracing_structure->TraceRays(m_ray_buffer, m_intersection_buffer);
@@ -175,34 +175,28 @@ namespace LSIS {
 		cl_uint num_vertices = static_cast<cl_uint>(m_vertex_buffer.Count());
 		cl_uint num_faces = static_cast<cl_uint>(m_face_buffer.Count());
 
-		m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width);
-		m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height);
-		m_kernel_process.setArg(2, sizeof(cl_uint), &m_num_samples);
-		m_kernel_process.setArg(3, sizeof(cl_uint), &num_rays);
-		m_kernel_process.setArg(4, sizeof(cl_uint), &num_vertices);
-		m_kernel_process.setArg(5, sizeof(cl_uint), &num_faces);
-		m_kernel_process.setArg(6, m_vertex_buffer.GetBuffer());
-		m_kernel_process.setArg(7, m_face_buffer.GetBuffer());
-		
+		CHECK(m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width));
+		CHECK(m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height));
+		CHECK(m_kernel_process.setArg(2, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_process.setArg(3, sizeof(cl_uint), &num_rays));
+		CHECK(m_kernel_process.setArg(4, sizeof(cl_uint), &num_vertices));
+		CHECK(m_kernel_process.setArg(5, sizeof(cl_uint), &num_faces));
+		CHECK(m_kernel_process.setArg(6, m_vertex_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(7, m_face_buffer.GetBuffer()));
+
 		if (buffer_switch) {
-			m_kernel_process.setArg(8, m_ray_bufferA.GetBuffer());
-			m_kernel_process.setArg(9, m_intersection_bufferA.GetBuffer());
-			m_kernel_process.setArg(10, m_ray_bufferB.GetBuffer());
-			m_kernel_process.setArg(11, m_intersection_bufferB.GetBuffer());
+			CHECK(m_kernel_process.setArg(8, m_ray_bufferA.GetBuffer()));
+			CHECK(m_kernel_process.setArg(9, m_intersection_bufferA.GetBuffer()));
+			CHECK(m_kernel_process.setArg(10, m_ray_bufferB.GetBuffer()));
 		}
 		else {
-			m_kernel_process.setArg(8, m_ray_bufferB.GetBuffer());
-			m_kernel_process.setArg(9, m_intersection_bufferB.GetBuffer());
-			m_kernel_process.setArg(10, m_ray_bufferA.GetBuffer());
-			m_kernel_process.setArg(11, m_intersection_bufferA.GetBuffer());
+			CHECK(m_kernel_process.setArg(8, m_ray_bufferB.GetBuffer()));
+			CHECK(m_kernel_process.setArg(9, m_intersection_bufferB.GetBuffer()));
+			CHECK(m_kernel_process.setArg(10, m_ray_bufferA.GetBuffer()));
 		}
-		m_kernel_process.setArg(12, m_pixel_buffer.GetBuffer());
+		CHECK(m_kernel_process.setArg(11, m_pixel_buffer.GetBuffer()));
 
-		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays));
-
-		if (err != CL_SUCCESS) {
-			std::cout << "Error [PathTracer]: " << GET_CL_ERROR_CODE(err) << std::endl;
-		}
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
 	}
 
 	void PathTracer::ResetSamples()

@@ -16,7 +16,7 @@ namespace LSIS {
 		void SetResolution(uint32_t width, uint32_t height);
 		void SetMultiSample(uint32_t samples);
 
-		void GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Intersection>& intersection_buffer);
+		void GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Sample>& sample_buffer);
 
 		void CompileKernels();
 		size_t CalculateMemory() const;

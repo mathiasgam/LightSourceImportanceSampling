@@ -31,7 +31,7 @@ namespace SHARED {
         int hit;
         int primid;
         // Padding elements
-        int pixel_index;
+        int padding1;
         int padding0;
 
         // uv - hit barycentrics, w - ray distance

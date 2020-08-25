@@ -50,7 +50,6 @@ __kernel void process_intersections(
     IN_BUF(Ray, rays),
     IN_BUF(Intersection, hits),
     OUT_BUF(Ray, rays_out),
-    OUT_BUF(Intersection, hits_out),
     OUT_BUF(Pixel, pixels)
 ){
     int id = get_global_id(0);
@@ -91,10 +90,10 @@ __kernel void process_intersections(
         }
         
         float f = 1.0f / (num_samples + 1);
-        Pixel p = pixels[hit.pixel_index];
+        Pixel p = pixels[id];
         float4 current = p.color;
         p.color = mix(current, color, f);
-        pixels[hit.pixel_index] = p;
+        pixels[id] = p;
     }else{
         printf("Fail!\n");
     }
@@ -116,7 +115,7 @@ __kernel void process_light_sample(
         Intersection hit = hits[id];
 
         if (hit.hit == 0){
-            uint pixel_index = hit.pixel_index;
+            uint pixel_index = id;
             Pixel p = pixels[pixel_index];
             p.color += 0.1f;
             pixels[pixel_index] = p;

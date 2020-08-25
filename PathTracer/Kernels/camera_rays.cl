@@ -6,8 +6,7 @@ __kernel void generate_rays(
     IN_VAL(uint, samples),
     IN_VAL(uint, seed),
     IN_VAL(mat4, camera_matrix),
-    OUT_BUF(Ray, rays),
-    OUT_BUF(Intersection, hits))
+    OUT_BUF(Ray, rays))
 {
     const int id = get_global_id(0);
     const int N = width * height * samples;
@@ -21,6 +20,7 @@ __kernel void generate_rays(
     //barrier(CLK_GLOBAL_MEM_FENCE);
     if (id < N) {
 
+        // project pixels coordinates into unit cube
         float2 pixel_coord = (float2)((float)(id % width), (float)(id / width));
         float2 screen_size = (float2)(width, height);
         float2 jitter = (float2)(rand(&rng), rand(&rng)) - 0.5f; // random number in the range [-0.5,0.5]
@@ -31,6 +31,7 @@ __kernel void generate_rays(
         float4 near = (float4)(screen_pos.xy, 0.0, 1.0);
         float4 far = (float4)(screen_pos.xy ,1.0, 1.0);
  
+        // project from unitcube to world space using the inverse projection matrix
         near = mul(camera_matrix, near);
         near /= near.w;
         far = mul(camera_matrix, far);
@@ -41,15 +42,5 @@ __kernel void generate_rays(
 
         // Save the ray
         rays[id] = CreateRay(pos.xyz, dir.xyz, 0.001, 1000);
-
-        Intersection hit = {};
-        // uv - hit barycentrics, w - ray distance
-        float4 uvwt;
-        hit.hit = 0;
-        hit.primid = -1;
-        hit.pixel_index = id;
-        hit.padding0 = 0;
-        hit.uvwt = (float4)(0.0,0.0,0.0,0.0);
-        hits[id] = hit;
     }
 }
