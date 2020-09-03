@@ -50,6 +50,7 @@ namespace LSIS {
 		size_t GetNumLights() const { return m_lights.size(); }
 
 		Ref<MeshData> GetCollectiveMeshData();
+		std::vector<Ref<Light>> GetLights() const;
 
 	private:
 

@@ -181,6 +181,12 @@ namespace LSIS {
 		return std::make_shared<MeshData>(vertices, indices);
 	}
 
+	std::vector<Ref<Light>> Scene::GetLights() const
+	{
+		// return copy of the lights array
+		return std::vector<Ref<Light>>(m_lights);
+	}
+
 	void Scene::RenderGrid()
 	{
 		glm::vec3 center = { 0,0,0 };
