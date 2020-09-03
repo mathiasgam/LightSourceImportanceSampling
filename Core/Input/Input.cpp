@@ -124,11 +124,13 @@ namespace LSIS::Input {
 	void SetCameraPosition(glm::vec4 position)
 	{
 		cam_pos = position;
+		is_updated = true;
 	}
 
 	void SetCameraRotation(glm::vec3 rotation)
 	{
 		cam_rot = rotation;
+		is_updated = true;
 	}
 
 	bool OnEvent(const Event& e)
@@ -149,7 +151,7 @@ namespace LSIS::Input {
 	void Update(float delta)
 	{
 		auto vel = GetCameraVelocity();
-		if (vel.x > 0.0f || vel.y > 0.0f || vel.z > 0.0f) {
+		if (vel.x != 0.0f || vel.y != 0.0f || vel.z != 0.0f) {
 			is_updated = true;
 		}
 		cam_pos += vel;
