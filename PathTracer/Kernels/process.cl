@@ -50,7 +50,8 @@ __kernel void process_intersections(
     IN_BUF(Ray, rays),
     IN_BUF(Intersection, hits),
     OUT_BUF(Ray, rays_out),
-    OUT_BUF(Pixel, pixels)
+    OUT_BUF(Pixel, pixels),
+    OUT_BUF(Sample, samples)
 ){
     int id = get_global_id(0);
     int num_pixels = width * height;
@@ -68,6 +69,9 @@ __kernel void process_intersections(
 
         float4 color;
 
+        Sample sample = {};
+        sample.pixel_index = id;
+
 
         if (hit.hit > 0){
             const float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
@@ -82,18 +86,31 @@ __kernel void process_intersections(
             const float2 tex_coord = InterpolateFloat2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
 
-            color = ColorFromNormal(normal_shading);
+            sample.position = (float4)(hit_pos, 0.0f);
+            sample.normal = (float4)(normal_shading, 0.0f);
+            sample.incoming = (float4)(ray.direction.xyz, 0.0f);
+            sample.throughput = (float4)(1.0f,1.0f,1.0f,1.0f);
+            sample.result = (float4)(0.0f,0.0f,0.0f,0.0f);
+            sample.is_active = 1;
+            sample.material_index = 0;
+            sample.prim_id = hit.primid;
+
+            //color = ColorFromNormal(normal_shading);
             //color = ColorFromUV(tex_coord);
             //color = (float4)(hit.uvwt.xy, 0.0f, 1.0f);
         }else{
-            color = GetBackground(dir);
+            //color = GetBackground(dir);
+            sample.incoming = (float4)(ray.direction.xyz, 0.0f);
+            sample.is_active = 0;
         }
+
+        samples[id] = sample;
         
-        float f = 1.0f / (num_samples + 1);
-        Pixel p = pixels[id];
-        float4 current = p.color;
-        p.color = mix(current, color, f);
-        pixels[id] = p;
+        //float f = 1.0f / (num_samples + 1);
+        //Pixel p = pixels[id];
+        //float4 current = p.color;
+        //p.color = mix(current, color, f);
+        //pixels[id] = p;
     }else{
         printf("Fail!\n");
     }

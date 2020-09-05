@@ -47,6 +47,8 @@ namespace LSIS {
 		m_bvh.Trace(m_ray_bufferA, m_intersection_bufferA);
 		ProcessIntersections();
 
+		Shade();
+
 		/*
 		buffer_switch = false;
 		m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
@@ -118,6 +120,9 @@ namespace LSIS {
 		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
+
+		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
+		m_kernel_shade = Compute::CreateKernel(m_program_shade, "shade");
 	}
 
 	void PathTracer::TraceRays()
@@ -196,8 +201,25 @@ namespace LSIS {
 			CHECK(m_kernel_process.setArg(10, m_ray_bufferA.GetBuffer()));
 		}
 		CHECK(m_kernel_process.setArg(11, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(12, m_sample_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
+	}
+
+	void PathTracer::Shade()
+	{
+		cl_uint num_samples = static_cast<cl_uint>(m_sample_buffer.Count());
+		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
+
+		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &num_samples));
+		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
+		CHECK(m_kernel_shade.setArg(2, sizeof(cl_uint), &m_num_pixels));
+		CHECK(m_kernel_shade.setArg(3, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_shade.setArg(4, m_sample_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(5, m_lights.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(6, m_pixel_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(num_samples)));
 	}
 
 	void PathTracer::ResetSamples()
@@ -223,6 +245,8 @@ namespace LSIS {
 
 		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
+
+		printf("Num lights: %d\n", num_lights);
 	}
 
 }

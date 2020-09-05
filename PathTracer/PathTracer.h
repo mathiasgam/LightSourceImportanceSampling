@@ -42,6 +42,7 @@ namespace LSIS {
 		void BuildStructure();
 
 		void ProcessIntersections();
+		void Shade();
 
 		void ResetSamples();
 
@@ -60,6 +61,9 @@ namespace LSIS {
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
 		cl::Kernel m_kernel_lightsample;
+
+		cl::Program m_program_shade;
+		cl::Kernel m_kernel_shade;
 
 		bool buffer_switch = true;
 
