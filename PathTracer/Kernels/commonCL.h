@@ -74,6 +74,12 @@ inline float rand(uint* state) {
 	return uintToRangedFloat(t);
 }
 
+inline uint random_uint(uint* state, uint range){
+	uint t = hash1(*state);
+	*state = t;
+	return t % range;
+}
+
 inline float2 random_float2(uint* state) {
 	return (float2)(rand(state), rand(state));
 }
