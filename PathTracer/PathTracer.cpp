@@ -167,6 +167,7 @@ namespace LSIS {
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
+		LoadLights();
 	}
 
 	void PathTracer::ProcessIntersections()
@@ -202,6 +203,26 @@ namespace LSIS {
 	void PathTracer::ResetSamples()
 	{
 		m_num_samples = 0;
+	}
+
+	void PathTracer::LoadLights()
+	{
+		// load scene lights
+		auto app = Application::Get();
+		auto scene_lights = app->GetScene()->GetLights();
+
+		// get the number of lights and allocate the space for the temporary buffer data
+		const size_t num_lights = scene_lights.size();
+		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
+
+		// format and store scene lights data
+		for (auto i = 0; i < num_lights; i++) {
+			auto& light = scene_lights[i];
+			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
+		}
+
+		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
 	}
 
 }

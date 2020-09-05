@@ -81,7 +81,22 @@ namespace SHARED {
         float4 color;
     } Pixel;
 
+    typedef struct Light {
+        float4 position;
+        float4 direction;
+        float4 intensity;
+    } Light;
+
 #if defined(APP_LSIS)
+
+    inline Light make_light(glm::vec3 position, glm::vec3 direction, glm::vec3 intensity) {
+        Light light = {};
+        light.position = { position.x, position.y, position.z, 0.0f };
+        light.direction = { direction.x, direction.y, direction.z, 0.0f };
+        light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
+        return light;
+    }
+
 }
 #endif
 

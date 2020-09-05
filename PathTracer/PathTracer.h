@@ -45,6 +45,8 @@ namespace LSIS {
 
 		void ResetSamples();
 
+		void LoadLights();
+
 	private:
 		uint32_t m_image_width, m_image_height;
 		uint32_t m_num_pixels;
@@ -76,6 +78,9 @@ namespace LSIS {
 		TypedBuffer<SHARED::Face> m_face_buffer;
 		TypedBuffer<SHARED::Node> m_bvh_buffer;
 		TypedBuffer<SHARED::AABB> m_bboxes_buffer;
+
+		// Light Buffers
+		TypedBuffer<SHARED::Light> m_lights;
 
 
 	};
