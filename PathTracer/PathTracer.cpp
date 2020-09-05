@@ -181,27 +181,22 @@ namespace LSIS {
 		cl_uint num_vertices = static_cast<cl_uint>(m_vertex_buffer.Count());
 		cl_uint num_faces = static_cast<cl_uint>(m_face_buffer.Count());
 
-		CHECK(m_kernel_process.setArg(0, sizeof(cl_uint), &m_image_width));
-		CHECK(m_kernel_process.setArg(1, sizeof(cl_uint), &m_image_height));
-		CHECK(m_kernel_process.setArg(2, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_process.setArg(3, sizeof(cl_uint), &num_rays));
-		CHECK(m_kernel_process.setArg(4, sizeof(cl_uint), &num_vertices));
-		CHECK(m_kernel_process.setArg(5, sizeof(cl_uint), &num_faces));
-		CHECK(m_kernel_process.setArg(6, m_vertex_buffer.GetBuffer()));
-		CHECK(m_kernel_process.setArg(7, m_face_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(0, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_process.setArg(1, sizeof(cl_uint), &num_rays));
+		CHECK(m_kernel_process.setArg(2, sizeof(cl_uint), &num_vertices));
+		CHECK(m_kernel_process.setArg(3, sizeof(cl_uint), &num_faces));
+		CHECK(m_kernel_process.setArg(4, m_vertex_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(5, m_face_buffer.GetBuffer()));
 
 		if (buffer_switch) {
-			CHECK(m_kernel_process.setArg(8, m_ray_bufferA.GetBuffer()));
-			CHECK(m_kernel_process.setArg(9, m_intersection_bufferA.GetBuffer()));
-			CHECK(m_kernel_process.setArg(10, m_ray_bufferB.GetBuffer()));
+			CHECK(m_kernel_process.setArg(6, m_ray_bufferA.GetBuffer()));
+			CHECK(m_kernel_process.setArg(7, m_intersection_bufferA.GetBuffer()));
 		}
 		else {
-			CHECK(m_kernel_process.setArg(8, m_ray_bufferB.GetBuffer()));
-			CHECK(m_kernel_process.setArg(9, m_intersection_bufferB.GetBuffer()));
-			CHECK(m_kernel_process.setArg(10, m_ray_bufferA.GetBuffer()));
+			CHECK(m_kernel_process.setArg(6, m_ray_bufferB.GetBuffer()));
+			CHECK(m_kernel_process.setArg(7, m_intersection_bufferB.GetBuffer()));
 		}
-		CHECK(m_kernel_process.setArg(11, m_pixel_buffer.GetBuffer()));
-		CHECK(m_kernel_process.setArg(12, m_sample_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(8, m_sample_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
 	}
