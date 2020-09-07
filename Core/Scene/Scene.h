@@ -62,8 +62,6 @@ namespace LSIS {
 	private:
 		entt::registry m_registry{};
 
-
-		std::shared_ptr<PointMesh> m_points;
 		std::shared_ptr<Shader> m_point_shader;
 
 		std::vector<std::shared_ptr<Light>> m_lights;

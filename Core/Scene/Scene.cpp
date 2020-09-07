@@ -95,7 +95,6 @@ namespace LSIS {
 			RenderCommand::RenderGeometryBuffer(mesh.mesh);
 		}
 
-
 		m_point_shader->Bind();
 		m_point_shader->UploadUniformMat4("cam_matrix", cam_matrix);
 
