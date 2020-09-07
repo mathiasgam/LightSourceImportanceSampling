@@ -31,12 +31,13 @@ int main(int argc, char** argv) {
 	LSIS::Log::Init();
 
 	LSIS::Application* app = LSIS::Application::Get();
-	LSIS::Input::SetCameraPosition({ -3.0f,1.0f,3.0f,1.0f });
-	LSIS::Input::SetCameraRotation({ 0.0f,-0.6f,0.0f });
+	LSIS::Input::SetCameraPosition({ -3.0f,2.0f,3.0f,1.0f });
+	LSIS::Input::SetCameraRotation({ -0.2f,-0.6f,0.0f });
 
 	std::shared_ptr<LSIS::PathTracer> pt = std::make_shared<LSIS::PathTracer>(720, 512);
 	app->AddLayer(pt);
 
+	// Run the program
 	app->Run();
 	app->Destroy();
 
