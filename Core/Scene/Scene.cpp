@@ -8,6 +8,7 @@
 #include "Graphics/Renderer2D.h"
 
 #include <iostream>
+#include <set>
 
 #include "Components.h"
 
@@ -185,6 +186,31 @@ namespace LSIS {
 	{
 		// return copy of the lights array
 		return std::vector<Ref<Light>>(m_lights);
+	}
+
+	std::vector<Ref<Material>> Scene::GetMaterials()
+	{
+		// set of unique materials
+		std::set<Ref<Material>> unique_materials = std::set<Ref<Material>>();
+
+		// iterate over all entities with mesh components and save the materials in the set
+		auto view = m_registry.view<MeshComponent>();
+		for (auto entity : view) {
+			auto& mesh = view.get<MeshComponent>(entity);
+			unique_materials.insert(mesh.material);
+		}
+
+
+		// allocate return vector
+		std::vector<Ref<Material>> materials = std::vector<Ref<Material>>(unique_materials.size());
+		
+		// insert unique materials into vector
+		size_t count = 0;
+		for (auto& mat : unique_materials) {
+			materials[count++] = mat;
+		}
+
+		return materials;
 	}
 
 	void Scene::RenderGrid()

@@ -4,7 +4,7 @@ in vec3 v_normal;
 
 out vec4 FragColor;
 
-uniform vec4 color;
+uniform vec3 color;
 
 void main()
 {

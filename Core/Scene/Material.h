@@ -16,9 +16,13 @@ namespace LSIS {
 
 		void Bind(const glm::mat4& transform, const glm::mat4& cam_matrix);
 
+		glm::vec3 GetDiffuse() const { return m_diffuse; }
+		glm::vec3 GetSpecular() const { return m_specular; }
+
 	private:
 		std::shared_ptr<Shader> m_shader;
-		glm::vec4 m_color;
+		glm::vec3 m_diffuse;
+		glm::vec3 m_specular;
 		
 	};
 

@@ -4,6 +4,7 @@
 #include <memory>
 #include <future>
 #include <queue>
+#include <set>
 
 #include "Core.h"
 
@@ -51,6 +52,7 @@ namespace LSIS {
 
 		Ref<MeshData> GetCollectiveMeshData();
 		std::vector<Ref<Light>> GetLights() const;
+		std::vector<Ref<Material>> GetMaterials();
 
 	private:
 
