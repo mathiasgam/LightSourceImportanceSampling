@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Core/Timer.h"
 #include "PathTracer.h"
 
 #include "Core/Application.h"
@@ -41,6 +42,7 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
+		// PROFILE_SCOPE("PathTracer");
 		m_camera.GenerateRays(m_ray_buffer, m_sample_buffer);
 
 		buffer_switch = true;
