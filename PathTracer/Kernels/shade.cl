@@ -5,6 +5,8 @@ inline float4 ColorFromNormal(float3 normal){
     return (float4)(col.xyz, 1.0f);
 }
 
+
+
 __kernel void shade(
     IN_VAL(uint, num_samples),
     IN_VAL(uint, num_lights),
@@ -30,12 +32,12 @@ __kernel void shade(
         uint i = random_uint(&rng, num_lights);
         float pdf = 1.0f / num_lights;
 
+        float3 throughput = sample.throughput.xyz;
+
+
         // iterate over all lights
-
-
-
         //for (uint i = 0; i < num_lights; i++){
-         {
+        if (sample.is_active) {
             Light light = lights[i];
 
             const float3 diff = light.position.xyz - sample.position.xyz;
@@ -48,7 +50,7 @@ __kernel void shade(
             // calculate the lights contribution
             float3 L = light.intensity.xyz * max(d, 0.0f) * (dist_inv * dist_inv);
 
-            sample.result.xyz += L;
+            sample.result.xyz += L * throughput;
         }
 
         float4 color = (float4)(sample.result.xyz, 1.0f);

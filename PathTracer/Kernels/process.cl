@@ -1,10 +1,5 @@
 #include "commonCL.h"
 
-inline float4 ColorFromNormal(float3 normal){
-    float3 col = normalize(normal).xyz * 0.5f + 0.5f;
-    return (float4)(col.xyz, 1.0f);
-}
-
 inline float4 ColorFromUV(float2 uv){
     return (float4)(uv.x, 0.0f, uv.y, 1.0f);
 }
@@ -14,6 +9,14 @@ inline float3 CalcGeometricNormal(float3 v0, float3 v1, float3 v2){
     float3 e1 = v2 - v0;
 
     return normalize(cross(e0,e1));
+}
+
+inline float2 InterpolateFloat2(float2 f0, float2 f1, float2 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
+}
+
+inline float3 InterpolateFloat3(float3 f0, float3 f1, float3 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
 }
 
 inline float4 GetBackground(float3 dir){
@@ -28,14 +31,6 @@ inline float4 GetBackground(float3 dir){
     }
 
     return (float4)(mix(sky, ground, d*d),1.0f);
-}
-
-inline float2 InterpolateFloat2(float2 f0, float2 f1, float2 f2, float2 uv){
-    return mix(mix(f0, f1, uv.x), f2, uv.y);
-}
-
-inline float3 InterpolateFloat3(float3 f0, float3 f1, float3 f2, float2 uv){
-    return mix(mix(f0, f1, uv.x), f2, uv.y);
 }
 
 __kernel void process_intersections(
@@ -87,8 +82,14 @@ __kernel void process_intersections(
             sample.prim_id = hit.primid;
 
         }else{
+            sample.position = (float4)(0.0f,0.0f,0.0f,0.0f);
+            sample.normal = (float4)(0.0f,0.0f,0.0f,0.0f);
             sample.incoming = (float4)(ray.direction.xyz, 0.0f);
+            sample.throughput = (float4)(0.0f,0.0f,0.0f,0.0f);
+            sample.result = GetBackground(ray.direction.xyz);
             sample.is_active = 0;
+            sample.material_index = -1;
+            sample.prim_id = -1;
         }
 
         samples[id] = sample;
