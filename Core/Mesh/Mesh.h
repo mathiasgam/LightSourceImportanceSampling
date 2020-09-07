@@ -9,17 +9,22 @@
 namespace LSIS {
 
 	struct VertexData {
-		float position[3];
-		float normal[3];
-		float uv[2];
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec2 uv;
 
 		VertexData()
-			: position{ 0.0f,0.0f,0.0f }, normal{ 0.0f,0.0f,0.0f }, uv{ 0.0f,0.0f }
+			: position( 0.0f,0.0f,0.0f ), normal( 0.0f,0.0f,0.0f ), uv( 0.0f,0.0f )
+		{
+		}
+
+		VertexData(glm::vec3 position, glm::vec3 normal, glm::vec2 uv) 
+			: position(position), normal(normal), uv(uv)
 		{
 		}
 
 		VertexData(float px, float py, float pz, float nx, float ny, float nz, float u, float v)
-			: position{ px,py,pz }, normal{ nx,ny,nz }, uv{ u,v }
+			: position( px,py,pz ), normal( nx,ny,nz ), uv( u,v )
 		{
 		}
 	};

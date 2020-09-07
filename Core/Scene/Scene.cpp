@@ -162,8 +162,8 @@ namespace LSIS {
 			}
 
 			for (size_t i = 0; i < data->GetNumVertices(); i++) {
-				glm::vec4 p = transform.Transform * glm::vec4(vertex_data[i].position[0], vertex_data[i].position[1], vertex_data[i].position[2], 1.0f);
-				glm::vec4 n = transform.Transform * glm::vec4(vertex_data[i].normal[0], vertex_data[i].normal[1], vertex_data[i].normal[2], 0.0f);
+				glm::vec4 p = transform.Transform * glm::vec4(vertex_data[i].position, 1.0f);
+				glm::vec4 n = transform.Transform * glm::vec4(vertex_data[i].normal, 0.0f);
 				VertexData d{};
 				d.position[0] = p.x;
 				d.position[1] = p.y;

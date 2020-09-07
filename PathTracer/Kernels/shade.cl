@@ -38,7 +38,10 @@ __kernel void shade(
         //for (uint i = 0; i < num_lights; i++){
         if (sample.is_active) {
             Light light = lights[i];
-            Material material = materials[sample.material_index];
+            //Material material = materials[sample.material_index];
+            Material material = {};
+            material.diffuse = (float4)(.8f,.8f,.8f,1.0f);
+            material.specular = (float4)(.8f,.8f,.8f,1.0f);
 
             const float3 diff = light.position.xyz - sample.position.xyz;
             const float dist = length(diff);
