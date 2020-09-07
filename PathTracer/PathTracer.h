@@ -72,10 +72,8 @@ namespace LSIS {
 		TypedBuffer<SHARED::Sample> m_sample_buffer;
 
 		// Ray Buffers
-		TypedBuffer<SHARED::Ray> m_ray_bufferA;
-		TypedBuffer<SHARED::Ray> m_ray_bufferB;
-		TypedBuffer<SHARED::Intersection> m_intersection_bufferA;
-		TypedBuffer<SHARED::Intersection> m_intersection_bufferB;
+		TypedBuffer<SHARED::Ray> m_ray_buffer;
+		TypedBuffer<SHARED::Intersection> m_intersection_buffer;
 
 		// Geometry Buffers
 		TypedBuffer<SHARED::Vertex> m_vertex_buffer;
