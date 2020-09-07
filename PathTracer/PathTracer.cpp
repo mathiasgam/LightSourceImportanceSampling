@@ -125,14 +125,6 @@ namespace LSIS {
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "shade");
 	}
 
-	void PathTracer::TraceRays()
-	{
-		m_camera.GenerateRays(m_ray_buffer, m_sample_buffer);
-
-		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
-		//m_tracing_structure->TraceRays(m_ray_buffer, m_intersection_buffer);
-	}
-
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
 		size_t num_pixels = m_image_width * m_image_height;

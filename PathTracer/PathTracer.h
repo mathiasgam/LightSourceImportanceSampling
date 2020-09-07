@@ -36,7 +36,6 @@ namespace LSIS {
 	private:
 
 		void CompileKernels();
-		void TraceRays();
 		void PrepareCameraRays(const cl::Context& context);
 
 		void BuildStructure();
