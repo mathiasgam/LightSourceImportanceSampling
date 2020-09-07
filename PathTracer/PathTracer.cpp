@@ -127,7 +127,7 @@ namespace LSIS {
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
-		size_t num_pixels = m_image_width * m_image_height;
+		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
 		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
@@ -224,7 +224,7 @@ namespace LSIS {
 		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
 
-		printf("Num lights: %d\n", num_lights);
+		printf("Num lights: %zd\n", num_lights);
 	}
 
 }

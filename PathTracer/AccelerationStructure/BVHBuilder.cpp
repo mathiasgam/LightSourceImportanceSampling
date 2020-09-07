@@ -45,10 +45,9 @@ namespace LSIS {
 	const std::pair<TypedBuffer<SHARED::Node>, TypedBuffer<SHARED::AABB>> BVHBuilder::Build(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces)
 	{
 		PROFILE_SCOPE("BVH Build GPU");
-		cl_int err;
 
-		cl_uint num_vertices = vertices.Count();
-		cl_uint num_faces = faces.Count();
+		cl_uint num_vertices = static_cast<cl_uint>(vertices.Count());
+		cl_uint num_faces = static_cast<cl_uint>(faces.Count());
 		size_t num_nodes = num_faces * 2 - 1;
 		std::cout << "GPU BVH Build\n";
 
@@ -277,7 +276,7 @@ namespace LSIS {
 			std::cout << "Error [BVHBuilder hireachy]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 #else
-		size_t num_nodes = num_primitives * 2 - 1;
+		size_t num_nodes = static_cast<size_t>(num_primitives) * 2 - 1;
 		std::vector<morton_key> _codes = std::vector<morton_key>(num_primitives);
 		std::vector<SHARED::AABB> _prim_bounds = std::vector<SHARED::AABB>(num_primitives);
 		std::vector<SHARED::Node> _nodes = std::vector<SHARED::Node>(num_nodes);
@@ -313,7 +312,7 @@ namespace LSIS {
 			std::cout << "Error [BVHBuilder refit]: " << GET_CL_ERROR_CODE(err) << std::endl;
 		}
 #else
-		size_t num_nodes = num_primitives * 2 - 1;
+		size_t num_nodes = static_cast<size_t>(num_primitives) * 2 - 1;
 		std::vector<SHARED::Node> _nodes = std::vector<SHARED::Node>(num_nodes);
 		std::vector<SHARED::AABB> _nodes_bounds = std::vector<SHARED::AABB>(num_nodes);
 		auto queue = Compute::GetCommandQueue();
