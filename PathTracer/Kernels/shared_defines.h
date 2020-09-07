@@ -48,6 +48,11 @@ namespace SHARED {
         uint4 index;
     } Face;
 
+    typedef struct Material {
+        float4 diffuse;
+        float4 specular;
+    } Material;
+
     typedef struct Node {
         int parent;
         int left;
@@ -95,6 +100,13 @@ namespace SHARED {
         light.direction = { direction.x, direction.y, direction.z, 0.0f };
         light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
         return light;
+    }
+
+    inline Material make_material(glm::vec3 diffuse, glm::vec3 specular){
+        Material material = {};
+        material.diffuse = { diffuse.x, diffuse.y, diffuse.z, 1.0f };
+        material.specular = { specular.x, specular.y, specular.z, 1.0f };
+        return material;
     }
 
 }

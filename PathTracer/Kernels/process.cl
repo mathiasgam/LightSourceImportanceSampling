@@ -78,7 +78,7 @@ __kernel void process_intersections(
             sample.throughput = (float4)(1.0f,1.0f,1.0f,1.0f);
             sample.result = (float4)(0.0f,0.0f,0.0f,0.0f);
             sample.is_active = 1;
-            sample.material_index = 0;
+            sample.material_index = face.index.w;
             sample.prim_id = hit.primid;
 
         }else{

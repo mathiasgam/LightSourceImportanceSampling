@@ -137,6 +137,9 @@ namespace LSIS {
 
 	void PathTracer::BuildStructure()
 	{
+		LoadMaterials();
+		LoadLights();
+
 		auto app = Application::Get();
 		auto geometry = app->GetScene()->GetCollectiveMeshData();
 
@@ -162,7 +165,7 @@ namespace LSIS {
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
-		LoadLights();
+		
 	}
 
 	void PathTracer::ProcessIntersections()
@@ -195,7 +198,8 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(3, sizeof(cl_uint), &m_num_samples));
 		CHECK(m_kernel_shade.setArg(4, m_sample_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(5, m_lights.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(6, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(6, m_material_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(7, m_pixel_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(num_samples)));
 	}
@@ -203,6 +207,28 @@ namespace LSIS {
 	void PathTracer::ResetSamples()
 	{
 		m_num_samples = 0;
+	}
+
+	void PathTracer::LoadGeometry()
+	{
+	}
+
+	void PathTracer::LoadMaterials()
+	{
+		auto scene_materials = Application::Get()->GetScene()->GetMaterials();
+
+		const size_t num_materials = scene_materials.size();
+		std::vector<SHARED::Material> material_data = std::vector<SHARED::Material>(num_materials);
+
+		for (auto i = 0; i < num_materials; i++) {
+			auto& material = scene_materials[i];
+			material_data[i] = SHARED::make_material(material->GetDiffuse(), material->GetSpecular());
+		}
+
+		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Material) * num_materials, material_data.data());
+
+		printf("Num Materials: %zd\n", num_materials);
 	}
 
 	void PathTracer::LoadLights()

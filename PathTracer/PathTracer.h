@@ -45,6 +45,8 @@ namespace LSIS {
 
 		void ResetSamples();
 
+		void LoadGeometry();
+		void LoadMaterials();
 		void LoadLights();
 
 	private:
@@ -77,6 +79,7 @@ namespace LSIS {
 		// Geometry Buffers
 		TypedBuffer<SHARED::Vertex> m_vertex_buffer;
 		TypedBuffer<SHARED::Face> m_face_buffer;
+		TypedBuffer<SHARED::Material> m_material_buffer;
 		TypedBuffer<SHARED::Node> m_bvh_buffer;
 		TypedBuffer<SHARED::AABB> m_bboxes_buffer;
 
