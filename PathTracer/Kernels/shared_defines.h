@@ -65,21 +65,14 @@ namespace SHARED {
         float4 max;
     } AABB;
 
-    typedef struct LightSample {
-        float4 throughput;
-        float4 light_color;
-    } LightSample;
-
     typedef struct Sample {
         float4 position;
         float4 normal;
         float4 incoming;
-        float4 throughput;
-        float4 result;
-        int is_active;
-        int pixel_index;
         int material_index;
         int prim_id;
+        int padding0;
+        int padding1;
     } Sample;
 
     typedef struct Pixel {

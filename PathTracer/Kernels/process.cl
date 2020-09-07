@@ -1,9 +1,5 @@
 #include "commonCL.h"
 
-inline float4 ColorFromUV(float2 uv){
-    return (float4)(uv.x, 0.0f, uv.y, 1.0f);
-}
-
 inline float3 CalcGeometricNormal(float3 v0, float3 v1, float3 v2){
     float3 e0 = v1 - v0;
     float3 e1 = v2 - v0;
@@ -19,20 +15,6 @@ inline float3 InterpolateFloat3(float3 f0, float3 f1, float3 f2, float2 uv){
     return mix(mix(f0, f1, uv.x), f2, uv.y);
 }
 
-inline float4 GetBackground(float3 dir){
-    const float3 UP = (float3)(0,1,0);
-    float d = 1.0f - max(dot(dir, UP), 0.0f);
-
-    float3 sky = (float3)(0.58f, 0.92f, 1.0f);
-    float3 ground = (float3)(0.55f, 0.40f, 0.17f);
-
-    if (d == 1.0f){
-        return (float4)(0.2f,0.2f,0.2f,1.0f);
-    }
-
-    return (float4)(mix(sky, ground, d*d),1.0f);
-}
-
 __kernel void process_intersections(
     IN_VAL(uint, multi_sample_count),
     IN_VAL(uint, num_rays),
@@ -42,6 +24,7 @@ __kernel void process_intersections(
     IN_BUF(Face, faces),
     IN_BUF(Ray, rays),
     IN_BUF(Intersection, hits),
+    IN_BUF(int, states),
     OUT_BUF(Sample, samples)
 ){
     int id = get_global_id(0);
@@ -55,13 +38,10 @@ __kernel void process_intersections(
         float3 pos = ray.origin.xyz;
         float3 dir = ray.direction.xyz;
 
-        Sample sample = {};
-        sample.pixel_index = id;
+        Sample sample = samples[id];
 
-
-        if (hit.hit > 0){
+        if (hit.hit > 0 && states[id] == STATE_ACTIVE){
             const float3 hit_pos = ray.origin.xyz + (ray.direction.xyz * hit.uvwt.z);
-
             const Face face = faces[hit.primid];
             const Vertex v0 = vertices[face.index.x];
             const Vertex v1 = vertices[face.index.y];
@@ -71,13 +51,11 @@ __kernel void process_intersections(
             const float3 normal_shading = InterpolateFloat3(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
             const float2 tex_coord = InterpolateFloat2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
+            const float3 lift = normal_shading * 0.0001f;
 
-            sample.position = (float4)(hit_pos, 0.0f);
+            sample.position = (float4)(hit_pos + lift, 0.0f);
             sample.normal = (float4)(normal_shading, 0.0f);
             sample.incoming = (float4)(ray.direction.xyz, 0.0f);
-            sample.throughput = (float4)(1.0f,1.0f,1.0f,1.0f);
-            sample.result = (float4)(0.0f,0.0f,0.0f,0.0f);
-            sample.is_active = 1;
             sample.material_index = face.index.w;
             sample.prim_id = hit.primid;
 
@@ -85,9 +63,6 @@ __kernel void process_intersections(
             sample.position = (float4)(0.0f,0.0f,0.0f,0.0f);
             sample.normal = (float4)(0.0f,0.0f,0.0f,0.0f);
             sample.incoming = (float4)(ray.direction.xyz, 0.0f);
-            sample.throughput = (float4)(0.0f,0.0f,0.0f,0.0f);
-            sample.result = GetBackground(ray.direction.xyz);
-            sample.is_active = 0;
             sample.material_index = -1;
             sample.prim_id = -1;
         }
@@ -104,7 +79,6 @@ __kernel void process_intersections(
 __kernel void process_light_sample(
     IN_VAL(uint, num_rays),
     IN_VAL(uint, num_samples),
-    IN_BUF(LightSample, samples),
     IN_BUF(Ray, rays),
     IN_BUF(Intersection, hits),
     OUT_BUF(Pixel, pixels)

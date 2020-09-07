@@ -48,7 +48,7 @@ namespace LSIS {
 		CHECK(m_kernel.setArg(3, sizeof(cl_uint), &m_seed));
 		CHECK(m_kernel.setArg(4, sizeof(cl_float4) * 4, glm::value_ptr(cam_matrix)));
 		CHECK(m_kernel.setArg(5, ray_buffer.GetBuffer()));
-		//CHECK(m_kernel.setArg(6, sample_buffer.GetBuffer()));
+		CHECK(m_kernel.setArg(6, sample_buffer.GetBuffer()));
 
 		// submit kernel
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(m_width * m_height)));

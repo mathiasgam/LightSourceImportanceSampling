@@ -1,13 +1,12 @@
 #include "commonCL.h"
 
-__kernel void generate_rays(
+__kernel void prepare(
     IN_VAL(uint, width),
     IN_VAL(uint, height),
     IN_VAL(uint, multi_samples_count),
     IN_VAL(uint, seed),
     IN_VAL(mat4, camera_matrix),
     OUT_BUF(Ray, rays),
-    OUT_BUF(Sample, samples),
     OUT_BUF(float3, results),
     OUT_BUF(float3, throughputs),
     OUT_BUF(int, states))

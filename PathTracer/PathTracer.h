@@ -40,8 +40,11 @@ namespace LSIS {
 
 		void BuildStructure();
 
+		// Prepare rays from camera and result buffers for final result
+		void Prepare();
 		void ProcessIntersections();
 		void Shade();
+		void ProcessOcclusion();
 
 		void ResetSamples();
 
@@ -52,12 +55,16 @@ namespace LSIS {
 	private:
 		uint32_t m_image_width, m_image_height;
 		uint32_t m_num_pixels;
+		uint32_t m_num_samples_per_pixel = 1;
+		uint32_t m_num_concurrent_samples = m_num_pixels * m_num_samples_per_pixel;
 		uint32_t m_num_rays;
 		uint32_t m_num_samples = 0;
 
-		CameraRays m_camera;
 		PixelViewer m_viewer;
 		BVH m_bvh;
+
+		cl::Program m_program_prepare;
+		cl::Kernel m_kernel_prepare;
 		
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
@@ -69,11 +76,17 @@ namespace LSIS {
 		bool buffer_switch = true;
 
 		// Result Buffers
+		TypedBuffer<cl_int> m_state_buffer;
+		TypedBuffer<cl_float3> m_result_buffer;
+		TypedBuffer<cl_float3> m_throughput_buffer;
+		TypedBuffer<cl_float> m_depth_buffer;
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
+
 		TypedBuffer<SHARED::Sample> m_sample_buffer;
 
 		// Ray Buffers
 		TypedBuffer<SHARED::Ray> m_ray_buffer;
+		TypedBuffer<SHARED::Ray> m_occlusion_ray_buffer;
 		TypedBuffer<SHARED::Intersection> m_intersection_buffer;
 
 		// Geometry Buffers

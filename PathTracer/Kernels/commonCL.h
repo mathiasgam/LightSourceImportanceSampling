@@ -9,6 +9,9 @@
 #define IN_BUF(type, name) __global const type* const restrict name
 #define OUT_BUF(type, name) __global type* restrict name
 
+#define STATE_INACTIVE 0
+#define STATE_ACTIVE 1
+
 typedef struct mat4
 {
 	float4 x;
@@ -99,18 +102,28 @@ inline float min3(float x, float y, float z) {
 inline float max3(float x, float y, float z) {
 	return max(x, max(y, z));
 }
-/*
-inline float3 sample_hemisphere(uint* state) {
-	float3 vec = random_float3(state);
-	float sqr_dist = dot(vec, vec);
 
-	while (sqr_dist > 1.0f) {
-		vec = random_float3(state);
-		sqr_dist = dot(vec, vec);
-	}
-
-	return normalize(vec);
+inline float3 sample_hemisphere(uint* state, float3 normal) {
+	float3 vec;
+	float sqr_dist;
+	do {
+		// project random vector range [0,1] into [-1,1]
+		vec = random_float3(state) * 2.0f - 1.0f;
+		sqr_dist = dot(vec,vec);
+	} while (sqr_dist > 1.0f && dot(normal, vec) > 0.0001f);
+	return vec / sqrt(sqr_dist);
 }
-*/
+
+inline float2 sample_disk_uniform(uint* state){
+	while (true)
+	{
+		float2 p = random_float2(state) * 2.0f - 1.0f;
+		float sqr_dist = p.x * p.x + p.y * p.y;
+		if (sqr_dist < 1.0f){
+			return p;
+		}
+	}
+}
+
 
 #endif // COMMON_CL

@@ -17,7 +17,6 @@ namespace LSIS {
 		m_image_height(height),
 		m_num_pixels(width* height),
 		m_num_rays(width* height),
-		m_camera(width, height),
 		m_viewer(width, height),
 		m_bvh()
 	{
@@ -43,12 +42,17 @@ namespace LSIS {
 	void PathTracer::OnUpdate(float delta)
 	{
 		// PROFILE_SCOPE("PathTracer");
-		m_camera.GenerateRays(m_ray_buffer, m_sample_buffer);
+		Prepare();
 
-		buffer_switch = true;
 		m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
 		ProcessIntersections();
+		Shade();
 
+		//m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer);
+		//ProcessOcclusion();
+
+		m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
+		ProcessIntersections();
 		Shade();
 
 		/*
@@ -77,7 +81,6 @@ namespace LSIS {
 			else if (key == KEY_R) {
 				CompileKernels();
 				m_viewer.CompileKernels();
-				m_camera.CompileKernels();
 				m_bvh.Compile();
 				BuildStructure();
 				std::cout << "PT: Kernels Recompiled!\n";
@@ -110,7 +113,6 @@ namespace LSIS {
 		//mem_size += m_intersection_buffer.Size();
 		//mem_size += m_pixel_buffer.Size();
 
-		mem_size += m_camera.CalculateMemory();
 		mem_size += m_viewer.CalculateMemory();
 
 
@@ -119,22 +121,32 @@ namespace LSIS {
 
 	void PathTracer::CompileKernels()
 	{
+		m_program_prepare = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/prepare.cl", { "Kernels/" });
+		m_kernel_prepare = Compute::CreateKernel(m_program_prepare, "prepare");
+
 		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
 
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
-		m_kernel_shade = Compute::CreateKernel(m_program_shade, "shade");
+		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
 	}
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
 		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
+		size_t num_concurrent_samples = num_pixels * m_num_samples_per_pixel;
 
-		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_pixels);
-		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_state_buffer = TypedBuffer<cl_int>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
+		m_result_buffer = TypedBuffer<cl_float3>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
+		m_throughput_buffer = TypedBuffer<cl_float3>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
+		m_depth_buffer = TypedBuffer<cl_float>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
+		m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
-		m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_pixels);
+
+		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 	}
 
 	void PathTracer::BuildStructure()
@@ -170,6 +182,24 @@ namespace LSIS {
 		
 	}
 
+	void PathTracer::Prepare()
+	{
+		auto cam = Application::Get()->GetScene()->GetCamera();
+		glm::mat4 cam_matrix = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
+
+		CHECK(m_kernel_prepare.setArg(0, sizeof(cl_uint), &m_image_width));
+		CHECK(m_kernel_prepare.setArg(1, sizeof(cl_uint), &m_image_height));
+		CHECK(m_kernel_prepare.setArg(2, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_prepare.setArg(3, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_prepare.setArg(4, sizeof(cl_float4) * 4, &cam_matrix));
+		CHECK(m_kernel_prepare.setArg(5, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_prepare.setArg(6, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_prepare.setArg(7, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_prepare.setArg(8, m_state_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_prepare, 0, cl::NDRange(m_num_concurrent_samples)));
+	}
+
 	void PathTracer::ProcessIntersections()
 	{
 		cl_uint num_rays = m_image_width * m_image_height;
@@ -184,7 +214,8 @@ namespace LSIS {
 		CHECK(m_kernel_process.setArg(5, m_face_buffer.GetBuffer()));
 		CHECK(m_kernel_process.setArg(6, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_process.setArg(7, m_intersection_buffer.GetBuffer()));
-		CHECK(m_kernel_process.setArg(8, m_sample_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(8, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_process.setArg(9, m_sample_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
 	}
@@ -201,9 +232,18 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(4, m_sample_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(5, m_lights.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(6, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(7, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(7, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(8, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(9, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(10, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_pixel_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(num_samples)));
+	}
+
+	void PathTracer::ProcessOcclusion()
+	{
 	}
 
 	void PathTracer::ResetSamples()
