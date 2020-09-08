@@ -239,6 +239,9 @@ namespace LSIS {
 
 		glm::uvec2 window_size = { (int)((float)m_Data.Width * xscale), (int)((float)m_Data.Height * yscale) };
 
+		m_Data.Width = window_size.x;
+		m_Data.Height = window_size.y;
+
 		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_Data.Title.c_str(), nullptr, nullptr);
 		glfwSetWindowUserPointer(m_native_window, &m_Data);
 
