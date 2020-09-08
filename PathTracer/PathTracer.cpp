@@ -44,16 +44,18 @@ namespace LSIS {
 		// PROFILE_SCOPE("PathTracer");
 		Prepare();
 
-		m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
-		ProcessIntersections();
-		Shade();
+		for (auto bounce = 0; bounce < 4; bounce++) {
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
+			ProcessIntersections();
+			Shade();
 
-		//m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer);
-		//ProcessOcclusion();
+			//m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer);
+			//ProcessOcclusion();
 
-		m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
-		ProcessIntersections();
-		Shade();
+			//m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
+			//ProcessIntersections();
+			//Shade();
+		}
 
 		/*
 		buffer_switch = false;
@@ -134,7 +136,7 @@ namespace LSIS {
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
-		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
+		size_t num_pixels = static_cast<size_t>(m_image_width)* static_cast<size_t>(m_image_height);
 		size_t num_concurrent_samples = num_pixels * m_num_samples_per_pixel;
 
 		m_state_buffer = TypedBuffer<cl_int>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
@@ -179,7 +181,7 @@ namespace LSIS {
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
-		
+
 	}
 
 	void PathTracer::Prepare()
