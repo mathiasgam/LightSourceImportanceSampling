@@ -36,8 +36,8 @@ namespace LSIS {
 		return os << "[" << vec.x << "," << vec.y << "]";
 	}
 
-	const char* vertex_path = "kernels/window.vert";
-	const char* fragment_path = "kernels/window.frag";
+	const char* vertex_path = "../Assets/Shaders/window.vert";
+	const char* fragment_path = "../Assets/Shaders/window.frag";
 
 	Window::Window(WindowData data)
 	{
@@ -119,7 +119,7 @@ namespace LSIS {
 		glfwMakeContextCurrent(m_native_window);
 		std::vector<cl_context_properties> props{};
 #ifdef linux
-		props.resize(7);
+		props.reserve(7);
 		props.push_back(CL_GL_CONTEXT_KHR);
 		props.push_back((cl_context_properties)glXGetCurrentContext());
 		props.push_back(CL_GLX_DISPLAY_KHR);
@@ -127,7 +127,7 @@ namespace LSIS {
 		props.push_back(CL_CONTEXT_PLATFORM);
 		props.push_back((cl_context_properties)platform);
 #elif defined _WIN32
-		props.resize(7);
+		props.reserve(7);
 		props.push_back(CL_GL_CONTEXT_KHR);
 		props.push_back((cl_context_properties)wglGetCurrentContext());
 		props.push_back(CL_WGL_HDC_KHR);
@@ -137,7 +137,7 @@ namespace LSIS {
 #elif defined TARGET_OS_MAC
 		CGLContextObj glContext = CGLGetCurrentContext();
 		CGLShareGroupObj shareGroup = CGLGetShareGroup(glContext);
-		props.resize(3);
+		props.reserve(3);
 		props.push_back(CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE);
 		props.push_back((cl_context_properties)shareGroup);
 #endif
@@ -199,9 +199,9 @@ namespace LSIS {
 
 	void Window::SaveScreen()
 	{
-		size_t width = m_Data.Width;
-		size_t height = m_Data.Height;
-		size_t channels = 3;
+		int width = m_Data.Width;
+		int height = m_Data.Height;
+		int channels = 3;
 
 		uint8_t* pixels = new uint8_t[width * height * channels];
 		glReadPixels(0, 0, m_Data.Width, m_Data.Height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
@@ -239,12 +239,19 @@ namespace LSIS {
 
 		glm::uvec2 window_size = { (int)((float)m_Data.Width * xscale), (int)((float)m_Data.Height * yscale) };
 
+		m_Data.Width = window_size.x;
+		m_Data.Height = window_size.y;
+
 		m_native_window = glfwCreateWindow(window_size.x, window_size.y, m_Data.Title.c_str(), nullptr, nullptr);
 		glfwSetWindowUserPointer(m_native_window, &m_Data);
 
 		glfwMakeContextCurrent(m_native_window);
 
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+		// Enable blending for alpha channel
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		RenderCommand::Init();
 		RenderCommand::SetViewPort(0, 0, window_size.x, window_size.y);

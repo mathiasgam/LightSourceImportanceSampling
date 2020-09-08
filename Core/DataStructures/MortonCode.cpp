@@ -35,6 +35,22 @@ bool MortonCode3::operator>(const MortonCode3& other) const
 	return data > other.data;
 }
 
+uint64_t Float3ToInt64(const glm::vec3& p) {
+	// points must be in the range [0,1]
+	assert(p[0] <= 1 && p[0] >= 0); // x-component out of range [0,1]
+	assert(p[1] <= 1 && p[1] >= 0); // y-component out of range [0,1]
+	assert(p[2] <= 1 && p[2] >= 0); // z-component out of range [0,1]
+
+	// project the normalized values onto the range of 21 bits
+	glm::vec3 tmp = p * static_cast<float>(0x1fffff);
+	uint64_t x = SplitBy3(static_cast<uint64_t>(tmp[0]));
+	uint64_t y = SplitBy3(static_cast<uint64_t>(tmp[1]));
+	uint64_t z = SplitBy3(static_cast<uint64_t>(tmp[2]));
+
+	// interleave the bits from the 3 dimensions
+	return x | y << 1 | z << 2;
+}
+
 /*
 inline unsigned int clz(uint64_t code)
 {
@@ -52,7 +68,7 @@ inline unsigned int clz(uint16_t code)
 }
 */
 
-uint64_t MortonCode3::SplitBy3(uint64_t x)
+uint64_t SplitBy3(uint64_t x)
 {
 	x &= 0x1fffff; // we only look at the first 21 bits
 	x = (x | x << 32) & 0x1f00000000ffff;

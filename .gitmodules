@@ -7,3 +7,6 @@
 [submodule "vendor/glad"]
 	path = Vendor/glad
 	url = https://github.com/mathiasgam/glad.git
+[submodule "vendor/spdlog"]
+	path = vendor/spdlog
+	url = https://github.com/gabime/spdlog.git

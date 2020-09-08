@@ -9,17 +9,22 @@
 namespace LSIS {
 
 	struct VertexData {
-		float position[3];
-		float normal[3];
-		float uv[2];
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec2 uv;
 
 		VertexData()
-			: position{ 0.0f,0.0f,0.0f }, normal{ 0.0f,0.0f,0.0f }, uv{ 0.0f,0.0f }
+			: position( 0.0f,0.0f,0.0f ), normal( 0.0f,0.0f,0.0f ), uv( 0.0f,0.0f )
+		{
+		}
+
+		VertexData(glm::vec3 position, glm::vec3 normal, glm::vec2 uv) 
+			: position(position), normal(normal), uv(uv)
 		{
 		}
 
 		VertexData(float px, float py, float pz, float nx, float ny, float nz, float u, float v)
-			: position{ px,py,pz }, normal{ nx,ny,nz }, uv{ u,v }
+			: position( px,py,pz ), normal( nx,ny,nz ), uv( u,v )
 		{
 		}
 	};
@@ -52,7 +57,7 @@ namespace LSIS {
 		inline unsigned int GetNumIndices() const { return m_num_indices; }
 		inline unsigned int GetNumVertices() const { return m_num_vertices; };
 
-		std::shared_ptr<MeshData> Download() const;
+		std::shared_ptr<MeshData> GetData() const;
 
 	private:
 		unsigned int m_num_indices;
@@ -60,6 +65,8 @@ namespace LSIS {
 		unsigned int m_vbo;
 		unsigned int m_ebo;
 		unsigned int m_vao;
+
+		std::shared_ptr<MeshData> m_data;
 	};
 
 }

@@ -1,8 +1,12 @@
 workspace "LSIS"
 	architecture "x64"
 	cppdialect "c++17"
-	startproject "LSIS"
+	startproject "PathTracer"
 	systemversion "latest"
+
+	defines {
+		"APP_LSIS"
+	}
 
 	configurations {
 		"Debug",
@@ -33,7 +37,7 @@ workspace "LSIS"
   	filter "configurations:Debug"
   		defines {
             "DEBUG",
-            "CH_ENABLE_ASSERTS"
+            "ENABLE_ASSERTS"
 		}
 		buildoptions "/MTd"
 		symbols "on"
@@ -45,13 +49,15 @@ IncludeDir = {}
 IncludeDir["glfw"] = "Vendor/glfw/include"
 IncludeDir["glad"] = "Vendor/glad/include"
 IncludeDir["glm"] = "Vendor/glm/glm"
+IncludeDir["spdlog"] = "Vendor/spdlog/include"
 IncludeDir["stb_image"] = "Vendor/stb_image/"
+IncludeDir["entt"] = "Vendor/entt/"
 
 include "Vendor/glfw"
 include "Vendor/glad"
 
 project "Core"
-	kind "ConsoleApp"
+	kind "StaticLib"
 	location "Core"
 	language "C++"
 	cppdialect "C++17"
@@ -79,10 +85,10 @@ project "Core"
 
 	links
 	{
-		"glfw",
-		"glad",
-		"opengl32",
 		"opencl",
+		"opengl32",
+		"glfw",
+		"glad"
 	}
 
 	includedirs {
@@ -90,11 +96,50 @@ project "Core"
 		"%{IncludeDir.glfw}",
 		"%{IncludeDir.glad}",
 		"%{IncludeDir.glm}",
+		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.entt}",
 		"%{prj.name}",
 	}
 
 	defines {
-		"GLFW_INCLUDE_NONE"
+		"GLFW_INCLUDE_NONE",
 	}
 
+project "PathTracer"
+	kind "ConsoleApp"
+	location "PathTracer"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	targetdir ("bin/" .. outputdir)
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	pchheader "pch.h"
+    pchsource "PathTracer/pch.cpp"
+
+	files {
+		"%{prj.name}/**.h",
+		"%{prj.name}/**.hpp",
+		"%{prj.name}/**.cpp",
+		"%{prj.name}/**.cl"
+	}
+
+	libdirs {
+		"Core"
+	}
+
+	links {
+		"Core"
+	}
+
+	includedirs {
+		"Core",
+		"$(OPENCL_PATH)/include",
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.glad}",
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.spdlog}",
+		"%{prj.name}",
+	}

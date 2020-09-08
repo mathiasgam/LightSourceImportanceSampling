@@ -20,13 +20,13 @@ namespace LSIS {
 	{
 		using EventCallbackFunc = std::function<void(const LSIS::Event&)>;
 
+	public:
+
 		struct WindowData {
 			std::string Title;
 			unsigned int Width, Height;
 			EventCallbackFunc EventCallback;
 		};
-
-	public:
 
 		Window(WindowData data = { "App", 512, 512, nullptr });
 		virtual ~Window();

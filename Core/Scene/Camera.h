@@ -19,13 +19,17 @@ namespace LSIS {
 
 		void LookAt(glm::vec3 position);
 
+		glm::vec3 GetPosition() const;
+		glm::vec3 GetRotation() const;
+		glm::mat4 GetModelMatrix() const;
+		glm::mat4 GetProjectionMatrix() const;
 		glm::mat4 GetViewProjectionMatrix() const;
 
 	private:
 		Transform m_transform;
 
 		glm::uvec2 m_resolution;
-		float m_FOV = 90;
+		float m_FOV = 60;
 	};
 
 }

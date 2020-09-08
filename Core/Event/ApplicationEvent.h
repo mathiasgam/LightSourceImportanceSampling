@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Event.h"
+#include "Scene/Camera.h"
 
 #include <vector>
 
@@ -83,4 +84,14 @@ namespace LSIS {
 		int m_offsetY;
 	};
 
+	class CameraUpdatedEvent : public Event {
+	public:
+		CameraUpdatedEvent(Ref<Camera> cam)
+			: m_cam(cam) {}
+
+		EVENT_CLASS_TYPE(CameraUpdated)
+		EVENT_CLASS_CATEGORY(EventCategoryApplication)
+	private:
+		Ref<Camera> m_cam;
+	};
 }

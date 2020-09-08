@@ -78,22 +78,8 @@ namespace LSIS {
 			in.close();
 		}
 		else {
-			std::cout << "Failed to read file!\n";
+			std::cout << "Failed to read file: " << filepath << std::endl;
 		}
-	}
-
-	static void CompileShader(const char* source, unsigned int shader_id) {
-		int  success;
-		char infoLog[512];
-		glShaderSource(shader_id, 1, &source, nullptr);
-		glCompileShader(shader_id);
-		glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			glGetShaderInfoLog(shader_id, 512, nullptr, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-
 	}
 
 	std::shared_ptr<Shader> Shader::Create(const char* vertex_path, const char* fragment_path)
@@ -129,6 +115,20 @@ namespace LSIS {
 			glGetProgramInfoLog(program_id, 512, NULL, infoLog);
 		}
 		return std::make_shared<Shader>(program_id);
+	}
+
+	void Shader::CompileShader(const char* source, unsigned int shader_id)
+	{
+		int  success;
+		char infoLog[512];
+		glShaderSource(shader_id, 1, &source, nullptr);
+		glCompileShader(shader_id);
+		glGetShaderiv(shader_id, GL_COMPILE_STATUS, &success);
+		if (!success)
+		{
+			glGetShaderInfoLog(shader_id, 512, nullptr, infoLog);
+			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+		}
 	}
 
 

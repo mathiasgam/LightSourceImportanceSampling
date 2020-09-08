@@ -15,6 +15,9 @@ namespace LSIS::Input {
 	float cam_speed = 0.01f;
 	float cam_speed_rot = 0.01f;
 
+	bool is_updated = false;
+	bool has_updated = false;
+
 	bool OnKeyPressedEvent(const KeyPressedEvent& e){
 		int key = e.GetKey();
 		switch (key)
@@ -89,6 +92,7 @@ namespace LSIS::Input {
 			const float diffY = y - lastY;
 			cam_rot.y -= diffX * 0.01f;
 			cam_rot.x = glm::clamp(cam_rot.x - diffY * 0.01f, -3.14f, 3.14f);
+			is_updated = true;
 		}
 
 		lastX = x;
@@ -112,14 +116,21 @@ namespace LSIS::Input {
 		return cam_rot;
 	}
 
+	bool HasCameraMoved()
+	{
+		return has_updated;
+	}
+
 	void SetCameraPosition(glm::vec4 position)
 	{
 		cam_pos = position;
+		is_updated = true;
 	}
 
 	void SetCameraRotation(glm::vec3 rotation)
 	{
 		cam_rot = rotation;
+		is_updated = true;
 	}
 
 	bool OnEvent(const Event& e)
@@ -139,7 +150,13 @@ namespace LSIS::Input {
 
 	void Update(float delta)
 	{
-		cam_pos += GetCameraVelocity();
+		auto vel = GetCameraVelocity();
+		if (vel.x != 0.0f || vel.y != 0.0f || vel.z != 0.0f) {
+			is_updated = true;
+		}
+		cam_pos += vel;
+		has_updated = is_updated;
+		is_updated = false;
 	}
 
 }
