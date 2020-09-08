@@ -41,7 +41,7 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		PROFILE_SCOPE("PathTracer");
+		//PROFILE_SCOPE("PathTracer");
 		Prepare();
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
