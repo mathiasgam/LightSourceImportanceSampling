@@ -57,12 +57,7 @@ namespace LSIS {
 		CHECK(m_kernel.setArg(10, info.GetBuffer()));
 
 		// submit kernel
-		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(num_rays));
-
-		// check for errors
-		if (err != CL_SUCCESS) {
-			std::cout << "Error: [BVH]" << GET_CL_ERROR_CODE(err) << std::endl;
-		}
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(num_rays)));
 	}
 
 }

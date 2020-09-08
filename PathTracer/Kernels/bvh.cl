@@ -3,15 +3,8 @@
 
 #define MAX_DEPTH 24
 
-inline float min_component(float3 f)
-{
-    return min(min(f.x, f.y), f.z);
-}
-
-inline float max_component(float3 f){
-    return max(max(f.x, f.y), f.z);
-}
-
+#define min_component(f) min(f.x, min(f.y,f.z))
+#define max_component(f) max(f.x, max(f.y,f.z))
 
 inline float3 safe_invdir(float3 dir)
 {
@@ -93,13 +86,6 @@ inline float2 calculate_triangle_barycentrics(float3 p, float3 v0, float3 v1, fl
     return (float2)(b1, b2);
 }
 
-inline float2 interpolate_float2(float2 f0, float2 f1, float2 f2, float2 uv){
-    return mix(mix(f0, f1, uv.x), f2, uv.y);
-}
-
-inline float3 interpolate_float3(float3 f0, float3 f1, float3 f2, float2 uv){
-    return mix(mix(f0, f1, uv.x), f2, uv.y);
-}
 __kernel void intersect_bvh(
     IN_BUF(Node, nodes),
     IN_BUF(AABB, bboxes),
@@ -126,7 +112,6 @@ __kernel void intersect_bvh(
 
         int hits = 0;
         int prim_id = -1;
-        float3 normal;
 
         const float3 invdir = safe_invdir(ray.direction.xyz);
         const float3 origin = ray.origin.xyz;
@@ -146,6 +131,8 @@ __kernel void intersect_bvh(
             int right = node.right;
             float3 pmin = bbox.min.xyz;
             float3 pmax = bbox.max.xyz;
+
+            
 
             // Make sure all threads are ready
             barrier(CLK_LOCAL_MEM_FENCE);
@@ -195,8 +182,8 @@ __kernel void intersect_bvh(
 
             float3 hit_pos = ray.origin.xyz + ray.direction.xyz * t_max;
             float2 uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
-            const float3 normal_shading = interpolate_float3(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
-            const float2 tex_coord = interpolate_float2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
+            const float3 normal_shading = interpolate(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
+            const float2 tex_coord = interpolate(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
             hit.material_index = face.index.w;
             info.position = (float4)(hit_pos, 0.0f);
@@ -205,7 +192,7 @@ __kernel void intersect_bvh(
         }else{
             hit.material_index = -1;
         }
-        
+
         info.incoming = (float4)(ray.direction.xyz, 0.0f);
         
         // save intersection info
