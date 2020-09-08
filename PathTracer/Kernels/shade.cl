@@ -12,10 +12,10 @@ inline float3 ColorFromPosition(float3 position){
 
 inline float3 GetBackground(float3 dir){
     const float3 UP = (float3)(0,1,0);
-    float d = 1.0f - max(dot(dir, UP), 0.0f);
+    const float d = 1.0f - max(dot(dir, UP), 0.0f);
 
-    float3 sky = (float3)(0.8f, 1.0f, 1.0f);
-    float3 ground = (float3)(0.55f, 0.40f, 0.17f);
+    const float3 sky = (float3)(0.8f, 1.0f, 1.0f);
+    const float3 ground = (float3)(0.55f, 0.40f, 0.17f);
 
     if (d == 1.0f){
         return (float3)(0.2f,0.2f,0.2f);
@@ -36,6 +36,7 @@ __kernel void ProcessBounce(
     OUT_BUF(float3, results),
     OUT_BUF(float3, throughputs),
     OUT_BUF(int, states),
+    OUT_BUF(float3, light_contribution),
     OUT_BUF(Ray, bounce_rays),
     OUT_BUF(Ray, shadow_rays),
     OUT_BUF(Pixel, pixels)
@@ -83,11 +84,11 @@ __kernel void ProcessBounce(
 
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
-                Ray occlusion_ray = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
+                shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
 
-                float3 out_dir = sample_hemisphere(&rng, geometric.normal.xyz);
+                float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
                 bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
-                throughput *= material.diffuse.xyz * max(dot(out_dir, geometric.normal.xyz),0.0f);
+                throughput *= material.diffuse.xyz;
             }
         }
 

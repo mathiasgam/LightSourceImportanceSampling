@@ -8,6 +8,10 @@
 #define IN_VAL(type, name) const type name
 #define IN_BUF(type, name) __global const type* const restrict name
 #define OUT_BUF(type, name) __global type* restrict name
+#define CONST_BUF(type, name) __constant type* restrict name 
+
+#define PI 3.14159265359f
+#define TWO_PI (3.14159265359f * 2.0f)
 
 #define STATE_INACTIVE 0
 #define STATE_ACTIVE 1
@@ -24,24 +28,16 @@ float4 mul(const mat4 mat, const float4 f) {
 	return (float4)(dot(mat.x, f), dot(mat.y, f), dot(mat.z, f), dot(mat.w, f));
 }
 
-Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
+inline Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
 	Ray ray = {};
 	ray.origin = (float4)(origin.xyz, tmin);
 	ray.direction = (float4)(normalize(dir.xyz), tmax);
 	return ray;
 }
 
-inline float2 GetVertexUV(Vertex v){
-	return (float2)(v.position.w, v.normal.w);
-}
-
-inline float3 GetVertexNormal(Vertex v){
-	return (float3)(v.normal.xyz);
-}
-
-inline float3 GetVertexPosition(Vertex v){
-	return (float3)(v.position.xyz);
-}
+#define GetVertexUV(vertex) (float2)(vertex.position.w, vertex.normal.w)
+#define GetVertexNormal(vertex) vertex.normal.xyz
+#define GetVertexPosition(vertex) vertex.position.xyz
 
 inline uint hash1(uint t) {
 	t ^= t << 13;
@@ -75,25 +71,14 @@ inline uint random_uint(uint* state, uint range){
 	return t % range;
 }
 
-inline float2 random_float2(uint* state) {
-	return (float2)(rand(state), rand(state));
-}
+#define random_float2(state) (float2)(rand(state), rand(state))
+#define random_float3(state) (float3)(rand(state), rand(state), rand(state))
+#define random_float4(state) (float4)(rand(state), rand(state), rand(state), rand(state))
 
-inline float3 random_float3(uint* state) {
-	return (float3)(rand(state), rand(state), rand(state));
-}
+#define min3(x,y,z) min(x, min(y,z))
+#define max3(x,y,z) max(x, max(y,z))
 
-inline float4 random_float4(uint* state) {
-	return (float4)(rand(state), rand(state), rand(state), rand(state));
-}
-
-inline float min3(float x, float y, float z) {
-	return min(x, min(y, z));
-}
-
-inline float max3(float x, float y, float z) {
-	return max(x, max(y, z));
-}
+#define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
 
 inline float3 sample_hemisphere(uint* state, float3 normal) {
 	float3 vec;
@@ -115,6 +100,19 @@ inline float2 sample_disk_uniform(uint* state){
 			return p;
 		}
 	}
+}
+
+float3 sample_hemisphere_cosine(uint* state, float3 normal)
+{
+    float phi = TWO_PI * rand(state);
+    float sinThetaSqr = rand(state);
+    float sinTheta = sqrt(sinThetaSqr);
+
+    float3 axis = fabs(normal.x) > 0.001f ? (float3)(0.0f, 1.0f, 0.0f) : (float3)(1.0f, 0.0f, 0.0f);
+    float3 t = normalize(cross(axis, normal));
+    float3 s = cross(normal, t);
+
+    return normalize(s*cos(phi)*sinTheta + t*sin(phi)*sinTheta + normal*sqrt(1.0f - sinThetaSqr));
 }
 
 

@@ -41,24 +41,29 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		//PROFILE_SCOPE("PathTracer");
+		PROFILE_SCOPE("PathTracer");
 		Prepare();
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce
 			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer);
 			//ProcessIntersections();
+
+			// Process bounce and prepare shadow rays
 			Shade();
 
-			// Handle shadow rays
-			//m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer);
-			//ProcessOcclusion();
+			// if the shadow ray is not occluded, the lights contribution is added to the result
+			m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			ProcessOcclusion();
 		}
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
 
+		Compute::GetCommandQueue().finish();
+
 		m_num_samples++;
+		printf("Num Samples %d\n", m_num_samples);
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -138,6 +143,8 @@ namespace LSIS {
 		//m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_geometric_buffer = TypedBuffer<SHARED::GeometricInfo>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
+
+		m_light_contribution_buffer = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
@@ -230,9 +237,10 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(8, m_result_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(9, m_throughput_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(10, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(11, m_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(12, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(13, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_pixel_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
 	}

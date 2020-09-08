@@ -78,6 +78,7 @@ namespace LSIS {
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
 
 		TypedBuffer<SHARED::GeometricInfo> m_geometric_buffer;
+		TypedBuffer<cl_float3> m_light_contribution_buffer;
 
 		//TypedBuffer<SHARED::Sample> m_sample_buffer;
 
