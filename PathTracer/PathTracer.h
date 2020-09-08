@@ -8,17 +8,12 @@
 
 #include "Compute/SharedCLGL/SharedTexture2D.h"
 
-#include "CameraRays.h"
 #include "PixelViewer.h"
 #include "BVH.h"
 
 namespace LSIS {
 
 	class PathTracer : public Layer {
-
-		//using PixelBuffer = TypedBuffer<SHARED::Pixel>;
-		//using RayBuffer = TypedBuffer<SHARED::Ray>;
-		//using IntersectionBuffer = TypedBuffer<SHARED::Intersection>;
 
 	public:
 		PathTracer(uint32_t width, uint32_t height);
