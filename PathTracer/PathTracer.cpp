@@ -41,27 +41,19 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		// PROFILE_SCOPE("PathTracer");
+		PROFILE_SCOPE("PathTracer");
 		Prepare();
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
-			ProcessIntersections();
+			// Handle bounce
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			//ProcessIntersections();
 			Shade();
 
+			// Handle shadow rays
 			//m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer);
 			//ProcessOcclusion();
-
-			//m_bvh.Trace(m_ray_buffer, m_intersection_buffer);
-			//ProcessIntersections();
-			//Shade();
 		}
-
-		/*
-		buffer_switch = false;
-		m_bvh.Trace(m_ray_bufferB, m_intersection_bufferB);
-		ProcessIntersections();
-		*/
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
@@ -143,7 +135,8 @@ namespace LSIS {
 		m_result_buffer = TypedBuffer<cl_float3>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
 		m_throughput_buffer = TypedBuffer<cl_float3>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
 		m_depth_buffer = TypedBuffer<cl_float>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
-		m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		//m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_geometric_buffer = TypedBuffer<SHARED::GeometricInfo>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
@@ -217,31 +210,31 @@ namespace LSIS {
 		CHECK(m_kernel_process.setArg(6, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_process.setArg(7, m_intersection_buffer.GetBuffer()));
 		CHECK(m_kernel_process.setArg(8, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_process.setArg(9, m_sample_buffer.GetBuffer()));
+		//CHECK(m_kernel_process.setArg(9, m_sample_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
 	}
 
 	void PathTracer::Shade()
 	{
-		cl_uint num_samples = static_cast<cl_uint>(m_sample_buffer.Count());
 		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
 
-		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &num_samples));
+		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
 		CHECK(m_kernel_shade.setArg(2, sizeof(cl_uint), &m_num_pixels));
 		CHECK(m_kernel_shade.setArg(3, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_shade.setArg(4, m_sample_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(5, m_lights.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(6, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(7, m_result_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(8, m_throughput_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(9, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(10, m_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(11, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(12, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(4, m_intersection_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(5, m_geometric_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(6, m_lights.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(7, m_material_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(8, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(9, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(10, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(13, m_pixel_buffer.GetBuffer()));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(num_samples)));
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
 
 	void PathTracer::ProcessOcclusion()

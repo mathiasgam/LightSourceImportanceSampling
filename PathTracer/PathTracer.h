@@ -82,7 +82,9 @@ namespace LSIS {
 		TypedBuffer<cl_float> m_depth_buffer;
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
 
-		TypedBuffer<SHARED::Sample> m_sample_buffer;
+		TypedBuffer<SHARED::GeometricInfo> m_geometric_buffer;
+
+		//TypedBuffer<SHARED::Sample> m_sample_buffer;
 
 		// Ray Buffers
 		TypedBuffer<SHARED::Ray> m_ray_buffer;

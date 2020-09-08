@@ -7,7 +7,6 @@ __kernel void generate_rays(
     IN_VAL(uint, seed),
     IN_VAL(mat4, camera_matrix),
     OUT_BUF(Ray, rays),
-    OUT_BUF(Sample, samples),
     OUT_BUF(float3, results),
     OUT_BUF(float3, throughputs),
     OUT_BUF(int, states))

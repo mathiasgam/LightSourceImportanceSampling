@@ -93,6 +93,13 @@ inline float2 calculate_triangle_barycentrics(float3 p, float3 v0, float3 v1, fl
     return (float2)(b1, b2);
 }
 
+inline float2 interpolate_float2(float2 f0, float2 f1, float2 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
+}
+
+inline float3 interpolate_float3(float3 f0, float3 f1, float3 f2, float2 uv){
+    return mix(mix(f0, f1, uv.x), f2, uv.y);
+}
 __kernel void intersect_bvh(
     IN_BUF(Node, nodes),
     IN_BUF(AABB, bboxes),
@@ -103,7 +110,8 @@ __kernel void intersect_bvh(
     IN_VAL(int, num_faces),
     IN_VAL(int, num_vertices),
     IN_VAL(int, num_rays),
-    OUT_BUF(Intersection, intersections)
+    OUT_BUF(Intersection, intersections),
+    OUT_BUF(GeometricInfo, geometric_info)
 ){
     const int id = get_global_id(0);
 
@@ -112,7 +120,6 @@ __kernel void intersect_bvh(
 
     if (id < num_rays) {
         Ray ray = rays[id];
-        Intersection intersection = intersections[id];
 
         float t_max = ray.direction.w;
         float t_min = ray.origin.w;
@@ -178,7 +185,8 @@ __kernel void intersect_bvh(
             depth = max(count, depth);
         }
 
-        float2 uv = (float2)(0.5,0.5);
+        Intersection hit = {};
+        GeometricInfo info = {};
         if (hits) {
             Face face = faces[prim_id];
             Vertex v0 = vertices[face.index.x];
@@ -186,14 +194,25 @@ __kernel void intersect_bvh(
             Vertex v2 = vertices[face.index.z];
 
             float3 hit_pos = ray.origin.xyz + ray.direction.xyz * t_max;
-            uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
+            float2 uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
+            const float3 normal_shading = interpolate_float3(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
+            const float2 tex_coord = interpolate_float2(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
+
+            hit.material_index = face.index.w;
+            info.position = (float4)(hit_pos, 0.0f);
+            info.normal = (float4)(normal_shading, 0.0f);
+            info.uvwt = (float4)(uv.xy, 0.0f, t_max);
+        }else{
+            hit.material_index = -1;
         }
         
+        info.incoming = (float4)(ray.direction.xyz, 0.0f);
+        
         // save intersection info
-        intersection.hit = hits;
-        intersection.primid = prim_id;
-        intersection.uvwt = (float4)(uv.x, uv.y, t_max, 0.0f);
-        intersections[id] = intersection;
+        hit.hit = hits;
+        hit.prim_index = prim_id;
+        intersections[id] = hit;
+        geometric_info[id] = info;
     }
 
 }

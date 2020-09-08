@@ -18,7 +18,7 @@ namespace LSIS {
 
 		virtual void Compile() override;
 
-		void Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections);
+		void Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info);
 
 
 	private:

@@ -39,7 +39,7 @@ namespace LSIS {
 		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
 	}
 
-	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections)
+	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info)
 	{
 		// Get ray count;
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
@@ -51,9 +51,10 @@ namespace LSIS {
 		}
 
 		// Bind dynamic kernel arguments
-		m_kernel.setArg(4, rays.GetBuffer());
-		m_kernel.setArg(8, sizeof(uint32_t), &num_rays);
-		m_kernel.setArg(9, intersections.GetBuffer());
+		CHECK(m_kernel.setArg(4, rays.GetBuffer()));
+		CHECK(m_kernel.setArg(8, sizeof(uint32_t), &num_rays));
+		CHECK(m_kernel.setArg(9, intersections.GetBuffer()));
+		CHECK(m_kernel.setArg(10, info.GetBuffer()));
 
 		// submit kernel
 		cl_int err = Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(num_rays));

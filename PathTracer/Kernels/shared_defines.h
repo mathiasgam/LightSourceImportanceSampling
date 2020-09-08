@@ -29,13 +29,10 @@ namespace SHARED {
     typedef struct Intersection
     {
         int hit;
-        int primid;
+        int prim_index;
         // Padding elements
-        int padding1;
+        int material_index;
         int padding0;
-
-        // uv - hit barycentrics, w - ray distance
-        float4 uvwt;
     } Intersection;
 
     // Defines types for the buffers
@@ -65,15 +62,12 @@ namespace SHARED {
         float4 max;
     } AABB;
 
-    typedef struct Sample {
+    typedef struct GeometricInfo {
         float4 position;
         float4 normal;
         float4 incoming;
-        int material_index;
-        int prim_id;
-        int padding0;
-        int padding1;
-    } Sample;
+        float4 uvwt;
+    } GeometricInfo;
 
     typedef struct Pixel {
         float4 color;

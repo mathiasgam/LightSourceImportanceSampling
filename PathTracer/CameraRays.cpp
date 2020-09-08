@@ -27,7 +27,7 @@ namespace LSIS {
 		m_multi_sample = samples;
 	}
 
-	void CameraRays::GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::Sample>& sample_buffer)
+	void CameraRays::GenerateRays(const TypedBuffer<SHARED::Ray>& ray_buffer, const TypedBuffer<SHARED::GeometricInfo>& sample_buffer)
 	{
 		m_seed++;
 		// Test that the buffers are the correct size
