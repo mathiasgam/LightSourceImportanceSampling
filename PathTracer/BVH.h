@@ -19,11 +19,12 @@ namespace LSIS {
 		virtual void Compile() override;
 
 		void Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info);
-
+		void TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits);
 
 	private:
 		cl::Program m_program;
-		cl::Kernel m_kernel;
+		cl::Kernel m_closest;
+		cl::Kernel m_occlusion;
 
 		cl_uint m_num_nodes = 0;
 	};
