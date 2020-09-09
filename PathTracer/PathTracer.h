@@ -40,6 +40,7 @@ namespace LSIS {
 		void ProcessIntersections();
 		void Shade();
 		void ProcessOcclusion();
+		void ProcessResults();
 
 		void ResetSamples();
 
@@ -64,9 +65,13 @@ namespace LSIS {
 		cl::Program m_program_process;
 		cl::Kernel m_kernel_process;
 		cl::Kernel m_kernel_lightsample;
+		cl::Kernel m_kernel_process_results;
 
 		cl::Program m_program_shade;
 		cl::Kernel m_kernel_shade;
+		cl::Kernel m_kernel_shade_occlusion;
+
+
 
 		bool buffer_switch = true;
 

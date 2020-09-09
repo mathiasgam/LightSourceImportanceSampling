@@ -84,3 +84,20 @@ __kernel void process_light_sample(
     }
 
 }
+
+__kernel void process_results(
+    IN_BUF(float3, results),
+    IN_VAL(uint, N),
+    IN_VAL(uint, sample_count),
+    OUT_BUF(Pixel, pixels)
+){
+    const int id = get_global_id(0);
+
+    if (id < N){
+        float3 result = results[id];
+        float3 current = pixels[id].color.xyz;
+
+        float f = inverse(sample_count + 1);
+        pixels[id].color = (float4)(mix(current, result, f), 1.0f);
+    }
+}

@@ -79,12 +79,13 @@ __kernel void ProcessBounce(
 
                 // calculate the lights contribution
                 float3 L = light.intensity.xyz * max(d, 0.0f) * (dist_inv * dist_inv);
-                result += L * material.diffuse.xyz * throughput;
+                //result += L * material.diffuse.xyz * throughput;
                 //sample.result.xyz += L * throughput * material.diffuse.xyz;
 
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
                 shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
+                light_contribution[id] = L * material.diffuse.xyz * throughput;
 
                 float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
                 bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
@@ -93,14 +94,27 @@ __kernel void ProcessBounce(
         }
 
         results[id] = result;
-        float4 color = (float4)(result.xyz, 1.0f);
+    }
+}
 
-        float f = inverse(multi_sample_count + 1);
-        Pixel p = pixels[id];
-        float4 current = p.color;
-        p.color = mix(current, color, f);
-        //p.color = (float4)(sample.result.xyz, 1.0f);
-        pixels[id] = p;
+__kernel void shade_occlusion(
+    IN_BUF(int, hits),
+    IN_BUF(int, states),
+    IN_BUF(float3, contributions),
+    IN_VAL(uint, num_samples),
+    OUT_BUF(float3, results)
+){
+    const int id = get_global_id(0);
 
+    if (id < num_samples){
+
+        const int hit = hits[id];
+        const int state = states[id];
+        const float3 result = results[id];
+        const float3 contribution = contributions[id];
+
+        if (hit == -1 && state == STATE_ACTIVE){
+            results[id] = result + contribution;
+        }
     }
 }

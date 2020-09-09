@@ -57,6 +57,9 @@ namespace LSIS {
 			ProcessOcclusion();
 		}
 
+		// copy results into pixelbuffer
+		ProcessResults();
+
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
 
@@ -126,9 +129,11 @@ namespace LSIS {
 		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
+		m_kernel_process_results = Compute::CreateKernel(m_program_process, "process_results");
 
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
+		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");
 	}
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
@@ -248,6 +253,23 @@ namespace LSIS {
 
 	void PathTracer::ProcessOcclusion()
 	{
+		CHECK(m_kernel_shade_occlusion.setArg(0, m_occlusion_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(1, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(2, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(3, sizeof(cl_uint), &m_num_concurrent_samples));
+		CHECK(m_kernel_shade_occlusion.setArg(4, m_result_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade_occlusion, 0, cl::NDRange(m_num_concurrent_samples)));
+	}
+
+	void PathTracer::ProcessResults()
+	{
+		CHECK(m_kernel_process_results.setArg(0, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_process_results.setArg(1, sizeof(cl_uint), &m_num_concurrent_samples));
+		CHECK(m_kernel_process_results.setArg(2, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_process_results.setArg(3, m_pixel_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process_results, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
 
 	void PathTracer::ResetSamples()
