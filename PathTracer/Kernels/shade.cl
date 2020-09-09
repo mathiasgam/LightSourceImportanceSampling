@@ -67,8 +67,8 @@ __kernel void ProcessBounce(
                 Light light = lights[i];
                 //Material material = materials[sample.material_index];
                 Material material = {};
-                material.diffuse = (float4)(.8f,.8f,.8f,1.0f);
-                material.specular = (float4)(.8f,.8f,.8f,1.0f);
+                material.diffuse = (float4)(.7f,.7f,.7f,1.0f);
+                material.specular = (float4)(.7f,.7f,.7f,1.0f);
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);
@@ -85,7 +85,7 @@ __kernel void ProcessBounce(
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
                 shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
-                light_contribution[id] = L * material.diffuse.xyz * throughput;
+                light_contribution[id] = (L * material.diffuse.xyz * throughput) / pdf;
 
                 float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
                 bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
