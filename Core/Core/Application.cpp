@@ -15,6 +15,8 @@
 
 #include "Scene/Camera.h"
 #include "Scene/Material.h"
+#include "Scene/Components.h"
+#include "Scene/Entity.h"
 
 #include "Mesh/MeshLoader.h"
 
@@ -63,8 +65,9 @@ namespace LSIS {
 			auto entity = m_scene->CreateEntity();
 			auto mesh = std::make_shared<Mesh>(MeshLoader::CreateRect({ 10.0,10.0 }));
 			auto transform = Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 });
-			m_scene->AddTransform(entity, transform);
-			m_scene->AddMesh(entity, mesh, m5);
+			const glm::mat4 mat = transform.GetModelMatrix();
+			entity.AddComponent<TransformComponent>(mat);
+			entity.AddComponent<MeshComponent>(mesh, m5);
 		}
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(10, 10, 10)));
 		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(0, 0, 10)));
