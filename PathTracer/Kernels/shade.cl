@@ -63,12 +63,14 @@ __kernel void ProcessBounce(
                 result += GetBackground(geometric.incoming.xyz) * throughput;
                 states[id] = STATE_INACTIVE;
             }else{
-                throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
+                //throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
                 Light light = lights[i];
                 //Material material = materials[sample.material_index];
                 Material material = {};
                 material.diffuse = (float4)(.7f,.7f,.7f,1.0f);
                 material.specular = (float4)(.7f,.7f,.7f,1.0f);
+
+                throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f) * material.diffuse.xyz * M_1_PI_F;
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);
@@ -85,11 +87,10 @@ __kernel void ProcessBounce(
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
                 shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
-                light_contribution[id] = (L * material.diffuse.xyz * throughput) / pdf;
+                light_contribution[id] = (L * throughput) / pdf;
 
                 float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
                 bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
-                throughput *= material.diffuse.xyz;
             }
         }
 
