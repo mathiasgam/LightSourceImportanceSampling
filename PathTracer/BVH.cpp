@@ -35,7 +35,7 @@ namespace LSIS {
 	{
 		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", { "Kernels/" });
 		m_closest = Compute::CreateKernel(m_program, "intersect_bvh");
-		m_occlusion = Compute::CreateKernel(m_program, "occlusion");
+		m_occlusion = Compute::CreateKernel(m_program, "occluded");
 	}
 
 	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info)
