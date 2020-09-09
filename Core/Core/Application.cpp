@@ -66,10 +66,10 @@ namespace LSIS {
 			m_scene->AddTransform(entity, transform);
 			m_scene->AddMesh(entity, mesh, m5);
 		}
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(0, 50, 0)));
-		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 0, 50)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -2), glm::vec3(50, 0, 0)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(10, 10, 10)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(0, 0, 10)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 10, 0)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(10, 0, 0)));
 	}
 
 	void Application::CreateWindow() {
