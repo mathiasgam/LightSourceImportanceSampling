@@ -86,6 +86,7 @@ namespace LSIS {
 		TypedBuffer<SHARED::Ray> m_ray_buffer;
 		TypedBuffer<SHARED::Ray> m_occlusion_ray_buffer;
 		TypedBuffer<SHARED::Intersection> m_intersection_buffer;
+		TypedBuffer<cl_int> m_occlusion_buffer;
 
 		// Geometry Buffers
 		TypedBuffer<SHARED::Vertex> m_vertex_buffer;

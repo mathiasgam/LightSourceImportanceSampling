@@ -53,7 +53,7 @@ namespace LSIS {
 			Shade();
 
 			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer);
 			ProcessOcclusion();
 		}
 
@@ -63,7 +63,7 @@ namespace LSIS {
 		Compute::GetCommandQueue().finish();
 
 		m_num_samples++;
-		printf("Num Samples %d\n", m_num_samples);
+		printf("Num Samples %d, ", m_num_samples);
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -147,8 +147,9 @@ namespace LSIS {
 		m_light_contribution_buffer = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
-		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_occlusion_buffer = TypedBuffer<cl_int>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 	}
 
 	void PathTracer::BuildStructure()
