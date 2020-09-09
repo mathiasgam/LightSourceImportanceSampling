@@ -6,7 +6,7 @@ inline float3 ColorFromNormal(float3 normal){
 }
 
 inline float3 ColorFromPosition(float3 position){
-    float3 remain = remainder(position, 10.0f) / 10.0f;
+    float3 remain = remainder(position, 10.0f) * 0.1f;
     return (float3)(remain.xyz);
 }
 
@@ -50,7 +50,7 @@ __kernel void ProcessBounce(
 
         // choose light
         uint i = random_uint(&rng, num_lights);
-        float pdf = 1.0f / num_lights;
+        float pdf = inverse(num_lights);
 
         float3 result = results[id];
         float3 throughput = throughputs[id];
@@ -72,14 +72,14 @@ __kernel void ProcessBounce(
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);
-                const float dist_inv = 1.0f / dist;
+                const float dist_inv = inverse(dist);
                 const float3 dir = diff * dist_inv;
 
                 float d = dot(geometric.normal.xyz, dir);
 
                 // calculate the lights contribution
                 float3 L = light.intensity.xyz * max(d, 0.0f) * (dist_inv * dist_inv);
-                //result += L * material.diffuse.xyz * throughput;
+                result += L * material.diffuse.xyz * throughput;
                 //sample.result.xyz += L * throughput * material.diffuse.xyz;
 
                 float3 lift = geometric.normal.xyz * 0.0001f;
@@ -95,7 +95,7 @@ __kernel void ProcessBounce(
         results[id] = result;
         float4 color = (float4)(result.xyz, 1.0f);
 
-        float f = 1.0f / (multi_sample_count + 1);
+        float f = inverse(multi_sample_count + 1);
         Pixel p = pixels[id];
         float4 current = p.color;
         p.color = mix(current, color, f);

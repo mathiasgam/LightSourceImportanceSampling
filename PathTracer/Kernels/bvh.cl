@@ -61,8 +61,8 @@ inline float intersect_triangle(
     float3 const e2 = v3 - v1;
     float3 const s1 = cross(ray.direction.xyz, e2);
     float const t_max = ray.direction.w;
-
-    float const invd = 1.f / dot(s1, e1);
+    
+    float const invd = inverse(dot(s1, e1));
 
     float3 const d = ray.origin.xyz - v1;
     float const b1 = dot(d, s1) * invd;
@@ -91,7 +91,7 @@ inline float2 calculate_triangle_barycentrics(float3 p, float3 v0, float3 v1, fl
         return (float2)(0.0f,0.0f);
     }
 
-    float const invdenom = 1.f / denom;
+    float const invdenom = inverse(denom);
 
     float const b1 = (d11 * d20 - d01 * d21) * invdenom;
     float const b2 = (d00 * d21 - d01 * d20) * invdenom;
@@ -110,9 +110,6 @@ __kernel void intersect_bvh(
     IN_BUF(Face, faces),
     IN_BUF(Vertex, vertices),
     IN_BUF(Ray, rays),
-    IN_VAL(int, num_nodes),
-    IN_VAL(int, num_faces),
-    IN_VAL(int, num_vertices),
     IN_VAL(int, num_rays),
     OUT_BUF(Intersection, intersections),
     OUT_BUF(GeometricInfo, geometric_info)
@@ -208,13 +205,13 @@ __kernel void intersect_bvh(
         Intersection hit = {};
         GeometricInfo info = {};
         if (hits) {
-            Face face = faces[prim_id];
-            Vertex v0 = vertices[face.index.x];
-            Vertex v1 = vertices[face.index.y];
-            Vertex v2 = vertices[face.index.z];
+            const Face face = faces[prim_id];
+            const Vertex v0 = vertices[face.index.x];
+            const Vertex v1 = vertices[face.index.y];
+            const Vertex v2 = vertices[face.index.z];
 
-            float3 hit_pos = ray.origin.xyz + ray.direction.xyz * t_max;
-            float2 uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
+            const float3 hit_pos = ray.origin.xyz + ray.direction.xyz * t_max;
+            const float2 uv = calculate_triangle_barycentrics(hit_pos, v0.position.xyz, v1.position.xyz, v2.position.xyz);
             const float3 normal_shading = interpolate(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
             const float2 tex_coord = interpolate(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
