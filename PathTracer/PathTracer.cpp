@@ -53,9 +53,12 @@ namespace LSIS {
 			Shade();
 
 			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.Trace(m_occlusion_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer);
 			ProcessOcclusion();
 		}
+
+		// copy results into pixelbuffer
+		ProcessResults();
 
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
@@ -63,7 +66,7 @@ namespace LSIS {
 		Compute::GetCommandQueue().finish();
 
 		m_num_samples++;
-		printf("Num Samples %d\n", m_num_samples);
+		printf("Num Samples %d, ", m_num_samples);
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -126,9 +129,11 @@ namespace LSIS {
 		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
+		m_kernel_process_results = Compute::CreateKernel(m_program_process, "process_results");
 
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
+		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");
 	}
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
@@ -147,8 +152,9 @@ namespace LSIS {
 		m_light_contribution_buffer = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
-		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_intersection_buffer = TypedBuffer<SHARED::Intersection>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_occlusion_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_occlusion_buffer = TypedBuffer<cl_int>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 	}
 
 	void PathTracer::BuildStructure()
@@ -247,6 +253,23 @@ namespace LSIS {
 
 	void PathTracer::ProcessOcclusion()
 	{
+		CHECK(m_kernel_shade_occlusion.setArg(0, m_occlusion_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(1, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(2, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade_occlusion.setArg(3, sizeof(cl_uint), &m_num_concurrent_samples));
+		CHECK(m_kernel_shade_occlusion.setArg(4, m_result_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade_occlusion, 0, cl::NDRange(m_num_concurrent_samples)));
+	}
+
+	void PathTracer::ProcessResults()
+	{
+		CHECK(m_kernel_process_results.setArg(0, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_process_results.setArg(1, sizeof(cl_uint), &m_num_concurrent_samples));
+		CHECK(m_kernel_process_results.setArg(2, sizeof(cl_uint), &m_num_samples));
+		CHECK(m_kernel_process_results.setArg(3, m_pixel_buffer.GetBuffer()));
+
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process_results, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
 
 	void PathTracer::ResetSamples()

@@ -189,7 +189,7 @@ namespace LSIS {
 		cl_int err;
 		cl::Kernel kernel(program, function_name.c_str(), &err);
 		if (err != 0) {
-			std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << "\n";
+			std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", function: " << function_name << "\n";
 		}
 		return kernel;
 	}

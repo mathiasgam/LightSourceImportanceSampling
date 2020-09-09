@@ -15,28 +15,27 @@ namespace LSIS {
 
 	void BVH::SetGeometryBuffers(const TypedBuffer<SHARED::Vertex>& vertices, const TypedBuffer<SHARED::Face>& faces)
 	{
-		cl_uint num_vertices = static_cast<cl_uint>(vertices.Count());
-		cl_uint num_faces = static_cast<cl_uint>(faces.Count());
+		CHECK(m_closest.setArg(2, faces.GetBuffer()));
+		CHECK(m_closest.setArg(3, vertices.GetBuffer()));
 
-		m_kernel.setArg(2, faces.GetBuffer());
-		m_kernel.setArg(3, vertices.GetBuffer());
-		m_kernel.setArg(6, sizeof(uint32_t), &num_faces);
-		m_kernel.setArg(7, sizeof(uint32_t), &num_vertices);
+		CHECK(m_occlusion.setArg(2, faces.GetBuffer()));
+		CHECK(m_occlusion.setArg(3, vertices.GetBuffer()));
 	}
 
 	void BVH::SetBVHBuffer(const TypedBuffer<SHARED::Node>& nodes, const TypedBuffer<SHARED::AABB>& bboxes)
 	{
-		cl_uint num_nodes = static_cast<cl_uint>(nodes.Count());
+		CHECK(m_closest.setArg(0, nodes.GetBuffer()));
+		CHECK(m_closest.setArg(1, bboxes.GetBuffer()));
 
-		m_kernel.setArg(0, nodes.GetBuffer());
-		m_kernel.setArg(1, bboxes.GetBuffer());
-		m_kernel.setArg(5, sizeof(uint32_t), &m_num_nodes);
+		CHECK(m_occlusion.setArg(0, nodes.GetBuffer()));
+		CHECK(m_occlusion.setArg(1, bboxes.GetBuffer()));
 	}
 
 	void BVH::Compile()
 	{
 		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", { "Kernels/" });
-		m_kernel = Compute::CreateKernel(m_program, "intersect_bvh");
+		m_closest = Compute::CreateKernel(m_program, "intersect_bvh");
+		m_occlusion = Compute::CreateKernel(m_program, "occluded");
 	}
 
 	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info)
@@ -51,13 +50,25 @@ namespace LSIS {
 		}
 
 		// Bind dynamic kernel arguments
-		CHECK(m_kernel.setArg(4, rays.GetBuffer()));
-		CHECK(m_kernel.setArg(8, sizeof(uint32_t), &num_rays));
-		CHECK(m_kernel.setArg(9, intersections.GetBuffer()));
-		CHECK(m_kernel.setArg(10, info.GetBuffer()));
+		CHECK(m_closest.setArg(4, rays.GetBuffer()));
+		CHECK(m_closest.setArg(5, sizeof(cl_uint), &num_rays));
+		CHECK(m_closest.setArg(6, intersections.GetBuffer()));
+		CHECK(m_closest.setArg(7, info.GetBuffer()));
 
 		// submit kernel
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel, cl::NullRange, cl::NDRange(num_rays)));
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays)));
+	}
+
+	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits) {
+		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
+
+		// Bind dynamic kernel arguments
+		CHECK(m_occlusion.setArg(4, rays.GetBuffer()));
+		CHECK(m_occlusion.setArg(5, sizeof(cl_uint), &num_rays));
+		CHECK(m_occlusion.setArg(6, hits.GetBuffer()));
+
+		// Submit kernel
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_occlusion, cl::NullRange, cl::NDRange(num_rays)));
 	}
 
 }

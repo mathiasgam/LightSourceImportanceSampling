@@ -6,7 +6,7 @@ inline float3 ColorFromNormal(float3 normal){
 }
 
 inline float3 ColorFromPosition(float3 position){
-    float3 remain = remainder(position, 10.0f) / 10.0f;
+    float3 remain = remainder(position, 10.0f) * 0.1f;
     return (float3)(remain.xyz);
 }
 
@@ -50,7 +50,7 @@ __kernel void ProcessBounce(
 
         // choose light
         uint i = random_uint(&rng, num_lights);
-        float pdf = 1.0f / num_lights;
+        float pdf = inverse(num_lights);
 
         float3 result = results[id];
         float3 throughput = throughputs[id];
@@ -67,12 +67,12 @@ __kernel void ProcessBounce(
                 Light light = lights[i];
                 //Material material = materials[sample.material_index];
                 Material material = {};
-                material.diffuse = (float4)(.8f,.8f,.8f,1.0f);
-                material.specular = (float4)(.8f,.8f,.8f,1.0f);
+                material.diffuse = (float4)(.7f,.7f,.7f,1.0f);
+                material.specular = (float4)(.7f,.7f,.7f,1.0f);
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);
-                const float dist_inv = 1.0f / dist;
+                const float dist_inv = inverse(dist);
                 const float3 dir = diff * dist_inv;
 
                 float d = dot(geometric.normal.xyz, dir);
@@ -85,6 +85,7 @@ __kernel void ProcessBounce(
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
                 shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
+                light_contribution[id] = (L * material.diffuse.xyz * throughput) / pdf;
 
                 float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
                 bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
@@ -93,14 +94,27 @@ __kernel void ProcessBounce(
         }
 
         results[id] = result;
-        float4 color = (float4)(result.xyz, 1.0f);
+    }
+}
 
-        float f = 1.0f / (multi_sample_count + 1);
-        Pixel p = pixels[id];
-        float4 current = p.color;
-        p.color = mix(current, color, f);
-        //p.color = (float4)(sample.result.xyz, 1.0f);
-        pixels[id] = p;
+__kernel void shade_occlusion(
+    IN_BUF(int, hits),
+    IN_BUF(int, states),
+    IN_BUF(float3, contributions),
+    IN_VAL(uint, num_samples),
+    OUT_BUF(float3, results)
+){
+    const int id = get_global_id(0);
 
+    if (id < num_samples){
+
+        const int hit = hits[id];
+        const int state = states[id];
+        const float3 result = results[id];
+        const float3 contribution = contributions[id];
+
+        if (hit == -1 && state == STATE_ACTIVE){
+            results[id] = result + contribution;
+        }
     }
 }
