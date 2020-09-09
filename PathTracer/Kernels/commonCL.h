@@ -10,11 +10,15 @@
 #define OUT_BUF(type, name) __global type* restrict name
 #define CONST_BUF(type, name) __constant type* restrict name 
 
-#define PI 3.14159265359f
-#define TWO_PI (3.14159265359f * 2.0f)
+#define PI 3.14159265358979323846f
+#define TWO_PI (3.14159265358979323846f * 2.0f)
 
 #define STATE_INACTIVE 0
 #define STATE_ACTIVE 1
+
+#ifdef AMD_MEDIA_OPS
+#pragma OPENCL EXTENSION cl_amd_media_ops2 : enable
+#endif
 
 typedef struct mat4
 {
@@ -92,6 +96,22 @@ inline float max3(float x, float y, float z){
 #endif
 }
 
+inline float inverse(float x){
+#ifdef USE_SAFE_MATH
+	return 1.0f / x;
+#else
+	return native_recip(x);
+#endif
+}
+
+inline float inv_sqrt(float x){
+#ifdef USE_SAFE_MATH
+	return rsqrt(x);
+#else
+	return native_rsqrt(x);
+#endif
+}
+
 #define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
 
 inline float3 sample_hemisphere(uint* state, float3 normal) {
@@ -102,7 +122,7 @@ inline float3 sample_hemisphere(uint* state, float3 normal) {
 		vec = random_float3(state) * 2.0f - 1.0f;
 		sqr_dist = dot(vec,vec);
 	} while (sqr_dist > 1.0f && dot(normal, vec) > 0.0001f);
-	return vec / sqrt(sqr_dist);
+	return vec * inv_sqrt(sqr_dist);
 }
 
 inline float2 sample_disk_uniform(uint* state){
@@ -118,13 +138,13 @@ inline float2 sample_disk_uniform(uint* state){
 
 float3 sample_hemisphere_cosine(uint* state, float3 normal)
 {
-    float phi = TWO_PI * rand(state);
-    float sinThetaSqr = rand(state);
-    float sinTheta = sqrt(sinThetaSqr);
+    const float phi = TWO_PI * rand(state);
+    const float sinThetaSqr = rand(state);
+    const float sinTheta = sqrt(sinThetaSqr);
 
-    float3 axis = fabs(normal.x) > 0.001f ? (float3)(0.0f, 1.0f, 0.0f) : (float3)(1.0f, 0.0f, 0.0f);
-    float3 t = normalize(cross(axis, normal));
-    float3 s = cross(normal, t);
+    const float3 axis = fabs(normal.x) > 0.001f ? (float3)(0.0f, 1.0f, 0.0f) : (float3)(1.0f, 0.0f, 0.0f);
+    const float3 t = normalize(cross(axis, normal));
+    const float3 s = cross(normal, t);
 
     return normalize(s*cos(phi)*sinTheta + t*sin(phi)*sinTheta + normal*sqrt(1.0f - sinThetaSqr));
 }
