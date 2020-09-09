@@ -75,8 +75,22 @@ inline uint random_uint(uint* state, uint range){
 #define random_float3(state) (float3)(rand(state), rand(state), rand(state))
 #define random_float4(state) (float4)(rand(state), rand(state), rand(state), rand(state))
 
-#define min3(x,y,z) min(x, min(y,z))
-#define max3(x,y,z) max(x, max(y,z))
+
+inline float min3(float x, float y, float z){
+#ifdef AMD_MEDIA_OPS
+	return amd_min3(x,y,z);
+#else
+	return min(x, min(y,z));
+#endif
+}
+
+inline float max3(float x, float y, float z){
+#ifdef AMD_MEDIA_OPS
+	return amd_max3(x,y,z);
+#else
+	return max(x, max(y,z));
+#endif
+}
 
 #define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
 
