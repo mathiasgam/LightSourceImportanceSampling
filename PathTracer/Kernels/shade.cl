@@ -67,10 +67,11 @@ __kernel void ProcessBounce(
                 Light light = lights[i];
                 //Material material = materials[sample.material_index];
                 Material material = {};
-                material.diffuse = (float4)(.7f,.7f,.7f,1.0f);
-                material.specular = (float4)(.7f,.7f,.7f,1.0f);
+                const float x = 0.9f;
+                material.diffuse = (float4)(x,x,x,1.0f);
+                material.specular = (float4)(x,x,x,1.0f);
 
-                throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f) * material.diffuse.xyz * M_1_PI_F;
+                throughput *= material.diffuse.xyz * M_1_PI_F;
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);
@@ -95,6 +96,7 @@ __kernel void ProcessBounce(
         }
 
         results[id] = result;
+        throughputs[id] = throughput;
     }
 }
 
