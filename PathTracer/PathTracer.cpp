@@ -247,7 +247,6 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(14, m_pixel_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
 	}

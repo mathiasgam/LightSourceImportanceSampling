@@ -38,8 +38,7 @@ __kernel void ProcessBounce(
     OUT_BUF(int, states),
     OUT_BUF(float3, light_contribution),
     OUT_BUF(Ray, bounce_rays),
-    OUT_BUF(Ray, shadow_rays),
-    OUT_BUF(Pixel, pixels)
+    OUT_BUF(Ray, shadow_rays)
 ){
     int id = get_global_id(0);
     uint rng = hash2(hash2(id) ^ hash1(multi_sample_count));
