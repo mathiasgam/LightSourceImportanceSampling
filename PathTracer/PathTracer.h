@@ -71,6 +71,8 @@ namespace LSIS {
 		cl::Kernel m_kernel_shade;
 		cl::Kernel m_kernel_shade_occlusion;
 
+		cl::Sampler m_sampler;
+		cl::Image2D m_background_texture;
 
 
 		bool buffer_switch = true;

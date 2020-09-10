@@ -30,6 +30,56 @@ namespace LSIS {
 
 		CompileKernels();
 		BuildStructure();
+
+		cl_int err;
+		m_sampler = cl::Sampler(Compute::GetContext(), true, CL_ADDRESS_REPEAT, CL_FILTER_LINEAR, &err);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+		const float pixels[] = {
+			1.0f,1.0f,1.0f,1.0f,
+			1.0f,0.0f,0.0f,1.0f,
+			0.0f,1.0f,0.0f,1.0f,
+			0.0f,0.0f,1.0f,1.0f
+		};
+
+		//m_background_texture = cl::Image2D(image);
+		cl::ImageFormat format = {};
+		format.image_channel_order = CL_RGBA;
+		format.image_channel_data_type = CL_FLOAT;
+		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, 2, 2, 0, nullptr);
+		size_t origin[3] = { 0,0,0 };
+		size_t region[3] = { 2,2,1 };
+		/*
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), image, CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+		*/
+
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+		float* data = new float[4 * 4];
+		err = clEnqueueReadImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)data, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+		for (int i = 0; i < 4; i++){
+			printf("p %f,%f,%f,%f\n", data[i * 4], data[i * 4 + 1], data[i * 4 + 2], data[i * 4 + 3]);
+		}
 	}
 
 	PathTracer::~PathTracer()
@@ -252,6 +302,8 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_background_texture));
+		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
