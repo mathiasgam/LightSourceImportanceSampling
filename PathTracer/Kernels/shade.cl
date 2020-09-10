@@ -65,11 +65,7 @@ __kernel void ProcessBounce(
             }else{
                 //throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
                 Light light = lights[i];
-                //Material material = materials[sample.material_index];
-                Material material = {};
-                const float x = 0.9f;
-                material.diffuse = (float4)(x,x,x,1.0f);
-                material.specular = (float4)(x,x,x,1.0f);
+                Material material = materials[hit.material_index];
 
                 throughput *= material.diffuse.xyz * M_1_PI_F;
 

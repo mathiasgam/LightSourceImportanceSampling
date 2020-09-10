@@ -5,6 +5,11 @@
 #include "Core/Application.h"
 #include "Event/Event.h"
 #include "Input/KeyCodes.h"
+#include "Scene/Entity.h"
+#include "Scene/Components.h"
+
+#include <list>
+#include <tuple>
 
 #include "AccelerationStructure/LBVHStructure.h"
 #include "AccelerationStructure/BVHBuilder.h"
@@ -77,20 +82,20 @@ namespace LSIS {
 			if (key == KEY_B) {
 				std::cout << "PT Event: " << e << std::endl;
 				BuildStructure();
-				m_num_samples = 0;
 				return true;
 			}
 			else if (key == KEY_R) {
 				CompileKernels();
 				m_viewer.CompileKernels();
 				m_bvh.Compile();
-				BuildStructure();
 				std::cout << "PT: Kernels Recompiled!\n";
 				return true;
 			}
 		}
 		if (e.GetEventType() == EventType::CameraUpdated) {
 			ResetSamples();
+			std::cout << "Cam update\n";
+			return true;
 		}
 		return false;
 	}
@@ -159,24 +164,20 @@ namespace LSIS {
 
 	void PathTracer::BuildStructure()
 	{
-		LoadMaterials();
+		//LoadMaterials();
+		LoadGeometry();
 		LoadLights();
 
-		auto app = Application::Get();
-		auto geometry = app->GetScene()->GetCollectiveMeshData();
-
-		auto num_vertices = geometry->GetNumVertices();
-		auto num_indices = geometry->GetNumIndices();
 
 		//BVHBuilder builder = BVHBuilder();
 
 		LBVHStructure structure = LBVHStructure();
-		structure.Build(geometry->GetVertices(), num_vertices, geometry->GetIndices(), num_indices);
+		structure.Build(m_vertex_buffer, m_face_buffer);
 
-		auto context = Compute::GetContext();
+		//auto context = Compute::GetContext();
 
-		m_vertex_buffer = structure.GetVertices();
-		m_face_buffer = structure.GetFaces();
+		//m_vertex_buffer = structure.GetVertices();
+		//m_face_buffer = structure.GetFaces();
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
 
@@ -187,7 +188,7 @@ namespace LSIS {
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
-
+		ResetSamples();
 	}
 
 	void PathTracer::Prepare()
@@ -279,6 +280,91 @@ namespace LSIS {
 
 	void PathTracer::LoadGeometry()
 	{
+		auto scene = Application::Get()->GetScene();
+		Scene* p_scene = scene.get();
+		
+		auto entities = scene->GetEntities<MeshComponent, TransformComponent>();
+
+		size_t num_vertices = 0;
+		size_t num_indices = 0;
+		size_t num_materials = 0;
+		std::unordered_map<Ref<Material>, uint32_t> material_index_map{};
+		std::list<std::tuple<Ref<MeshData>, glm::mat4, Ref<Material>>> objects{};
+
+		for (auto handle : entities) {
+			Entity entity = { handle, p_scene };
+			auto mesh = entity.GetComponent<MeshComponent>().mesh->GetData();
+			auto transform = entity.GetComponent<TransformComponent>().Transform;
+			num_vertices += mesh->GetNumVertices();
+			num_indices += mesh->GetNumIndices();
+
+			auto material = entity.GetComponent<MeshComponent>().material;
+			if (material_index_map.find(material) == material_index_map.end()) {
+				material_index_map.insert({ material, num_materials++ });
+			}
+
+			objects.push_back(std::make_tuple(mesh, transform, material));
+		}
+
+		size_t num_faces = num_indices / 3;
+
+		std::vector<SHARED::Material> materials_data = std::vector<SHARED::Material>(num_materials);
+		std::vector<SHARED::Vertex> vertices_data = std::vector<SHARED::Vertex>(num_vertices);
+		std::vector<SHARED::Face> faces_data = std::vector<SHARED::Face>(num_faces);
+
+		for (auto index : material_index_map) {
+			auto mat = index.first;
+			auto id = index.second;
+			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular());
+		}
+
+		size_t index_face = 0;
+		size_t index_vertex = 0;
+		for (auto& [mesh, transform, material] : objects) {
+			auto indices = mesh->GetIndices();
+			auto vertices = mesh->GetVertices();
+
+			cl_uint material_index = material_index_map[material];
+
+			size_t num_faces_object = mesh->GetNumIndices() / 3;
+			size_t num_vertices_object = mesh->GetNumVertices();
+
+			for (size_t i = 0; i < num_faces_object; i++) {
+				uint32_t v0 = indices[i * 3 + 0] + index_vertex;
+				uint32_t v1 = indices[i * 3 + 1] + index_vertex;
+				uint32_t v2 = indices[i * 3 + 2] + index_vertex;
+				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, material_index);
+			}
+
+			for (size_t i = 0; i < num_vertices_object; i++) {
+				VertexData v = vertices[i];
+				glm::vec4 p = transform * glm::vec4(v.position, 1.0f);
+				glm::vec4 n = transform * glm::vec4(v.normal, 0.0f);
+				glm::vec3 position = { p.x,p.y,p.z };
+				glm::vec3 normal = { n.x,n.y,n.z };
+				vertices_data[index_vertex++] = SHARED::make_vertex(position, normal, v.uv);
+			}
+		}
+
+		auto queue = Compute::GetCommandQueue();
+
+		std::vector<cl::Event> write_events = std::vector<cl::Event>(3);
+		write_events[0] = cl::Event();
+		write_events[1] = cl::Event();
+		write_events[2] = cl::Event();
+
+		m_face_buffer = TypedBuffer<SHARED::Face>(Compute::GetContext(), CL_MEM_READ_ONLY, num_faces);
+		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
+		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
+
+		queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data(), nullptr, &write_events[0]);
+		queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]);
+		queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]);
+
+		// Wait for data to be uploaded
+		cl::WaitForEvents(write_events);
+
+		printf("indices: %zd, vertices: %zd, materials: %zd\n", num_indices, num_vertices, num_materials);
 	}
 
 	void PathTracer::LoadMaterials()
