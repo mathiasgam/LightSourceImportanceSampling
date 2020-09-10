@@ -12,6 +12,8 @@ namespace LSIS {
 
 		Entity(entt::entity handle, Scene* p_scene);
 
+		uint32_t GetID() const { return (uint32_t) m_entity_handle; }
+
 		template<typename T>
 		bool HasComponent() {
 			return m_scene->Reg().has<T>(m_entity_handle);
