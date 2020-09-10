@@ -131,61 +131,46 @@ namespace LSIS {
 		return bbox;
 	}
 	   
-	void LBVHStructure::Build(const VertexData* in_vertices, size_t num_vertices, const uint32_t* in_indices, size_t num_indices)
+	void LBVHStructure::Build(TypedBuffer<SHARED::Vertex>& vertex_buffer, TypedBuffer<SHARED::Face>& face_buffer)
 	{
 		PROFILE_SCOPE("LBVH Build");
 
-		if (num_indices == 0 || num_vertices == 0) {
+		const size_t N = face_buffer.Count();
+
+		m_num_faces = N;
+		m_num_vertices = vertex_buffer.Count();
+
+		if (m_num_faces == 0 || m_num_vertices == 0) {
 			return;
 		}
 
-		const size_t N = num_indices / 3;
-
-		m_num_faces = N;
-		m_num_vertices = num_vertices;
+		printf("num_vertices: %zd, num_faces: %zd\n", m_num_vertices, m_num_faces);
 
 		SHARED::Face* faces = new SHARED::Face[N]; // (Face*)malloc(sizeof(Face) * N);
-		SHARED::Vertex* vertices = new SHARED::Vertex[num_vertices]; // (Vertex*)malloc(sizeof(Vertex) * num_vertices);
+		SHARED::Vertex* vertices = new SHARED::Vertex[m_num_vertices]; // (Vertex*)malloc(sizeof(Vertex) * num_vertices);
 
 		// exstract bounding boxes for each face in the scene
 		AABB * bboxes = new AABB[N];// (AABB*)malloc(sizeof(AABB) * N);
 		glm::vec3* centers = new glm::vec3[N]; // (glm::vec3*) malloc(sizeof(glm::vec3) * N);
 
-		// Parse vertices
-		for (size_t i = 0; i < num_vertices; i++) {
-			const VertexData& vtx = in_vertices[i];
-			SHARED::Vertex v{};
-			v.position.x = vtx.position[0];
-			v.position.y = vtx.position[1];
-			v.position.z = vtx.position[2];
-			v.position.w = vtx.uv[0];
-			v.normal.x = vtx.normal[0];
-			v.normal.y = vtx.normal[1];
-			v.normal.z = vtx.normal[2];
-			v.normal.w = vtx.uv[1];
-			vertices[i] = v;
-		}
-
-		// Parse faces
-		for (size_t i = 0; i < N; i++) {
-			size_t index = i * 3;
-			SHARED::Face f{};
-			f.index.x = in_indices[index + 0];
-			f.index.y = in_indices[index + 1];
-			f.index.z = in_indices[index + 2];
-			f.index.w = 0U; // material index
-
-			faces[i] = f;
-		}
+		auto queue = Compute::GetCommandQueue();
+		queue.enqueueReadBuffer(vertex_buffer.GetBuffer(), CL_TRUE, 0, vertex_buffer.Size(), vertices);
+		queue.enqueueReadBuffer(face_buffer.GetBuffer(), CL_TRUE, 0, face_buffer.Size(), faces);
 
 		// Find scene bounds
 		AABB bounds = AABB();
 		for (size_t i = 0; i < N; i++) {
 			const SHARED::Face& face = faces[i];
 
+			//printf("face: %d,%d,%d,%d\n", face.index.x, face.index.y, face.index.z, face.index.w);
+
 			const SHARED::Vertex& v0 = vertices[face.index.x];
 			const SHARED::Vertex& v1 = vertices[face.index.y];
 			const SHARED::Vertex& v2 = vertices[face.index.z];
+
+			//printf("v0: %f,%f,%f\n", v0.position.x, v0.position.y, v0.position.z);
+			//printf("v1: %f,%f,%f\n", v1.position.x, v1.position.y, v1.position.z);
+			//printf("v2: %f,%f,%f\n", v2.position.x, v2.position.y, v2.position.z);
 
 			glm::vec3 p0 = { v0.position.x, v0.position.y, v0.position.z };
 			glm::vec3 p1 = { v1.position.x, v1.position.y, v1.position.z };
@@ -241,7 +226,7 @@ namespace LSIS {
 
 		// Upload data to the GPU
 		LoadBVHBuffer(nodes, nodes_bboxes, m_num_nodes);
-		LoadGeometryBuffers(vertices, m_num_vertices, faces, m_num_faces);
+		//LoadGeometryBuffers(vertices, m_num_vertices, faces, m_num_faces);
 
 		delete[] faces;
 		delete[] vertices;
@@ -250,20 +235,6 @@ namespace LSIS {
 		delete[] morton_keys;
 
 		isBuild = true;
-	}
-
-	void LBVHStructure::LoadGeometryBuffers(const SHARED::Vertex* vertices, size_t num_vertices, const SHARED::Face* faces, size_t num_faces)
-	{
-		// initialize buffers
-		m_buffer_vertices = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
-		m_buffer_faces = TypedBuffer<SHARED::Face>(Compute::GetContext(), CL_MEM_READ_ONLY, num_faces);
-		m_num_vertices = num_vertices;
-		m_num_faces = num_faces;
-
-		// Upload data
-		auto queue = Compute::GetCommandQueue();
-		queue.enqueueWriteBuffer(m_buffer_vertices.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Vertex) * num_vertices, static_cast<const void*>(vertices));
-		queue.enqueueWriteBuffer(m_buffer_faces.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * num_faces, static_cast<const void*>(faces));
 	}
 
 	void LBVHStructure::LoadBVHBuffer(const SHARED::Node* nodes, const SHARED::AABB* bboxes, size_t num_nodes)

@@ -97,7 +97,10 @@ __kernel void process_results(
         float3 result = results[id];
         float3 current = pixels[id].color.xyz;
 
-        float f = inverse(sample_count + 1);
-        pixels[id].color = (float4)(mix(current, result, f), 1.0f);
+        //float f = sample_count * inverse(sample_count + 1);
+        //pixels[id].color = (float4)(mix(result, current, f), 1.0f);
+
+        float3 col = ((current * sample_count) + result) / (sample_count+1);
+        pixels[id].color = (float4)(col.xyz, 1.0f);
     }
 }

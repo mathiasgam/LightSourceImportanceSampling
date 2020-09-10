@@ -21,6 +21,8 @@
 
 namespace LSIS {
 
+	class Entity;
+
 	class Scene {
 
 		struct ObjectUpload {
@@ -33,11 +35,11 @@ namespace LSIS {
 		Scene();
 		virtual ~Scene();
 
+		entt::registry& Reg() { return m_registry; }
+
 		void AddLight(std::shared_ptr<Light> light);
 
-		entt::entity CreateEntity();
-		void AddTransform(entt::entity entity, const Transform& transform);
-		void AddMesh(entt::entity entity, Ref<Mesh> mesh, Ref<Material> material);
+		Entity CreateEntity();
 
 		void LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform);
 
@@ -53,6 +55,11 @@ namespace LSIS {
 		Ref<MeshData> GetCollectiveMeshData();
 		std::vector<Ref<Light>> GetLights() const;
 		std::vector<Ref<Material>> GetMaterials();
+
+		template<typename ... Args>
+		auto GetEntities() {
+			return m_registry.view<Args...>();
+		}
 
 	private:
 

@@ -10,7 +10,9 @@
 #include <iostream>
 #include <set>
 
+#include "Entity.h"
 #include "Components.h"
+
 
 namespace LSIS {
 
@@ -28,20 +30,10 @@ namespace LSIS {
 		m_lights.push_back(light);
 	}
 
-	entt::entity Scene::CreateEntity()
+	Entity Scene::CreateEntity()
 	{
-		return m_registry.create();
-	}
-
-	void Scene::AddTransform(entt::entity entity, const Transform& transform)
-	{
-		const glm::mat4 mat = transform.GetModelMatrix();
-		m_registry.emplace<TransformComponent>(entity, mat);
-	}
-
-	void Scene::AddMesh(entt::entity entity, Ref<Mesh> mesh, Ref<Material> material)
-	{
-		m_registry.emplace<MeshComponent>(entity, mesh, material);
+		Entity entity = { m_registry.create(), this };
+		return entity;
 	}
 
 	void Scene::LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform)

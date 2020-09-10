@@ -81,6 +81,19 @@ namespace SHARED {
 
 #if defined(APP_LSIS)
 
+    inline Vertex make_vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 uv) {
+        Vertex vertex = {};
+        vertex.position = { position.x, position.y, position.z, uv.x };
+        vertex.normal = { normal.x, normal.y, normal.z, uv.y };
+        return vertex;
+    }
+
+    inline Face make_face(uint32_t v0, uint32_t v1, uint32_t v2, uint32_t material_index) {
+        Face face = {};
+        face.index = { v0,v1,v2,material_index };
+        return face;
+    }
+
     inline Light make_light(glm::vec3 position, glm::vec3 direction, glm::vec3 intensity) {
         Light light = {};
         light.position = { position.x, position.y, position.z, 0.0f };
