@@ -38,7 +38,7 @@ namespace LSIS {
 		m_occlusion = Compute::CreateKernel(m_program, "occluded");
 	}
 
-	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info)
+	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info, const TypedBuffer<cl_uint>& count)
 	{
 		// Get ray count;
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
@@ -59,7 +59,7 @@ namespace LSIS {
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays)));
 	}
 
-	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits) {
+	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits, const TypedBuffer<cl_uint>& count) {
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
 
 		// Bind dynamic kernel arguments

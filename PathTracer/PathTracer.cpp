@@ -49,16 +49,18 @@ namespace LSIS {
 		PROFILE_SCOPE("PathTracer");
 		Prepare();
 
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
 			//ProcessIntersections();
 
 			// Process bounce and prepare shadow rays
 			Shade();
 
 			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer);
+			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
 			ProcessOcclusion();
 		}
 
@@ -153,6 +155,9 @@ namespace LSIS {
 		//m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_geometric_buffer = TypedBuffer<SHARED::GeometricInfo>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
+
+		m_source_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_active_count_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, 1);
 
 		m_light_contribution_buffer = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 
