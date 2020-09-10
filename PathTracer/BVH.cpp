@@ -49,11 +49,14 @@ namespace LSIS {
 			return;
 		}
 
+		const cl_uint zero = 0;
+
 		// Bind dynamic kernel arguments
 		CHECK(m_closest.setArg(4, rays.GetBuffer()));
-		CHECK(m_closest.setArg(5, sizeof(cl_uint), &num_rays));
+		CHECK(m_closest.setArg(5, sizeof(cl_uint), &zero));
 		CHECK(m_closest.setArg(6, intersections.GetBuffer()));
 		CHECK(m_closest.setArg(7, info.GetBuffer()));
+		CHECK(m_closest.setArg(8, count.GetBuffer()));
 
 		// submit kernel
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays)));
@@ -62,10 +65,13 @@ namespace LSIS {
 	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits, const TypedBuffer<cl_uint>& count) {
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
 
+		const cl_uint zero = 0;
+
 		// Bind dynamic kernel arguments
 		CHECK(m_occlusion.setArg(4, rays.GetBuffer()));
-		CHECK(m_occlusion.setArg(5, sizeof(cl_uint), &num_rays));
+		CHECK(m_occlusion.setArg(5, sizeof(cl_uint), &zero));
 		CHECK(m_occlusion.setArg(6, hits.GetBuffer()));
+		CHECK(m_occlusion.setArg(7, count.GetBuffer()));
 
 		// Submit kernel
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_occlusion, cl::NullRange, cl::NDRange(num_rays)));

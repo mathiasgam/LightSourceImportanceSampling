@@ -112,14 +112,15 @@ __kernel void intersect_bvh(
     IN_BUF(Ray, rays),
     IN_VAL(int, num_rays),
     OUT_BUF(Intersection, intersections),
-    OUT_BUF(GeometricInfo, geometric_info)
+    OUT_BUF(GeometricInfo, geometric_info),
+    IN_BUF(uint, active_rays)
 ){
     const int id = get_global_id(0);
 
     // fixed size queue, for storing the nodes not yet taken when iterating through the tree
     int queue[MAX_DEPTH];
 
-    if (id < num_rays) {
+    if (id < active_rays[0]) {
         Ray ray = rays[id];
 
         float t_max = ray.direction.w;
@@ -245,14 +246,15 @@ __kernel void occluded(
     IN_BUF(Vertex, vertices),
     IN_BUF(Ray, rays),
     IN_VAL(uint, num_rays),
-    OUT_BUF(int, hits)
+    OUT_BUF(int, hits),
+    IN_BUF(uint, active_rays)
 ){
     const int id = get_global_id(0);
 
     // fixed size queue, for storing the nodes not yet taken when iterating through the tree
     int queue[MAX_DEPTH];
 
-    if (id < num_rays){
+    if (id < active_rays[0]){
         // fetch ray data
         const Ray ray = rays[id];
 
