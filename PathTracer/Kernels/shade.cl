@@ -24,6 +24,14 @@ inline float3 GetBackground(float3 dir){
     return mix(sky, ground, d*d);
 }
 
+float2 direction_to_hdri(float3 d){
+    float x = (atan2(d.x, d.z) + M_PI_F) / (M_PI_F * 2.0f);
+    float y = (asin(d.y) + (M_PI_F / 2.0f)) / M_PI_F;
+    return (float2)(x,y);
+}
+
+const sampler_t sampler_in = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;
+
 __kernel void ProcessBounce(
     IN_VAL(uint, num_samples),
     IN_VAL(uint, num_lights),
@@ -39,7 +47,7 @@ __kernel void ProcessBounce(
     OUT_BUF(float3, light_contribution),
     OUT_BUF(Ray, bounce_rays),
     OUT_BUF(Ray, shadow_rays),
-    OUT_BUF(Pixel, pixels)
+    __read_only image2d_t texture
 ){
     int id = get_global_id(0);
     uint rng = hash2(hash2(id) ^ hash1(multi_sample_count));
@@ -60,14 +68,17 @@ __kernel void ProcessBounce(
         if (states[id] == STATE_ACTIVE) {
             // process miss
             if (hit.hit == 0){
-                result += GetBackground(geometric.incoming.xyz) * throughput;
+                float2 coord = direction_to_hdri(geometric.incoming.xyz);
+                result += read_imagef(texture, sampler_in, coord).xyz * throughput;
+                //result += GetBackground(geometric.incoming.xyz) * throughput;
                 states[id] = STATE_INACTIVE;
             }else{
                 //throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
                 Light light = lights[i];
                 Material material = materials[hit.material_index];
+                float3 diffuse = material.diffuse.xyz;
 
-                throughput *= material.diffuse.xyz * M_1_PI_F;
+                throughput *= diffuse * M_1_PI_F;
 
                 const float3 diff = light.position.xyz - geometric.position.xyz;
                 const float dist = length(diff);

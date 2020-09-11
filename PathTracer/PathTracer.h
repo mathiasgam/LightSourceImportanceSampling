@@ -71,6 +71,8 @@ namespace LSIS {
 		cl::Kernel m_kernel_shade;
 		cl::Kernel m_kernel_shade_occlusion;
 
+		cl::Sampler m_sampler;
+		cl::Image2D m_background_texture;
 
 
 		bool buffer_switch = true;
@@ -81,6 +83,11 @@ namespace LSIS {
 		TypedBuffer<cl_float3> m_throughput_buffer;
 		TypedBuffer<cl_float> m_depth_buffer;
 		TypedBuffer<SHARED::Pixel> m_pixel_buffer;
+
+		// holds the source index of the compacted samples in the pass
+		TypedBuffer<cl_uint> m_source_buffer;
+		// holds the count of active samples left in the pass
+		TypedBuffer<cl_uint> m_active_count_buffer;
 
 		TypedBuffer<SHARED::GeometricInfo> m_geometric_buffer;
 		TypedBuffer<cl_float3> m_light_contribution_buffer;

@@ -14,6 +14,8 @@
 #include "AccelerationStructure/LBVHStructure.h"
 #include "AccelerationStructure/BVHBuilder.h"
 
+#include "IO/Image.h"
+
 namespace LSIS {
 
 
@@ -25,11 +27,55 @@ namespace LSIS {
 		m_viewer(width, height),
 		m_bvh()
 	{
+		printf("resolution: [%d,%d]", width, height);
+
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
 		CompileKernels();
 		BuildStructure();
+
+		cl_int err;
+		m_sampler = cl::Sampler(Compute::GetContext(), true, CL_ADDRESS_REPEAT, CL_FILTER_LINEAR, &err);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+		int hdr_width, hdr_height, hdr_channels;
+		float* hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		/*
+		const float pixels[] = {
+			1.0f,1.0f,1.0f,1.0f,
+			1.0f,0.0f,0.0f,1.0f,
+			0.0f,1.0f,0.0f,1.0f,
+			0.0f,0.0f,1.0f,1.0f
+		};
+		*/
+
+		//m_background_texture = cl::Image2D(image);
+		cl::ImageFormat format = {};
+		format.image_channel_order = CL_RGBA;
+		format.image_channel_data_type = CL_FLOAT;
+		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
+		size_t origin[3] = { 0,0,0 };
+		size_t region[3] = { hdr_width,hdr_height,1 };
+		/*
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), image, CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+		*/
+
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
 	}
 
 	PathTracer::~PathTracer()
@@ -49,16 +95,18 @@ namespace LSIS {
 		PROFILE_SCOPE("PathTracer");
 		Prepare();
 
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer);
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
 			//ProcessIntersections();
 
 			// Process bounce and prepare shadow rays
 			Shade();
 
 			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer);
+			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
 			ProcessOcclusion();
 		}
 
@@ -154,6 +202,9 @@ namespace LSIS {
 		m_geometric_buffer = TypedBuffer<SHARED::GeometricInfo>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
 
+		m_source_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
+		m_active_count_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, 1);
+
 		m_light_contribution_buffer = TypedBuffer<cl_float3>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 
 		m_ray_buffer = TypedBuffer<SHARED::Ray>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
@@ -247,7 +298,8 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(14, m_pixel_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_background_texture));
+		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
