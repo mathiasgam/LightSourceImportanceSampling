@@ -14,6 +14,8 @@
 #include "AccelerationStructure/LBVHStructure.h"
 #include "AccelerationStructure/BVHBuilder.h"
 
+#include "IO/Image.h"
+
 namespace LSIS {
 
 
@@ -25,6 +27,8 @@ namespace LSIS {
 		m_viewer(width, height),
 		m_bvh()
 	{
+		printf("resolution: [%d,%d]", width, height);
+
 		PrepareCameraRays(Compute::GetContext());
 		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
 
@@ -39,20 +43,24 @@ namespace LSIS {
 			exit(err);
 		}
 
+		int hdr_width, hdr_height, hdr_channels;
+		float* hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		/*
 		const float pixels[] = {
 			1.0f,1.0f,1.0f,1.0f,
 			1.0f,0.0f,0.0f,1.0f,
 			0.0f,1.0f,0.0f,1.0f,
 			0.0f,0.0f,1.0f,1.0f
 		};
+		*/
 
 		//m_background_texture = cl::Image2D(image);
 		cl::ImageFormat format = {};
 		format.image_channel_order = CL_RGBA;
 		format.image_channel_data_type = CL_FLOAT;
-		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, 2, 2, 0, nullptr);
+		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
 		size_t origin[3] = { 0,0,0 };
-		size_t region[3] = { 2,2,1 };
+		size_t region[3] = { hdr_width,hdr_height,1 };
 		/*
 		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), image, CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
 		if (err) {
@@ -62,23 +70,11 @@ namespace LSIS {
 		}
 		*/
 
-		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
 		if (err) {
 			auto err_string = GET_CL_ERROR_CODE(err);
 			printf("Error: %s\n", err_string.c_str());
 			exit(err);
-		}
-
-		float* data = new float[4 * 4];
-		err = clEnqueueReadImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)data, 0, nullptr, nullptr);
-		if (err) {
-			auto err_string = GET_CL_ERROR_CODE(err);
-			printf("Error: %s\n", err_string.c_str());
-			exit(err);
-		}
-
-		for (int i = 0; i < 4; i++){
-			printf("p %f,%f,%f,%f\n", data[i * 4], data[i * 4 + 1], data[i * 4 + 2], data[i * 4 + 3]);
 		}
 	}
 
