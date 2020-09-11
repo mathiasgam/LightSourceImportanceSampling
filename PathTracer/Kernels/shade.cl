@@ -25,7 +25,7 @@ inline float3 GetBackground(float3 dir){
 }
 
 float2 direction_to_hdri(float3 d){
-    float x = (atan(d.x / d.z) + M_PI_F) / (M_PI_F * 2.0f);
+    float x = (atan2(d.x, d.z) + M_PI_F) / (M_PI_F * 2.0f);
     float y = (asin(d.y) + (M_PI_F / 2.0f)) / M_PI_F;
     return (float2)(x,y);
 }
@@ -69,8 +69,7 @@ __kernel void ProcessBounce(
             // process miss
             if (hit.hit == 0){
                 float2 coord = direction_to_hdri(geometric.incoming.xyz);
-                coord *= 10.0f;
-                result += read_imagef(texture, sampler_in, coord).xyz;
+                result += read_imagef(texture, sampler_in, coord).xyz * throughput;
                 //result += GetBackground(geometric.incoming.xyz) * throughput;
                 states[id] = STATE_INACTIVE;
             }else{
