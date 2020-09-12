@@ -45,30 +45,13 @@ namespace LSIS {
 
 		int hdr_width, hdr_height, hdr_channels;
 		float* hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
-		/*
-		const float pixels[] = {
-			1.0f,1.0f,1.0f,1.0f,
-			1.0f,0.0f,0.0f,1.0f,
-			0.0f,1.0f,0.0f,1.0f,
-			0.0f,0.0f,1.0f,1.0f
-		};
-		*/
 
-		//m_background_texture = cl::Image2D(image);
 		cl::ImageFormat format = {};
 		format.image_channel_order = CL_RGBA;
 		format.image_channel_data_type = CL_FLOAT;
 		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
 		size_t origin[3] = { 0,0,0 };
 		size_t region[3] = { hdr_width,hdr_height,1 };
-		/*
-		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), image, CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
-		if (err) {
-			auto err_string = GET_CL_ERROR_CODE(err);
-			printf("Error: %s\n", err_string.c_str());
-			exit(err);
-		}
-		*/
 
 		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
 		if (err) {
@@ -225,16 +208,8 @@ namespace LSIS {
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(m_vertex_buffer, m_face_buffer);
 
-		//auto context = Compute::GetContext();
-
-		//m_vertex_buffer = structure.GetVertices();
-		//m_face_buffer = structure.GetFaces();
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
-
-		//auto pair = builder.Build(m_vertex_buffer, m_face_buffer);
-		//m_bvh_buffer = pair.first;
-		//m_bboxes_buffer = pair.second;
 
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
