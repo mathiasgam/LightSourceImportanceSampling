@@ -257,22 +257,24 @@ namespace LSIS {
 	void PathTracer::Shade()
 	{
 		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
+		cl_uint seed = rand();
 
 		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
 		CHECK(m_kernel_shade.setArg(2, sizeof(cl_uint), &m_num_pixels));
 		CHECK(m_kernel_shade.setArg(3, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_shade.setArg(4, m_intersection_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(5, m_geometric_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(6, m_lights.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(7, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(8, m_result_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(9, m_throughput_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(10, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(14, m_background_texture));
+		CHECK(m_kernel_shade.setArg(4, sizeof(cl_uint), &seed));
+		CHECK(m_kernel_shade.setArg(5, m_intersection_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(6, m_geometric_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(7, m_lights.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(8, m_material_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(9, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(10, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(13, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(15, m_background_texture));
 		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));

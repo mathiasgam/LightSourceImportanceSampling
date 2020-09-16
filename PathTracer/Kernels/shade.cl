@@ -37,6 +37,7 @@ __kernel void ProcessBounce(
     IN_VAL(uint, num_lights),
     IN_VAL(uint, num_pixels),
     IN_VAL(uint, multi_sample_count),
+    IN_VAL(uint, seed),
     IN_BUF(Intersection, hits),
     IN_BUF(GeometricInfo, geometrics),
     IN_BUF(Light, lights),
@@ -50,7 +51,7 @@ __kernel void ProcessBounce(
     __read_only image2d_t texture
 ){
     int id = get_global_id(0);
-    uint rng = hash2(hash2(id) ^ hash1(multi_sample_count));
+    uint rng = hash2(hash2(id) ^ hash1(seed));
 
     if (id < num_samples){
         GeometricInfo geometric = geometrics[id];
