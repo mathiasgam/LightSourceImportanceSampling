@@ -100,7 +100,11 @@ __kernel void process_results(
         //float f = sample_count * inverse(sample_count + 1);
         //pixels[id].color = (float4)(mix(result, current, f), 1.0f);
 
-        float3 col = ((current * sample_count) + result) / (sample_count+1);
-        pixels[id].color = (float4)(col.xyz, 1.0f);
+        // if more samples is present, mix with current sample
+        if (sample_count > 0){
+            result = ((current * sample_count) + result) / (sample_count+1);
+        }
+        // save result in the pixel buffer
+        pixels[id].color = (float4)(result.xyz, 1.0f);
     }
 }

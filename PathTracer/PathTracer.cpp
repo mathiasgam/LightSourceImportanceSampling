@@ -102,7 +102,6 @@ namespace LSIS {
 		Compute::GetCommandQueue().finish();
 
 		m_num_samples++;
-		printf("Num Samples %d, ", m_num_samples);
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -125,7 +124,8 @@ namespace LSIS {
 		}
 		if (e.GetEventType() == EventType::CameraUpdated) {
 			ResetSamples();
-			std::cout << "Cam update\n";
+			auto cam = Application::Get()->GetScene()->GetCamera();
+			m_cam_projection = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
 			return true;
 		}
 		return false;
@@ -219,14 +219,13 @@ namespace LSIS {
 
 	void PathTracer::Prepare()
 	{
-		auto cam = Application::Get()->GetScene()->GetCamera();
-		glm::mat4 cam_matrix = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
+		uint32_t seed = rand();
 
 		CHECK(m_kernel_prepare.setArg(0, sizeof(cl_uint), &m_image_width));
 		CHECK(m_kernel_prepare.setArg(1, sizeof(cl_uint), &m_image_height));
 		CHECK(m_kernel_prepare.setArg(2, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_prepare.setArg(3, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_prepare.setArg(4, sizeof(cl_float4) * 4, &cam_matrix));
+		CHECK(m_kernel_prepare.setArg(3, sizeof(cl_uint), &seed));
+		CHECK(m_kernel_prepare.setArg(4, sizeof(cl_float4) * 4, &m_cam_projection));
 		CHECK(m_kernel_prepare.setArg(5, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_prepare.setArg(6, m_result_buffer.GetBuffer()));
 		CHECK(m_kernel_prepare.setArg(7, m_throughput_buffer.GetBuffer()));

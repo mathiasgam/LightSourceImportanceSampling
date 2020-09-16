@@ -74,6 +74,8 @@ namespace LSIS {
 		cl::Sampler m_sampler;
 		cl::Image2D m_background_texture;
 
+		glm::mat4 m_cam_projection;
+
 
 		bool buffer_switch = true;
 

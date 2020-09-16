@@ -12,13 +12,9 @@ __kernel void prepare(
     OUT_BUF(int, states))
 {
     const int id = get_global_id(0);
-    const int N = width * height * multi_samples_count;
+    const int N = width * height;
 
     uint rng = hash2(hash2(id) ^ hash1(seed));
-
-    if (id == 0){
-        //printf("size: [%d,%d], rays: %d, samples: %d, seed: %d\n", width, height, N, samples, seed);
-    }
 
     //barrier(CLK_GLOBAL_MEM_FENCE);
     if (id < N) {
