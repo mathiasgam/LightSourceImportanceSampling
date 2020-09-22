@@ -56,6 +56,11 @@ namespace LSIS {
 		uint32_t m_num_rays;
 		uint32_t m_num_samples = 0;
 
+		SHARED::Face* m_face_data = nullptr;
+		SHARED::Vertex* m_vertex_data = nullptr;
+		size_t m_num_faces = 0;
+		size_t m_num_vertices = 0;
+
 		PixelViewer m_viewer;
 		BVH m_bvh;
 
@@ -111,6 +116,7 @@ namespace LSIS {
 
 		// Light Buffers
 		TypedBuffer<SHARED::Light> m_lights;
+		TypedBuffer<cl_float> m_cdf_power_buffer;
 
 
 	};

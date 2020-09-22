@@ -12,7 +12,9 @@
 #include <tuple>
 
 #include "AccelerationStructure/LBVHStructure.h"
-#include "AccelerationStructure/BVHBuilder.h"
+#include "AccelerationStructure/SAHBVHStructure.h"
+
+#include "LightStructure/LightStructure.h"
 
 #include "IO/Image.h"
 
@@ -202,7 +204,7 @@ namespace LSIS {
 		LoadGeometry();
 		LoadLights();
 
-
+		
 		//BVHBuilder builder = BVHBuilder();
 
 		LBVHStructure structure = LBVHStructure();
@@ -268,13 +270,14 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(6, m_geometric_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(7, m_lights.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(8, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(9, m_result_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(10, m_throughput_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(11, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(12, m_light_contribution_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(13, m_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(14, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(15, m_background_texture));
+		CHECK(m_kernel_shade.setArg(9, m_cdf_power_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(10, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(13, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(15, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(16, m_background_texture));
 		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
@@ -389,6 +392,20 @@ namespace LSIS {
 		queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]);
 		queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]);
 
+		if (m_vertex_data != nullptr)
+			delete[] m_vertex_data;
+		if (m_face_data != nullptr)
+			delete[] m_face_data;
+
+		m_vertex_data = new SHARED::Vertex[num_vertices];
+		m_face_data = new SHARED::Face[num_faces];
+		m_num_vertices = num_vertices;
+		m_num_faces = num_faces;
+
+		memcpy(m_vertex_data, vertices_data.data(), num_vertices * sizeof(SHARED::Vertex));
+		memcpy(m_face_data, faces_data.data(), num_faces * sizeof(SHARED::Face));
+
+
 		// Wait for data to be uploaded
 		cl::WaitForEvents(write_events);
 
@@ -431,6 +448,8 @@ namespace LSIS {
 
 		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
+
+		m_cdf_power_buffer = build_power_sampling_buffer(m_lights);
 
 		printf("Num lights: %zd\n", num_lights);
 	}

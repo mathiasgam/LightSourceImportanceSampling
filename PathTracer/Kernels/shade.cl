@@ -30,6 +30,16 @@ float2 direction_to_hdri(float3 d){
     return (float2)(x,y);
 }
 
+int select_light(__global const float* cdf, uint num_lights, float r, float* pdf){
+    // do binary search in the cdf of the lights
+    for (uint i = 0; i < num_lights; i++){
+        if (cdf[i] > r){
+            return i-1;
+        }
+    }
+    return num_lights - 1;
+}
+
 const sampler_t sampler_in = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;
 
 __kernel void ProcessBounce(
@@ -42,6 +52,7 @@ __kernel void ProcessBounce(
     IN_BUF(GeometricInfo, geometrics),
     IN_BUF(Light, lights),
     IN_BUF(Material, materials),
+    IN_BUF(float, light_power_cdf),
     OUT_BUF(float3, results),
     OUT_BUF(float3, throughputs),
     OUT_BUF(int, states),
@@ -53,13 +64,19 @@ __kernel void ProcessBounce(
     int id = get_global_id(0);
     uint rng = hash2(hash2(id) ^ hash1(seed));
 
+    //barrier(CLK_GLOBAL_MEM_FENCE);
+
     if (id < num_samples){
         GeometricInfo geometric = geometrics[id];
         Intersection hit = hits[id];
 
         // choose light
-        uint i = random_uint(&rng, num_lights);
+        //uint i = random_uint(&rng, num_lights);
         float pdf = inverse(num_lights);
+        float r = rand(&rng);
+        uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+
+        //printf("l: %d, %f\n", i, r);
 
         float3 result = results[id];
         float3 throughput = throughputs[id];
