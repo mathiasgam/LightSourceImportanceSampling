@@ -31,13 +31,17 @@ float2 direction_to_hdri(float3 d){
 }
 
 int select_light(__global const float* cdf, uint num_lights, float r, float* pdf){
-    // do binary search in the cdf of the lights
-    for (uint i = 0; i < num_lights; i++){
+    // TODO do binary search in the cdf of the lights
+    uint index = num_lights - 1;
+    for (uint i = 1; i < num_lights; i++){
         if (cdf[i] > r){
-            return i-1;
+            index = i-1;
+            break;
         }
     }
-    return num_lights - 1;
+    float next = (index < num_lights - 1) ? cdf[index + 1] : 1.0f;
+    *pdf = next - cdf[index];
+    return index;
 }
 
 const sampler_t sampler_in = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;
