@@ -77,33 +77,33 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		PROFILE_SCOPE("PathTracer");
-		Prepare();
+		if (m_num_samples < 64) {
+			PROFILE_SCOPE("PathTracer");
+			Prepare();
 
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+			Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
 
-		for (auto bounce = 0; bounce < 4; bounce++) {
-			// Handle bounce
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
-			//ProcessIntersections();
+			for (auto bounce = 0; bounce < 4; bounce++) {
+				// Handle bounce
+				m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
+				//ProcessIntersections();
 
-			// Process bounce and prepare shadow rays
-			Shade();
+				// Process bounce and prepare shadow rays
+				Shade();
 
-			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
-			ProcessOcclusion();
+				// if the shadow ray is not occluded, the lights contribution is added to the result
+				m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
+				ProcessOcclusion();
+			}
+
+			// copy results into pixelbuffer
+			ProcessResults();
+			m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
+			Compute::GetCommandQueue().finish();
+
+			m_num_samples++;
 		}
-
-		// copy results into pixelbuffer
-		ProcessResults();
-
-		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
-
-		Compute::GetCommandQueue().finish();
-
-		m_num_samples++;
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -204,7 +204,7 @@ namespace LSIS {
 		LoadGeometry();
 		LoadLights();
 
-		
+
 		//BVHBuilder builder = BVHBuilder();
 #ifdef USE_LBVH
 		LBVHStructure structure = LBVHStructure();
@@ -317,7 +317,7 @@ namespace LSIS {
 	{
 		auto scene = Application::Get()->GetScene();
 		Scene* p_scene = scene.get();
-		
+
 		auto entities = scene->GetEntities<MeshComponent, TransformComponent>();
 
 		size_t num_vertices = 0;
@@ -413,7 +413,7 @@ namespace LSIS {
 		// Wait for data to be uploaded
 		cl::WaitForEvents(write_events);
 
-		printf("indices: %zd, vertices: %zd, materials: %zd\n", num_indices, num_vertices, num_materials);
+		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
 	}
 
 	void PathTracer::LoadMaterials()
