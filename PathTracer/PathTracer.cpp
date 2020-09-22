@@ -206,12 +206,16 @@ namespace LSIS {
 
 		
 		//BVHBuilder builder = BVHBuilder();
-
+#ifdef USE_LBVH
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(m_vertex_buffer, m_face_buffer);
-
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
+#else // Use Binned SAH BVH
+		SAHBVHStructure structure = SAHBVHStructure(m_vertex_data, m_face_data, m_num_faces);
+		m_bvh_buffer = structure.GetNodesBuffer();
+		m_bboxes_buffer = structure.GetBoundsBuffer();
+#endif // USE_LBVH
 
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
