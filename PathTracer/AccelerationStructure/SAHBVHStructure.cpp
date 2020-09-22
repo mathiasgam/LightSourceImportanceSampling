@@ -10,16 +10,9 @@ namespace LSIS {
 
 	inline float Nth(const __m128 a, const unsigned int n) {
 		CORE_ASSERT(n >= 0 && n < 4, "N out of bounds [0,3]");
-		switch (n) {
-		case 0:
-			return _mm_cvtss_f32(a);
-		case 1:
-			return _mm_cvtss_f32(_mm_shuffle_ps(a, a, _MM_SHUFFLE(1, 1, 2, 1)));
-		case 2:
-			return _mm_cvtss_f32(_mm_shuffle_ps(a, a, _MM_SHUFFLE(2, 1, 2, 2)));
-		case 3:
-			return _mm_cvtss_f32(_mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 1, 2, 3)));
-		}
+		float tmp[4] alignas(16);
+		_mm_store_ps(tmp, a);
+		return tmp[n];
 	}
 
 	SAHBVHStructure::SAHBVHStructure(const SHARED::Vertex* vertices, const SHARED::Face* faces, const size_t num_faces)
