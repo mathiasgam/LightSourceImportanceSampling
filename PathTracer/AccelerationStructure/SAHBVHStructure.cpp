@@ -34,7 +34,102 @@ namespace LSIS {
 
 		bbox cb = calc_bounds_and_centers(info.centers, info.bounds, vertices, faces, num_faces);
 
-		uint32_t last = build_recursive(info, 0, num_faces, cb);
+		auto queue = std::queue<queue_item>();
+		queue.emplace(next_index++, 0, (uint32_t)num_faces, cb);
+
+		while (!queue.empty()) {
+			// fetch next node index to be processed from the queue
+			queue_item args = queue.front(); 
+			queue.pop();
+
+			cb = args.cb;
+			uint32_t range = args.right - args.left;
+			if (range == 1) { // is leaf node
+				SHARED::Node node = {};
+				node.left = -1;
+				node.right = info.ids[args.left];
+				m_nodes[args.index] = node;
+				SHARED::AABB bbox = {};
+				_mm_store_ps((float*)&bbox.min, _mm_load_ps((float*)&info.bounds[node.right * 2]));
+				_mm_store_ps((float*)&bbox.max, _mm_load_ps((float*)&info.bounds[node.right * 2 + 1]));
+				m_bboxes[args.index] = bbox;
+
+				//printf("Index: %d, Leaf\n", index);
+				continue;
+			}
+			else { // is internal node
+				bbox bins_bound[K];
+				bbox bin_center_bounds[K];
+				uint32_t bins_count[K];
+				for (int i = 0; i < K; i++) {
+					bins_bound[i] = make_negative_bbox(); // initialize to negtive bounds
+					bins_count[i] = 0;
+				}
+
+				const int k = find_max_axis(cb.pmin, cb.pmax); // axis of the partition
+				const float k0 = cb.pmin[k];
+				const float k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
+
+				//printf("Info: k: %d, k0: %f, k1: %f\n", k, k0, k1);
+				//printf("cb_k: [%f,%f}\n", cb.pmin[k], cb.pmax[k]);
+
+				__m128 pmin_node = _mm_set1_ps(std::numeric_limits<float>::infinity());
+				__m128 pmax_node = _mm_set1_ps(-std::numeric_limits<float>::infinity());
+
+				for (uint32_t i = args.left; i < args.right; i++) {
+					const uint32_t id = info.ids[i];
+					const float c_ik = info.centers[id][k];
+
+					CORE_ASSERT(c_ik <= cb.pmax[k] && c_ik >= cb.pmin[k], "center out of bounds, failure in partition!");
+
+					const uint32_t bin_id = static_cast<uint32_t>(k1 * (c_ik - k0));
+					CORE_ASSERT(bin_id >= 0 && bin_id < K, "Bin ID out of bounds!");
+
+					const __m128 pmin = _mm_load_ps((float*)(&info.bounds[id * 2]));
+					const __m128 pmax = _mm_load_ps((float*)(&info.bounds[id * 2 + 1]));
+
+					pmin_node = _mm_min_ps(pmin_node, pmin);
+					pmax_node = _mm_max_ps(pmax_node, pmax);
+
+					const __m128 bin_pmin = _mm_load_ps((float*)&(bins_bound[bin_id].pmin));
+					const __m128 bin_pmax = _mm_load_ps((float*)&(bins_bound[bin_id].pmax));
+
+					_mm_store_ps((float*)&(bins_bound[bin_id].pmin), _mm_min_ps(pmin, bin_pmin));
+					_mm_store_ps((float*)&(bins_bound[bin_id].pmax), _mm_max_ps(pmax, bin_pmax));
+
+					bins_count[bin_id]++;
+				}
+
+				SHARED::Node node = {};
+				node.left = next_index++;
+				node.right = next_index++;
+				m_nodes[args.index] = node;
+
+				SHARED::AABB bbox_node = {};
+				_mm_store_ps((float*)&bbox_node.min, pmin_node);
+				_mm_store_ps((float*)&bbox_node.max, pmax_node);
+				m_bboxes[args.index] = bbox_node;
+
+				float A_l[K];
+				uint32_t N_l[K];
+				accumulate_from_left(A_l, N_l, bins_bound, bins_count);
+
+				float A_r[K];
+				uint32_t N_r[K];
+				accumulate_from_right(A_r, N_r, bins_bound, bins_count);
+
+				const uint32_t best_split_bin_id = find_optimal_split(A_l, A_r, N_l, N_r);
+
+				bbox cb_l, cb_r;
+				uint32_t middle = reorder_ids(info, args.left, args.right, &cb_l, &cb_r, best_split_bin_id, k, k0, k1);
+
+				queue.emplace(node.left, args.left, middle, cb_l);
+				queue.emplace(node.right, middle, args.right, cb_r);
+
+			}
+		}
+
+		//uint32_t last = build_recursive(info, 0, num_faces, cb);
 		//CORE_ASSERT(last == num_nodes, "generated and allocated nodes not matching!");
 
 		// clean allocated memory
@@ -364,6 +459,11 @@ namespace LSIS {
 		CORE_ASSERT(left == right, "left and right has to match!");
 
 		return left;
+	}
+
+	SAHBVHStructure::queue_item::queue_item(uint32_t index, uint32_t left, uint32_t right, bbox cb)
+		:index(index), left(left), right(right), cb(cb)
+	{
 	}
 
 }

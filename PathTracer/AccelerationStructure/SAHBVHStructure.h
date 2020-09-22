@@ -49,10 +49,13 @@ namespace LSIS {
 		} build_info;
 
 		typedef struct queue_item {
+			uint32_t index;
 			uint32_t left;
 			uint32_t right;
 			bbox cb;
-		};
+			queue_item(uint32_t index, uint32_t left, uint32_t right, bbox cb);
+			queue_item() = delete;
+		} queue_item;
 
 
 	public:
