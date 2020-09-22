@@ -57,7 +57,7 @@ namespace LSIS {
 		auto square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
 
-		m_scene->LoadObject("../Assets/Models/bunny.obj", m1, Transform({ -1,0,-1 }));
+		m_scene->LoadObject("../Assets/Models/cube.obj", m1, Transform({ -1,0,-1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m2, Transform({ 1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m3, Transform({ -1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m4, Transform({ 1,0,-1 }));
@@ -69,10 +69,10 @@ namespace LSIS {
 			entity.AddComponent<TransformComponent>(mat);
 			entity.AddComponent<MeshComponent>(mesh, m5);
 		}
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(10, 10, 10)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(50, 0, 0)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 50, 0)));
+		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(0, 0, 50)));
 	}
 
 	void Application::CreateWindow() {
