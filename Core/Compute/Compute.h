@@ -10,7 +10,7 @@
 	int err = _openclcall_;															\
 	if (err != 0){																	\
 		std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << ", " << __FILE__ << "\n";		\
-		exit(err);																	\
+		__debugbreak();																\
 	}																				\
 }
 #else
