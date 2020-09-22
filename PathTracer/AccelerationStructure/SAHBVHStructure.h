@@ -6,7 +6,7 @@
 
 namespace LSIS {
 
-#define K 16
+#define K 128
 
 
 	class SAHBVHStructure
