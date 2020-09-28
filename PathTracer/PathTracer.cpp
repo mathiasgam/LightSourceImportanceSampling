@@ -15,6 +15,7 @@
 #include "AccelerationStructure/SAHBVHStructure.h"
 
 #include "LightStructure/LightStructure.h"
+#include "LightStructure/LightTree.h"
 
 #include "IO/Image.h"
 
@@ -449,6 +450,8 @@ namespace LSIS {
 			auto& light = scene_lights[i];
 			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
 		}
+
+		LightTree light_tree = LightTree(lights_data.data(), num_lights);
 
 		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
