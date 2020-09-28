@@ -4,26 +4,26 @@
 #if defined(APP_LSIS) // in CPP
 // define cl types to match hlsl
 #include "CL/cl.h"
-typedef cl_float4 float4;
-typedef cl_float3 float3;
-typedef cl_float2 float2;
-typedef cl_uint4 uint4;
-typedef cl_uint3 uint3;
-typedef cl_uint2 uint2;
-typedef cl_uint uint;
-typedef cl_int4 int4;
-typedef cl_int3 int3;
-typedef cl_int2 int2;
+
 
 namespace SHARED {
 #else // in HLSL
-
+typedef float4  cl_float4;
+typedef float3  cl_float3;
+typedef float2  cl_float2;
+typedef uint4   cl_uint4;
+typedef uint3   cl_uint3;
+typedef uint2   cl_uint2;
+typedef uint    cl_uint;
+typedef int4    cl_int4;
+typedef int3    cl_int3;
+typedef int2    cl_int2;
 #endif
 
     typedef struct Ray
     {
-        float4 origin; // xyz is origin, w is t_min
-        float4 direction; // xyz is direction, w is t_max
+        cl_float4 origin; // xyz is origin, w is t_min
+        cl_float4 direction; // xyz is direction, w is t_max
     } Ray;
 
     typedef struct Intersection
@@ -37,17 +37,17 @@ namespace SHARED {
 
     // Defines types for the buffers
     typedef struct Vertex {
-        float4 position;
-        float4 normal;
+        cl_float4 position;
+        cl_float4 normal;
     } Vertex;
 
     typedef struct Face {
-        uint4 index;
+        cl_uint4 index;
     } Face;
 
     typedef struct Material {
-        float4 diffuse;
-        float4 specular;
+        cl_float4 diffuse;
+        cl_float4 specular;
     } Material;
 
     typedef struct Node {
@@ -58,26 +58,36 @@ namespace SHARED {
     } Node;
 
     typedef struct AABB {
-        float4 min;
-        float4 max;
+        cl_float4 min;
+        cl_float4 max;
     } AABB;
 
     typedef struct GeometricInfo {
-        float4 position;
-        float4 normal;
-        float4 incoming;
-        float4 uvwt;
+        cl_float4 position;
+        cl_float4 normal;
+        cl_float4 incoming;
+        cl_float4 uvwt;
     } GeometricInfo;
 
     typedef struct Pixel {
-        float4 color;
+        cl_float4 color;
     } Pixel;
 
     typedef struct Light {
-        float4 position;
-        float4 direction;
-        float4 intensity;
+        cl_float4 position;
+        cl_float4 direction;
+        cl_float4 intensity;
     } Light;
+
+    typedef struct LightTreeNode {
+        cl_float4 pmin;
+        cl_float4 pmax;
+        cl_float4 axis;
+        float theta_o;
+        float theta_e;
+        int left;
+        int right;
+    } LightTreeNode;
 
 #if defined(APP_LSIS)
 
@@ -107,6 +117,18 @@ namespace SHARED {
         material.diffuse = { diffuse.x, diffuse.y, diffuse.z, 1.0f };
         material.specular = { specular.x, specular.y, specular.z, 1.0f };
         return material;
+    }
+
+    inline LightTreeNode make_light_tree_node(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, float theta_o, float theta_e, int left, int right) {
+        LightTreeNode node = {};
+        node.pmin = { pmin.x, pmin.y, pmin.z, 0.0f };
+        node.pmax = { pmax.x, pmax.y, pmax.z, 0.0f };
+        node.axis = { axis.x, axis.y, axis.z, 0.0f };
+        node.theta_o = theta_o;
+        node.theta_e = theta_e;
+        node.left = left;
+        node.right = right;
+        return node;
     }
 
 }
