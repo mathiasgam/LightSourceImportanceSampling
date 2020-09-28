@@ -360,8 +360,8 @@ namespace LSIS {
 		uint32_t i_best = 0;
 
 		// iterate through the rest of the bins and save everytime a better score is found
-		for (uint32_t i = 1; i < K; i++) {
-			const float cost = A_l[i] * N_l[i] + A_r[i] * N_r[i];
+		for (uint32_t i = 1; i < K-1; i++) {
+			const float cost = A_l[i] * N_l[i] + A_r[i+1] * N_r[i+1];
 			if (cost < cost_best) {
 				cost_best = cost;
 				i_best = i;
