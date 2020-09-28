@@ -22,6 +22,5 @@ namespace LSIS {
 	};
 
 	TypedBuffer<cl_float> build_power_sampling_buffer(TypedBuffer<SHARED::Light> light_buffer);
-	TypedBuffer<SHARED::LightNode> build_light_tree(TypedBuffer<SHARED::Light> light_buffer);
 
 }

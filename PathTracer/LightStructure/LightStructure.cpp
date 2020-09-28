@@ -58,24 +58,4 @@ namespace LSIS {
 	float similarity(float intensity, float diagonal, float half_angle, float scaling) {
 		return intensity * (sqr(diagonal) + sqr(scaling) * sqr(1.0f - cos(half_angle)));
 	}
-
-	TypedBuffer<SHARED::LightNode> build_light_tree(TypedBuffer<SHARED::Light> light_buffer)
-	{
-		const uint32_t num_lights = light_buffer.Count();
-		cl::CommandQueue queue = Compute::GetCommandQueue();
-
-		// Read light buffer into host memory
-		std::vector<SHARED::Light> lights = std::vector<SHARED::Light>(num_lights);
-		CHECK(queue.enqueueReadBuffer(light_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights.data()));
-
-
-
-		const uint32_t num_nodes = num_lights - 1;
-		TypedBuffer<SHARED::LightNode> light_tree_buffer = TypedBuffer<SHARED::LightNode>(Compute::GetContext(), CL_MEM_READ_ONLY, num_nodes);
-
-
-
-		return light_tree_buffer;
-	}
-
 }
