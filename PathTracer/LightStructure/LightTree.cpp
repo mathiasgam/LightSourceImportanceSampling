@@ -37,12 +37,14 @@ namespace LSIS {
 
 			const int range = right - left;
 			CORE_ASSERT(range > 0 && range <= num_lights, "Range is out of bounds");
-			if (range == 1) { // Is Leaf
-				const float3 pmin = data.pmin[left];
-				const float3 pmax = data.pmax[left];
-				const float3 axis = data.axis[left];
-				const float theta_o = data.theta_o[left];
-				const float theta_e = data.theta_e[left];
+			if (range == 1) { // Is 
+				uint id = data.ids[left];
+
+				const float3 pmin = data.pmin[id];
+				const float3 pmax = data.pmax[id];
+				const float3 axis = data.axis[id];
+				const float theta_o = data.theta_o[id];
+				const float theta_e = data.theta_e[id];
 
 				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, theta_o, theta_e, -1, left);
 			}
