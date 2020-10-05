@@ -78,7 +78,7 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		if (m_num_samples < 64) {
+		if (m_num_samples < 1000) {
 			PROFILE_SCOPE("PathTracer");
 			Prepare();
 
