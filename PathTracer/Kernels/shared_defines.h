@@ -80,6 +80,14 @@ typedef int2    cl_int2;
         cl_float4 intensity;
     } Light;
 
+    typedef struct MeshLight {
+        int i0;
+        int i1;
+        int i2;
+        float area;
+        cl_float4 intensity;
+    };
+
     typedef struct LightTreeNode {
         cl_float4 pmin;
         cl_float4 pmax;
