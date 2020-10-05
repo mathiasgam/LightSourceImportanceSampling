@@ -8,6 +8,11 @@ namespace LSIS {
 
 	LightTree::LightTree(const SHARED::Light* lights, const size_t num_lights)
 	{
+		if (num_lights == 0) {
+			m_num_nodes = 0;
+			return;
+		}
+
 		// Allocate node buffer
 		m_num_nodes = num_lights * 2L - 1L;
 		m_nodes = new SHARED::LightTreeNode[m_num_nodes];

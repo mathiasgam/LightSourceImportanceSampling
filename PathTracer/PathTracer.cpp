@@ -351,7 +351,7 @@ namespace LSIS {
 		for (auto index : material_index_map) {
 			auto mat = index.first;
 			auto id = index.second;
-			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular());
+			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular(), mat->GetEmission());
 		}
 
 		size_t index_face = 0;
@@ -442,13 +442,18 @@ namespace LSIS {
 		auto scene_lights = app->GetScene()->GetLights();
 
 		// get the number of lights and allocate the space for the temporary buffer data
-		const size_t num_lights = scene_lights.size();
+		size_t num_lights = scene_lights.size();
 		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
 
 		// format and store scene lights data
 		for (auto i = 0; i < num_lights; i++) {
 			auto& light = scene_lights[i];
 			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
+		}
+
+		if (num_lights == 0) {
+			lights_data.push_back(SHARED::make_light({ 0,0,0 }, { 0,0,0 }, { 0,0,0 }));
+			num_lights = 1;
 		}
 
 		LightTree light_tree = LightTree(lights_data.data(), num_lights);

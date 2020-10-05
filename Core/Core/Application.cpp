@@ -53,6 +53,7 @@ namespace LSIS {
 		auto m3 = std::make_shared<Material>(flat, glm::vec4(0.2f, 0.2f, 0.8f, 1.0f));
 		auto m4 = std::make_shared<Material>(flat, glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
 		auto m5 = std::make_shared<Material>(flat, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
+		auto mat_light = std::make_shared<Material>(flat, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec3(50.0f, 50.0f, 50.0f));
 
 		auto square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
@@ -69,10 +70,19 @@ namespace LSIS {
 			entity.AddComponent<TransformComponent>(mat);
 			entity.AddComponent<MeshComponent>(mesh, m5);
 		}
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(50, 0, 0)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 50, 0)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(0, 0, 50)));
+
+		{
+			auto entity = m_scene->CreateEntity();
+			auto mesh = std::make_shared<Mesh>(MeshLoader::CreateRect({ 1.0f, 1.0f }));
+			auto transform = Transform({ 0,2,0 }, { glm::pi<float>()/2.0f, 0,0 });
+			const glm::mat4 mat = transform.GetModelMatrix();
+			entity.AddComponent<TransformComponent>(mat);
+			entity.AddComponent<MeshComponent>(mesh, mat_light);
+		}
+		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
+		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(50, 0, 0)));
+		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 50, 0)));
+		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(0, 0, 50)));
 	}
 
 	void Application::CreateWindow() {

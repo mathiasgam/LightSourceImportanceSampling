@@ -99,6 +99,9 @@ __kernel void ProcessBounce(
                 Light light = lights[i];
                 Material material = materials[hit.material_index];
                 float3 diffuse = material.diffuse.xyz;
+                float3 emission = material.emission.xyz;
+
+                result += emission * throughput;
 
                 throughput *= diffuse * M_1_PI_F;
 
