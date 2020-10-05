@@ -20,6 +20,8 @@ namespace LSIS {
 		glm::vec3 GetSpecular() const { return m_specular; }
 		glm::vec3 GetEmission() const { return m_emission; }
 
+		bool isEmissive() const { return m_emission.x > 0.0f || m_emission.y > 0.0f || m_emission.z > 0.0f; }
+
 	private:
 		std::shared_ptr<Shader> m_shader;
 		glm::vec3 m_diffuse;
