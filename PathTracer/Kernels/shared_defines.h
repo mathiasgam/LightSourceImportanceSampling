@@ -48,6 +48,7 @@ typedef int2    cl_int2;
     typedef struct Material {
         cl_float4 diffuse;
         cl_float4 specular;
+        cl_float4 emission;
     } Material;
 
     typedef struct Node {
@@ -116,6 +117,15 @@ typedef int2    cl_int2;
         Material material = {};
         material.diffuse = { diffuse.x, diffuse.y, diffuse.z, 1.0f };
         material.specular = { specular.x, specular.y, specular.z, 1.0f };
+        material.emission = { 0.0f,0.0f,0.0f,0.0f };
+        return material;
+    }
+
+    inline Material make_material(glm::vec3 diffuse, glm::vec3 specular, glm::vec3 emission) {
+        Material material = {};
+        material.diffuse = { diffuse.x, diffuse.y, diffuse.z, 1.0f };
+        material.specular = { specular.x, specular.y, specular.z, 1.0f };
+        material.emission = { emission.x, emission.y, emission.z, 1.0f };
         return material;
     }
 
