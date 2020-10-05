@@ -44,9 +44,7 @@ namespace LSIS {
 
 		void ResetSamples();
 
-		void LoadGeometry();
-		void LoadMaterials();
-		void LoadLights();
+		void LoadSceneData();
 
 	private:
 		uint32_t m_image_width, m_image_height;

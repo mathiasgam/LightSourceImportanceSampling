@@ -177,7 +177,7 @@ namespace LSIS {
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
-		size_t num_pixels = static_cast<size_t>(m_image_width)* static_cast<size_t>(m_image_height);
+		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
 		size_t num_concurrent_samples = num_pixels * m_num_samples_per_pixel;
 
 		m_state_buffer = TypedBuffer<cl_int>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
@@ -202,9 +202,7 @@ namespace LSIS {
 	void PathTracer::BuildStructure()
 	{
 		//LoadMaterials();
-		LoadGeometry();
-		LoadLights();
-
+		LoadSceneData();
 
 		//BVHBuilder builder = BVHBuilder();
 #ifdef USE_LBVH
@@ -314,7 +312,7 @@ namespace LSIS {
 		m_num_samples = 0;
 	}
 
-	void PathTracer::LoadGeometry()
+	void PathTracer::LoadSceneData()
 	{
 		auto scene = Application::Get()->GetScene();
 		Scene* p_scene = scene.get();
@@ -354,6 +352,9 @@ namespace LSIS {
 			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular(), mat->GetEmission());
 		}
 
+
+		size_t num_emissive_faces = 0;
+
 		size_t index_face = 0;
 		size_t index_vertex = 0;
 		for (auto& [mesh, transform, material] : objects) {
@@ -362,6 +363,7 @@ namespace LSIS {
 
 			cl_uint material_index = material_index_map[material];
 
+
 			size_t num_faces_object = mesh->GetNumIndices() / 3;
 			size_t num_vertices_object = mesh->GetNumVertices();
 
@@ -369,6 +371,8 @@ namespace LSIS {
 				uint32_t v0 = indices[i * 3 + 0] + index_vertex;
 				uint32_t v1 = indices[i * 3 + 1] + index_vertex;
 				uint32_t v2 = indices[i * 3 + 2] + index_vertex;
+				if (material->isEmissive())
+					num_emissive_faces++;
 				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, material_index);
 			}
 
@@ -415,35 +419,13 @@ namespace LSIS {
 		cl::WaitForEvents(write_events);
 
 		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
-	}
 
-	void PathTracer::LoadMaterials()
-	{
-		auto scene_materials = Application::Get()->GetScene()->GetMaterials();
-
-		const size_t num_materials = scene_materials.size();
-		std::vector<SHARED::Material> material_data = std::vector<SHARED::Material>(num_materials);
-
-		for (auto i = 0; i < num_materials; i++) {
-			auto& material = scene_materials[i];
-			material_data[i] = SHARED::make_material(material->GetDiffuse(), material->GetSpecular());
-		}
-
-		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Material) * num_materials, material_data.data());
-
-		printf("Num Materials: %zd\n", num_materials);
-	}
-
-	void PathTracer::LoadLights()
-	{
 		// load scene lights
-		auto app = Application::Get();
-		auto scene_lights = app->GetScene()->GetLights();
+		auto scene_lights = scene->GetLights();
 
 		// get the number of lights and allocate the space for the temporary buffer data
 		size_t num_lights = scene_lights.size();
-		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
+		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights + num_emissive_faces);
 
 		// format and store scene lights data
 		for (auto i = 0; i < num_lights; i++) {
