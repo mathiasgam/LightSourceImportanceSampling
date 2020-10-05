@@ -18,11 +18,13 @@ namespace LSIS {
 
 		glm::vec3 GetDiffuse() const { return m_diffuse; }
 		glm::vec3 GetSpecular() const { return m_specular; }
+		glm::vec3 GetEmission() const { return m_emission; }
 
 	private:
 		std::shared_ptr<Shader> m_shader;
 		glm::vec3 m_diffuse;
 		glm::vec3 m_specular;
+		glm::vec3 m_emission;
 		
 	};
 
