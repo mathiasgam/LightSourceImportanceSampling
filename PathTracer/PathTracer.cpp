@@ -46,8 +46,22 @@ namespace LSIS {
 			exit(err);
 		}
 
+		bool use_hdri = false;
+
+		float* hdr_data;
 		int hdr_width, hdr_height, hdr_channels;
-		float* hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		if (use_hdri) {
+			hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		}
+		else {
+			hdr_width = 1;
+			hdr_height = 1;
+			hdr_channels = 3;
+			hdr_data = new float[3];
+			hdr_data[0] = 0.0f;
+			hdr_data[1] = 0.0f;
+			hdr_data[2] = 0.0f;
+		}
 
 		cl::ImageFormat format = {};
 		format.image_channel_order = CL_RGBA;
@@ -62,6 +76,9 @@ namespace LSIS {
 			printf("Error: %s\n", err_string.c_str());
 			exit(err);
 		}
+
+		delete[] hdr_data;
+		CHECK(Compute::GetCommandQueue().finish());
 	}
 
 	PathTracer::~PathTracer()
@@ -78,6 +95,10 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
+		// Don't do anything if not ready
+		if (!ready)
+			return;
+
 		if (m_num_samples < 1000) {
 			PROFILE_SCOPE("PathTracer");
 			Prepare();
@@ -100,7 +121,7 @@ namespace LSIS {
 			// copy results into pixelbuffer
 			ProcessResults();
 			m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
-			Compute::GetCommandQueue().finish();
+			CHECK(Compute::GetCommandQueue().finish());
 
 			m_num_samples++;
 		}
@@ -220,7 +241,9 @@ namespace LSIS {
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
 		ResetSamples();
-	}
+
+		CHECK(Compute::GetCommandQueue().finish());
+}
 
 	void PathTracer::Prepare()
 	{
@@ -323,6 +346,13 @@ namespace LSIS {
 		size_t num_indices = 0;
 		size_t num_materials = 0;
 
+		if (entities.empty()) {
+			m_num_faces = 0;
+			m_num_vertices = 0;
+			ready = false;
+			return;
+		}
+
 		for (auto handle : entities) {
 			Entity entity = { handle, p_scene };
 			auto mesh = entity.GetComponent<MeshComponent>().mesh->GetData();
@@ -381,20 +411,16 @@ namespace LSIS {
 
 		}
 
+		auto context = Compute::GetContext();
 		auto queue = Compute::GetCommandQueue();
 
-		std::vector<cl::Event> write_events = std::vector<cl::Event>(3);
-		write_events[0] = cl::Event();
-		write_events[1] = cl::Event();
-		write_events[2] = cl::Event();
+		m_face_buffer = TypedBuffer<SHARED::Face>(context, CL_MEM_READ_ONLY, num_faces);
+		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(context, CL_MEM_READ_ONLY, num_vertices);
+		m_material_buffer = TypedBuffer<SHARED::Material>(context, CL_MEM_READ_ONLY, num_materials);
 
-		m_face_buffer = TypedBuffer<SHARED::Face>(Compute::GetContext(), CL_MEM_READ_ONLY, num_faces);
-		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
-		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
-
-		CHECK(queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data(), nullptr, &write_events[0]));
-		CHECK(queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]));
-		CHECK(queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]));
+		CHECK(queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data()));
+		CHECK(queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data()));
+		CHECK(queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data()));
 
 		if (m_vertex_data != nullptr)
 			delete[] m_vertex_data;
@@ -408,10 +434,6 @@ namespace LSIS {
 
 		memcpy(m_vertex_data, vertices_data.data(), num_vertices * sizeof(SHARED::Vertex));
 		memcpy(m_face_data, faces_data.data(), num_faces * sizeof(SHARED::Face));
-
-
-		// Wait for data to be uploaded
-		CHECK(cl::WaitForEvents(write_events));
 
 		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
 
@@ -428,18 +450,14 @@ namespace LSIS {
 			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
 		}
 
-		if (num_lights == 0) {
-			lights_data.push_back(SHARED::make_light({ 0,0,0 }, { 0,0,0 }, { 0,0,0 }));
-			num_lights = 1;
-		}
-
 		LightTree light_tree = LightTree(lights_data.data(), num_lights);
 
-		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
+		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
+		CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
 
 		m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
 
+		ready = true;
 		printf("Num lights: %zd\n", num_lights);
 	}
 

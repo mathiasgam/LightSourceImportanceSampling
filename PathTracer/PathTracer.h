@@ -81,6 +81,7 @@ namespace LSIS {
 
 
 		bool buffer_switch = true;
+		bool ready = false;
 
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;
