@@ -18,6 +18,13 @@ namespace LSIS {
 	SAHBVHStructure::SAHBVHStructure(const SHARED::Vertex* vertices, const SHARED::Face* faces, const size_t num_faces)
 	{
 		PROFILE_SCOPE("SAH BVH Builder");
+
+		if (num_faces == 0) {
+			m_num_nodes = 0;
+			m_nodes = nullptr;
+			m_bboxes = nullptr;
+			return;
+		}
 		// allocate permanent storage
 		m_num_nodes = 2L * num_faces - 1L;
 		m_nodes = new SHARED::Node[m_num_nodes];
@@ -39,7 +46,7 @@ namespace LSIS {
 
 		while (!queue.empty()) {
 			// fetch next node index to be processed from the queue
-			queue_item args = queue.front(); 
+			queue_item args = queue.front();
 			queue.pop();
 
 			cb = args.cb;
@@ -68,7 +75,7 @@ namespace LSIS {
 
 				const int k = find_max_axis(cb.pmin, cb.pmax); // axis of the partition
 				const float k0 = cb.pmin[k];
-				const float k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
+				const float k1 = (static_cast<float>(K) * (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
 
 				//printf("Info: k: %d, k0: %f, k1: %f\n", k, k0, k1);
 				//printf("cb_k: [%f,%f}\n", cb.pmin[k], cb.pmax[k]);
@@ -144,6 +151,9 @@ namespace LSIS {
 
 	TypedBuffer<SHARED::AABB> SAHBVHStructure::GetBoundsBuffer()
 	{
+		if (m_num_nodes == 0) {
+			return TypedBuffer<SHARED::AABB>();
+		}
 		TypedBuffer<SHARED::AABB> buffer = TypedBuffer<SHARED::AABB>(Compute::GetContext(), CL_MEM_READ_ONLY, m_num_nodes);
 		Compute::GetCommandQueue().enqueueWriteBuffer(buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::AABB) * m_num_nodes, m_bboxes);
 		return buffer;
@@ -151,6 +161,9 @@ namespace LSIS {
 
 	TypedBuffer<SHARED::Node> SAHBVHStructure::GetNodesBuffer()
 	{
+		if (m_num_nodes == 0) {
+			return TypedBuffer<SHARED::Node>();
+		}
 		TypedBuffer<SHARED::Node> buffer = TypedBuffer<SHARED::Node>(Compute::GetContext(), CL_MEM_READ_ONLY, m_num_nodes);
 		Compute::GetCommandQueue().enqueueWriteBuffer(buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Node) * m_num_nodes, m_nodes);
 		return buffer;
@@ -231,7 +244,7 @@ namespace LSIS {
 
 			const int k = find_max_axis(cb.pmin, cb.pmax); // axis of the partition
 			const float k0 = cb.pmin[k];
-			const float k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
+			const float k1 = (static_cast<float>(K) * (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
 
 			//printf("Info: k: %d, k0: %f, k1: %f\n", k, k0, k1);
 			//printf("cb_k: [%f,%f}\n", cb.pmin[k], cb.pmax[k]);
@@ -360,8 +373,8 @@ namespace LSIS {
 		uint32_t i_best = 0;
 
 		// iterate through the rest of the bins and save everytime a better score is found
-		for (uint32_t i = 1; i < K-1; i++) {
-			const float cost = A_l[i] * N_l[i] + A_r[i+1] * N_r[i+1];
+		for (uint32_t i = 1; i < K - 1; i++) {
+			const float cost = A_l[i] * N_l[i] + A_r[i + 1] * N_r[i + 1];
 			if (cost < cost_best) {
 				cost_best = cost;
 				i_best = i;
@@ -436,7 +449,7 @@ namespace LSIS {
 		// check left partition
 		const int k_l = find_max_axis(cb_l->pmin, cb_l->pmax); // axis of the partition
 		const float k0_l = cb_l->pmin[k_l];
-		const float k1_l = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb_l->pmax[k_l] - cb_l->pmin[k_l]);
+		const float k1_l = (static_cast<float>(K) * (1.0f - 1e-6f)) / (cb_l->pmax[k_l] - cb_l->pmin[k_l]);
 		for (int i = begin; i < left; i++) {
 			const float4 c_i = info.centers[info.ids[i]];
 			const uint32_t bin_id = static_cast<uint32_t>(k1_l * (c_i[k_l] - k0_l));
@@ -447,7 +460,7 @@ namespace LSIS {
 		// check right partition
 		const int k_r = find_max_axis(cb_r->pmin, cb_r->pmax); // axis of the partition
 		const float k0_r = cb_r->pmin[k_r];
-		const float k1_r = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb_r->pmax[k_r] - cb_r->pmin[k_r]);
+		const float k1_r = (static_cast<float>(K) * (1.0f - 1e-6f)) / (cb_r->pmax[k_r] - cb_r->pmin[k_r]);
 		for (int i = left; i < end; i++) {
 			const float4 c_i = info.centers[info.ids[i]];
 			const uint32_t bin_id = static_cast<uint32_t>(k1_r * (c_i[k_r] - k0_r));
