@@ -5,6 +5,10 @@ namespace LSIS {
 
 	TypedBuffer<cl_float> LSIS::build_power_sampling_buffer(const SHARED::Light* lights, const size_t num_lights)
 	{
+		if (num_lights == 0) {
+			return TypedBuffer<cl_float>();
+		}
+
 		cl::CommandQueue queue = Compute::GetCommandQueue();
 
 		float* powers = new float[num_lights];
@@ -28,6 +32,10 @@ namespace LSIS {
 
 		TypedBuffer<cl_float> sampling_buffer = TypedBuffer<cl_float>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		CHECK(queue.enqueueWriteBuffer(sampling_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_float) * num_lights, (void*)cdf));
+
+		// Cleanup
+		delete[] powers;
+		delete[] cdf;
 
 		return sampling_buffer;
 	}

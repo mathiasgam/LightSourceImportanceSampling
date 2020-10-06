@@ -93,8 +93,8 @@ namespace LSIS {
 		inline uint max_axis(float3 a);
 
 	private:
-		SHARED::LightTreeNode* m_nodes;
-		size_t m_num_nodes;
+		SHARED::LightTreeNode* m_nodes = nullptr;
+		size_t m_num_nodes = 0;
 	};
 
 }

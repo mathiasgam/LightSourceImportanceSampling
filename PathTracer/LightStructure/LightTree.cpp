@@ -127,7 +127,8 @@ namespace LSIS {
 	}
 	LightTree::~LightTree()
 	{
-		delete[] m_nodes;
+		if (m_nodes)
+			delete[] m_nodes;
 	}
 	inline LightTree::build_data LightTree::allocate_build_data(size_t size)
 	{
