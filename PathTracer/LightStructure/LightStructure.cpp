@@ -3,14 +3,9 @@
 
 namespace LSIS {
 
-	TypedBuffer<cl_float> LSIS::build_power_sampling_buffer(TypedBuffer<SHARED::Light> light_buffer)
+	TypedBuffer<cl_float> LSIS::build_power_sampling_buffer(const SHARED::Light* lights, const size_t num_lights)
 	{
-		const uint32_t num_lights = light_buffer.Count();
-
 		cl::CommandQueue queue = Compute::GetCommandQueue();
-
-		SHARED::Light* lights = new SHARED::Light[num_lights];
-		CHECK(queue.enqueueReadBuffer(light_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, (void*)lights));
 
 		float* powers = new float[num_lights];
 		float* cdf = new float[num_lights];

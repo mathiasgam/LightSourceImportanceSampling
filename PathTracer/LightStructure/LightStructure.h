@@ -21,6 +21,6 @@ namespace LSIS {
 	private:
 	};
 
-	TypedBuffer<cl_float> build_power_sampling_buffer(TypedBuffer<SHARED::Light> light_buffer);
+	TypedBuffer<cl_float> build_power_sampling_buffer(const SHARED::Light* lights, const size_t num_lights);
 
 }

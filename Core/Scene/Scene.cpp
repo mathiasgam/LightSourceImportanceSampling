@@ -124,33 +124,45 @@ namespace LSIS {
 	{
 		size_t num_vertices = 0;
 		size_t num_indices = 0;
+		size_t num_materials = 0;
 		std::vector<VertexData> vertices{};
-		std::vector<uint32_t> indices{};
+		std::vector<FaceData> indices{};
+		std::vector<MaterialData> materials{};
 		
 		// Find size of all mesh data
 		auto view = m_registry.view<MeshComponent, TransformComponent>();
 		for (auto entity : view) {
 			auto& [mesh,Transform] = view.get<MeshComponent, TransformComponent>(entity);
-			num_vertices += mesh.mesh->GetNumVertices();
-			num_indices += mesh.mesh->GetNumIndices();
+			auto& data = mesh.mesh->GetData();
+			num_vertices += data->GetNumVertices();
+			num_indices += data->GetNumIndices();
+			num_materials += data->GetNumMaterials();
 		}
 		
 		// resize vectors
 		vertices.resize(num_vertices);
 		indices.resize(num_indices);
+		materials.resize(num_materials);
 
 		// Read data
 		uint32_t index_idx = 0;
 		uint32_t index_vtx = 0;
+		uint32_t index_mat = 0;
 		for (auto entity : view) {
 			auto& [mesh, transform] = view.get<MeshComponent, TransformComponent>(entity);
 			auto data = mesh.mesh->GetData();
 
 			auto vertex_data = data->GetVertices();
 			auto index_data = data->GetIndices();
+			auto material_data = data->GetMaterials();
 
 			for (size_t i = 0; i < data->GetNumIndices(); i++) {
-				indices[index_idx++] = index_data[i] + index_vtx;
+				FaceData face = {};
+				face.vertex0 = index_data[i].vertex0 + index_idx;
+				face.vertex1 = index_data[i].vertex1 + index_idx;
+				face.vertex2 = index_data[i].vertex2 + index_idx;
+				face.material = index_data[i].material + index_mat;
+				indices[index_idx++] = face;
 			}
 
 			for (size_t i = 0; i < data->GetNumVertices(); i++) {
@@ -167,10 +179,14 @@ namespace LSIS {
 				d.uv[1] = vertex_data[i].uv[1];
 				vertices[index_vtx++] = d;
 			}
+
+			for (size_t i = 0; i < data->GetNumMaterials(); i++) {
+				materials[index_mat++] = material_data[i];
+			}
 		}
 		
 
-		return std::make_shared<MeshData>(vertices, indices);
+		return std::make_shared<MeshData>(vertices, indices, materials);
 	}
 
 	std::vector<Ref<Light>> Scene::GetLights() const

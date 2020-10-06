@@ -58,7 +58,7 @@ namespace LSIS {
 		auto square = MeshLoader::CreateCube(0.5f);
 		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
 
-		m_scene->LoadObject("../Assets/Models/cube.obj", m1, Transform({ -1,0,-1 }));
+		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ -1,0,-1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m2, Transform({ 1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m3, Transform({ -1,0,1 }));
 		m_scene->LoadObject("../Assets/Models/cube.obj", m4, Transform({ 1,0,-1 }));

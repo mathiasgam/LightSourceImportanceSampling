@@ -322,8 +322,6 @@ namespace LSIS {
 		size_t num_vertices = 0;
 		size_t num_indices = 0;
 		size_t num_materials = 0;
-		std::unordered_map<Ref<Material>, uint32_t> material_index_map{};
-		std::list<std::tuple<Ref<MeshData>, glm::mat4, Ref<Material>>> objects{};
 
 		for (auto handle : entities) {
 			Entity entity = { handle, p_scene };
@@ -331,49 +329,40 @@ namespace LSIS {
 			auto transform = entity.GetComponent<TransformComponent>().Transform;
 			num_vertices += mesh->GetNumVertices();
 			num_indices += mesh->GetNumIndices();
-
-			auto material = entity.GetComponent<MeshComponent>().material;
-			if (material_index_map.find(material) == material_index_map.end()) {
-				material_index_map.insert({ material, num_materials++ });
-			}
-
-			objects.push_back(std::make_tuple(mesh, transform, material));
+			num_materials += mesh->GetNumMaterials();
 		}
 
-		size_t num_faces = num_indices / 3;
+		size_t num_faces = num_indices;
 
 		std::vector<SHARED::Material> materials_data = std::vector<SHARED::Material>(num_materials);
 		std::vector<SHARED::Vertex> vertices_data = std::vector<SHARED::Vertex>(num_vertices);
 		std::vector<SHARED::Face> faces_data = std::vector<SHARED::Face>(num_faces);
 
-		for (auto index : material_index_map) {
-			auto mat = index.first;
-			auto id = index.second;
-			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular(), mat->GetEmission());
-		}
-
-
 		size_t num_emissive_faces = 0;
 
 		size_t index_face = 0;
 		size_t index_vertex = 0;
-		for (auto& [mesh, transform, material] : objects) {
+		size_t index_material = 0;
+
+		for (auto handle : entities) {
+			Entity entity = { handle, p_scene };
+			auto mesh = entity.GetComponent<MeshComponent>().mesh->GetData();
+			auto transform = entity.GetComponent<TransformComponent>().Transform;
 			auto indices = mesh->GetIndices();
 			auto vertices = mesh->GetVertices();
+			auto materials = mesh->GetMaterials();
 
-			cl_uint material_index = material_index_map[material];
-
-
-			size_t num_faces_object = mesh->GetNumIndices() / 3;
+			size_t num_faces_object = mesh->GetNumIndices();
 			size_t num_vertices_object = mesh->GetNumVertices();
+			size_t num_materials_object = mesh->GetNumMaterials();
 
 			for (size_t i = 0; i < num_faces_object; i++) {
-				uint32_t v0 = indices[i * 3 + 0] + index_vertex;
-				uint32_t v1 = indices[i * 3 + 1] + index_vertex;
-				uint32_t v2 = indices[i * 3 + 2] + index_vertex;
-				if (material->isEmissive())
-					num_emissive_faces++;
-				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, material_index);
+				FaceData face = indices[i];
+				uint32_t v0 = face.vertex0 + index_vertex;
+				uint32_t v1 = face.vertex1 + index_vertex;
+				uint32_t v2 = face.vertex2 + index_vertex;
+				int idx_mat = face.material + index_material;
+				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, idx_mat);
 			}
 
 			for (size_t i = 0; i < num_vertices_object; i++) {
@@ -384,6 +373,12 @@ namespace LSIS {
 				glm::vec3 normal = { n.x,n.y,n.z };
 				vertices_data[index_vertex++] = SHARED::make_vertex(position, normal, v.uv);
 			}
+
+			for (size_t i = 0; i < num_materials_object; i++) {
+				MaterialData data = materials[i];
+				materials_data[index_material++] = SHARED::make_material(data.diffuse, data.specular, data.emissive);
+			}
+
 		}
 
 		auto queue = Compute::GetCommandQueue();
@@ -397,9 +392,9 @@ namespace LSIS {
 		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
 		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
 
-		queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data(), nullptr, &write_events[0]);
-		queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]);
-		queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]);
+		CHECK(queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data(), nullptr, &write_events[0]));
+		CHECK(queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]));
+		CHECK(queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]));
 
 		if (m_vertex_data != nullptr)
 			delete[] m_vertex_data;
@@ -416,7 +411,7 @@ namespace LSIS {
 
 
 		// Wait for data to be uploaded
-		cl::WaitForEvents(write_events);
+		CHECK(cl::WaitForEvents(write_events));
 
 		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
 
@@ -443,7 +438,7 @@ namespace LSIS {
 		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
 
-		m_cdf_power_buffer = build_power_sampling_buffer(m_lights);
+		m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
 
 		printf("Num lights: %zd\n", num_lights);
 	}

@@ -19,23 +19,37 @@ namespace LSIS {
 		{
 
 			tinyobj::attrib_t attrib;
-			std::vector<tinyobj::shape_t> shapes{};
-			std::vector<tinyobj::material_t> materials{};
+			std::vector<tinyobj::shape_t> t_shapes{};
+			std::vector<tinyobj::material_t> t_materials{};
 
 			std::string warn;
 			std::string err;
 
-			bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str());
+			bool ret = tinyobj::LoadObj(&attrib, &t_shapes, &t_materials, &warn, &err, filepath.c_str(), "../Assets/Models/");
 
-			std::vector<VertexData> vertices{};
 			std::vector<uint32_t> indices{};
+			std::vector<VertexData> vertices{};
+			std::vector<FaceData> faces{};
+			std::vector<MaterialData> materials{};
+
+			materials.resize(t_materials.size());
+			for (size_t i = 0; i < t_materials.size(); i++) {
+				auto& mat = t_materials[i];
+				MaterialData data = {};
+				data.diffuse = { mat.diffuse[0], mat.diffuse[1], mat.diffuse[2] };
+				data.specular = { mat.specular[0], mat.specular[1], mat.specular[2] };
+				data.emissive = { mat.emission[0], mat.emission[1], mat.emission[2] };
+
+				printf("Material: [%f,%f,%f]\n", data.diffuse.x, data.diffuse.y, data.diffuse.z);
+				materials[i] = data;
+			}
 
 			const uint32_t num_vertices = static_cast<uint32_t>(attrib.vertices.size() / 3);
-			const uint32_t num_faces = static_cast<uint32_t>(shapes[0].mesh.indices.size() / 3);
+			const uint32_t num_faces = static_cast<uint32_t>(t_shapes[0].mesh.indices.size() / 3);
 
 			std::unordered_map<glm::uvec3, uint32_t> vertex_map{};
 
-			for (auto& face : shapes[0].mesh.indices) {
+			for (auto& face : t_shapes[0].mesh.indices) {
 				glm::uvec3 key = { face.vertex_index, face.normal_index, face.texcoord_index };
 				auto p = vertex_map.find(key);
 				if (p == vertex_map.end()) {
@@ -63,9 +77,16 @@ namespace LSIS {
 				}
 			}
 
+			for (size_t i = 0; i < num_faces; i++) {
+				FaceData face = {};
+				face.vertex0 = indices[3*i];
+				face.vertex1 = indices[3*i+1];
+				face.vertex2 = indices[3*i+2];
+				face.material = t_shapes[0].mesh.material_ids[i];
+				faces.push_back(face);
+			}
 
-
-			return std::make_shared<MeshData>(vertices, indices);
+			return std::make_shared<MeshData>(vertices, faces, materials);
 		}
 
 		void push_face(std::vector<uint32_t>& vec, glm::uvec3 face) {
@@ -77,7 +98,8 @@ namespace LSIS {
 		std::shared_ptr<MeshData> CreateRect(glm::vec2 size)
 		{
 			std::vector<VertexData> vertices{};
-			std::vector<uint32_t> indices{};
+			std::vector<FaceData> indices{};
+			std::vector<MaterialData> materials{};
 
 			float hw = size.x / 2;
 			float hh = size.y / 2;
@@ -87,16 +109,17 @@ namespace LSIS {
 			vertices.emplace_back(+hw, +hh, 0.0f, 00.f, 0.0f, 1.0f, 1.0f, 1.0f);
 			vertices.emplace_back(-hw, +hh, 0.0f, 00.f, 0.0f, 1.0f, 0.0f, 1.0f);
 
-			push_face(indices, { 0,1,2 });
-			push_face(indices, { 0,2,3 });
+			indices.push_back({ 0,1,2,0 });
+			indices.push_back({ 0,2,3,0 });
 
-			return std::make_shared<MeshData>(vertices, indices);
+			return std::make_shared<MeshData>(vertices, indices, materials);
 		}
 
 		std::shared_ptr<MeshData> CreateCube(float size)
 		{
 			std::vector<VertexData> vertices{};
-			std::vector<uint32_t> indices{};
+			std::vector<FaceData> indices{};
+			std::vector<MaterialData> materials{};
 
 			float hs = size / 2.0f;
 
@@ -111,20 +134,20 @@ namespace LSIS {
 			vertices.emplace_back(-hs, -hs, hs, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f);
 
 
-			push_face(indices, { 4, 2, 0 });
-			push_face(indices, { 2, 7, 3 });
-			push_face(indices, { 6, 5, 7 });
-			push_face(indices, { 1, 7, 5 });
-			push_face(indices, { 0, 3, 1 });
-			push_face(indices, { 4, 1, 5 });
-			push_face(indices, { 4, 6, 2 });
-			push_face(indices, { 2, 6, 7 });
-			push_face(indices, { 6, 4, 5 });
-			push_face(indices, { 1, 3, 7 });
-			push_face(indices, { 0, 2, 3 });
-			push_face(indices, { 4, 0, 1 });
+			indices.push_back({ 4, 2, 0, 0 });
+			indices.push_back({ 2, 7, 3, 0 });
+			indices.push_back({ 6, 5, 7, 0 });
+			indices.push_back({ 1, 7, 5, 0 });
+			indices.push_back({ 0, 3, 1, 0 });
+			indices.push_back({ 4, 1, 5, 0 });
+			indices.push_back({ 4, 6, 2, 0 });
+			indices.push_back({ 2, 6, 7, 0 });
+			indices.push_back({ 6, 4, 5, 0 });
+			indices.push_back({ 1, 3, 7, 0 });
+			indices.push_back({ 0, 2, 3, 0 });
+			indices.push_back({ 4, 0, 1, 0 });
 
-			return std::make_shared<MeshData>(vertices, indices);
+			return std::make_shared<MeshData>(vertices, indices, materials);
 		}
 	}
 }
