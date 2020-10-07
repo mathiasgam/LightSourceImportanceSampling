@@ -44,6 +44,10 @@ int select_light(__global const float* cdf, uint num_lights, float r, float* pdf
     return index;
 }
 
+float sqr(float x) {
+    return x * x;
+}
+
 const sampler_t sampler_in = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;
 
 __kernel void ProcessBounce(
@@ -75,10 +79,11 @@ __kernel void ProcessBounce(
         Intersection hit = hits[id];
 
         // choose light
-        //uint i = random_uint(&rng, num_lights);
+        uint i = random_uint(&rng, num_lights);
         float pdf = inverse(num_lights);
         float r = rand(&rng);
-        uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+        //float pdf;
+        //uint i = select_light(light_power_cdf, num_lights, r, &pdf);
 
         //printf("l: %d, %f\n", i, r);
 
@@ -97,29 +102,41 @@ __kernel void ProcessBounce(
             }else{
                 //throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
                 Light light = lights[i];
+                float3 light_pos = light.position.xyz;
+                if (light.position.w == 1.0f) {
+                    const float r1 = rand(&rng);
+                    const float r2 = rand(&rng);
+                    light_pos += light.tangent.xyz * r1 + light.bitangent.xyz * r2;
+                }
+
                 Material material = materials[hit.material_index];
                 float3 diffuse = material.diffuse.xyz;
                 float3 emission = material.emission.xyz;
 
-                result += emission * throughput;
 
                 throughput *= diffuse * M_1_PI_F;
 
-                const float3 diff = light.position.xyz - geometric.position.xyz;
+                const float3 diff = light_pos - geometric.position.xyz;
                 const float dist = length(diff);
                 const float dist_inv = inverse(dist);
                 const float3 dir = diff * dist_inv;
 
+                const float attenuation = 1.0f / sqr(dist + 1.0f);
+
                 float d = dot(geometric.normal.xyz, dir);
 
+                result += emission * throughput;
+
+                d *= max(-dot(light.direction.xyz, dir), 0.0f);
+
                 // calculate the lights contribution
-                float3 L = light.intensity.xyz * max(d, 0.0f) * (dist_inv * dist_inv);
+                float3 L = light.intensity.xyz * max(d, 0.0f) * attenuation;
                 //result += L * material.diffuse.xyz * throughput;
                 //sample.result.xyz += L * throughput * material.diffuse.xyz;
 
                 float3 lift = geometric.normal.xyz * 0.0001f;
 
-                shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist);
+                shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist - 0.001f);
                 light_contribution[id] = (L * throughput) / pdf;
 
                 float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);

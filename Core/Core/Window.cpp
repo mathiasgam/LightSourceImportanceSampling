@@ -237,6 +237,7 @@ namespace LSIS {
 
 		glfwWindowHint(GLFW_SAMPLES, 4);
 
+
 		glm::uvec2 window_size = { (int)((float)m_Data.Width * xscale), (int)((float)m_Data.Height * yscale) };
 
 		m_Data.Width = window_size.x;
@@ -246,6 +247,7 @@ namespace LSIS {
 		glfwSetWindowUserPointer(m_native_window, &m_Data);
 
 		glfwMakeContextCurrent(m_native_window);
+		glfwSwapInterval(0);
 
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 

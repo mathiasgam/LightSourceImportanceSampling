@@ -5,7 +5,6 @@
 // define cl types to match hlsl
 #include "CL/cl.h"
 
-
 namespace SHARED {
 #else // in HLSL
 typedef float4  cl_float4;
@@ -76,8 +75,10 @@ typedef int2    cl_int2;
 
     typedef struct Light {
         cl_float4 position;
-        cl_float4 direction;
+        cl_float4 direction; // w is emission halfangle
         cl_float4 intensity;
+        cl_float4 tangent;
+        cl_float4 bitangent;
     } Light;
 
     typedef struct MeshLight {
@@ -116,8 +117,31 @@ typedef int2    cl_int2;
     inline Light make_light(glm::vec3 position, glm::vec3 direction, glm::vec3 intensity) {
         Light light = {};
         light.position = { position.x, position.y, position.z, 0.0f };
-        light.direction = { direction.x, direction.y, direction.z, 0.0f };
+        light.direction = { direction.x, direction.y, direction.z, CL_M_PI };
         light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
+        light.tangent = { 0,0,0,0 };
+        light.bitangent = { 0,0,0,0 };
+        return light;
+    }
+
+    inline Light make_light(glm::vec3 position, glm::vec3 direction, glm::vec3 intensity, float theta_e) {
+        Light light = {};
+        light.position = { position.x, position.y, position.z, 0.0f };
+        light.direction = { direction.x, direction.y, direction.z, theta_e };
+        light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
+        return light;
+    }
+
+    inline Light make_mesh_light(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 normal, glm::vec3 intensity) {
+        Light light = {};
+        light.position = { p0.x, p0.y, p0.z, 1.0f };
+        light.direction = { normal.x, normal.y, normal.z, CL_M_PI };
+        light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
+
+        const glm::vec3 t = p1 - p0;
+        const glm::vec3 b = p2 - p0;
+        light.tangent = { t.x,t.y,t.z,0 };
+        light.bitangent = { b.x,b.y,b.z,0 };
         return light;
     }
 

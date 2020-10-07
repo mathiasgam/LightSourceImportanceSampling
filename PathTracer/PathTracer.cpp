@@ -99,8 +99,8 @@ namespace LSIS {
 		if (!ready)
 			return;
 
-		if (m_num_samples < 1000) {
-			PROFILE_SCOPE("PathTracer");
+		if (m_num_samples < 1000000) {
+			//PROFILE_SCOPE("PathTracer");
 			Prepare();
 
 			Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
@@ -124,6 +124,10 @@ namespace LSIS {
 			CHECK(Compute::GetCommandQueue().finish());
 
 			m_num_samples++;
+
+			if (m_num_samples % 100 == 0) {
+				printf("Samples: %d\n", m_num_samples);
+			}
 		}
 		m_viewer.Render();
 	}
@@ -335,6 +339,10 @@ namespace LSIS {
 		m_num_samples = 0;
 	}
 
+	glm::vec3 convert(cl_float4 in) {
+		return glm::vec3(in.x, in.y, in.z);
+	}
+
 	void PathTracer::LoadSceneData()
 	{
 		auto scene = Application::Get()->GetScene();
@@ -369,6 +377,7 @@ namespace LSIS {
 		std::vector<SHARED::Face> faces_data = std::vector<SHARED::Face>(num_faces);
 
 		size_t num_emissive_faces = 0;
+		std::list<int> mesh_light_indices{};
 
 		size_t index_face = 0;
 		size_t index_vertex = 0;
@@ -392,6 +401,11 @@ namespace LSIS {
 				uint32_t v1 = face.vertex1 + index_vertex;
 				uint32_t v2 = face.vertex2 + index_vertex;
 				int idx_mat = face.material + index_material;
+				glm::vec3 e = materials[face.material].emissive;
+				if (e.x > 0.0f || e.y > 0.0f || e.z > 0.0f) {
+					num_emissive_faces++;
+					mesh_light_indices.push_back(index_face);
+				}
 				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, idx_mat);
 			}
 
@@ -442,7 +456,7 @@ namespace LSIS {
 
 		// get the number of lights and allocate the space for the temporary buffer data
 		size_t num_lights = scene_lights.size();
-		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights + num_emissive_faces);
+		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
 
 		// format and store scene lights data
 		for (auto i = 0; i < num_lights; i++) {
@@ -450,15 +464,46 @@ namespace LSIS {
 			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
 		}
 
-		LightTree light_tree = LightTree(lights_data.data(), num_lights);
+		for (auto i : mesh_light_indices) {
+			SHARED::Face face = m_face_data[i];
+			glm::vec3 p0 = convert(m_vertex_data[face.index.x].position);
+			glm::vec3 p1 = convert(m_vertex_data[face.index.y].position);
+			glm::vec3 p2 = convert(m_vertex_data[face.index.z].position);
+
+			const float area = glm::length(glm::cross(p1 - p0, p2 - p0)) * 0.5f;
+			
+
+			glm::vec3 n0 = convert(m_vertex_data[face.index.x].normal);
+			glm::vec3 n1 = convert(m_vertex_data[face.index.y].normal);
+			glm::vec3 n2 = convert(m_vertex_data[face.index.z].normal);
+
+			SHARED::Material mat = materials_data[face.index.w];
+
+			glm::vec3 n = glm::normalize(n0+n1+n2);
+			glm::vec3 i = convert(mat.emission) * area;
+			glm::vec3 p = ((p0+p1+p2) / 3.0f);
+
+			//lights_data.push_back(SHARED::make_light(p, n, i));
+			lights_data.push_back(SHARED::make_mesh_light(p, p1, p2, n, i));
+			num_lights++;
+		}
+
+		// if no lights are present in the scene, push a empty, light to avoid crashing the kernel
+		if (lights_data.empty()) {
+			lights_data.push_back(SHARED::make_light({ 0,0,0 }, { 0,1,0 }, { 0,0,0 }));
+			num_lights++;
+		}
+
+		//LightTree light_tree = LightTree(lights_data.data(), num_lights);
 
 		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
-		CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
+		if (num_lights > 0)
+			CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
 
 		m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
 
 		ready = true;
-		printf("Num lights: %zd\n", num_lights);
+		printf("PointLights: %zd, MeshLights: %zd\n", num_lights, num_emissive_faces);
 	}
 
 }

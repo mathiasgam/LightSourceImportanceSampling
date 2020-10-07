@@ -50,9 +50,10 @@ namespace LSIS {
 		auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 		auto m1 = std::make_shared<Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
 
-		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ -1,0,-1 }));
+		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ 0,0,0 }));
+		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0,0,0 }));
 
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
+		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
 		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(50, 0, 0)));
 		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 50, 0)));
 		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(0, 0, 50)));
