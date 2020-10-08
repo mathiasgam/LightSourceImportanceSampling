@@ -14,6 +14,7 @@
 #define TWO_PI (3.14159265358979323846f * 2.0f)
 
 #define STATE_INACTIVE 0
+#define STATE_FIRST 2
 #define STATE_ACTIVE 1
 
 #ifdef AMD_MEDIA_OPS
@@ -110,6 +111,10 @@ inline float inv_sqrt(float x){
 #else
 	return native_rsqrt(x);
 #endif
+}
+
+inline float inv_sqr(float x) {
+	return inverse(x * x);
 }
 
 #define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
