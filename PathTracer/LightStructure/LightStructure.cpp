@@ -3,6 +3,10 @@
 
 namespace LSIS {
 
+	inline glm::vec3 convert(cl_float4 in) {
+		return glm::vec3(in.x, in.y, in.z);
+	}
+
 	TypedBuffer<cl_float> LSIS::build_power_sampling_buffer(const SHARED::Light* lights, const size_t num_lights)
 	{
 		if (num_lights == 0) {
@@ -12,26 +16,37 @@ namespace LSIS {
 		cl::CommandQueue queue = Compute::GetCommandQueue();
 
 		float* powers = new float[num_lights];
-		float* cdf = new float[num_lights];
+		float* cdf = new float[num_lights + 1];
 
 		float sum = 0.0f;
 		for (uint32_t i = 0; i < num_lights; i++) {
 			SHARED::Light light = lights[i];
+
+			glm::vec3 tangent = convert(light.tangent);
+			glm::vec3 bitangent = convert(light.bitangent);
+
+			const float area = glm::length(glm::cross(tangent, bitangent)) * 0.5f;
+
 			cl_float4 color = light.intensity;
-			float power = color.x + color.y + color.z;
+			const float power = (color.x + color.y + color.z);
 			powers[i] = power;
 			sum += power;
 		}
 
 		const float inv_sum = 1.0f / sum;
 
-		cdf[0] = 0.0f;
-		for (uint32_t i = 1; i < num_lights; i++) {
-			cdf[i] = (powers[i]*inv_sum) + cdf[i - 1];
+		float accum = 0.0f;
+		//cdf[0] = 0.0f;
+		for (uint32_t i = 0; i < num_lights; i++) {
+			cdf[i] = accum;
+			accum += powers[i] * inv_sum;
+			//cdf[i] = (powers[i]*inv_sum) + cdf[i - 1];
 		}
+		cdf[num_lights] = 1.0f;
 
-		TypedBuffer<cl_float> sampling_buffer = TypedBuffer<cl_float>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
-		CHECK(queue.enqueueWriteBuffer(sampling_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_float) * num_lights, (void*)cdf));
+		TypedBuffer<cl_float> sampling_buffer = TypedBuffer<cl_float>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights+1);
+		CHECK(queue.enqueueWriteBuffer(sampling_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_float) * (num_lights+1), (void*)cdf));
+
 
 		// Cleanup
 		delete[] powers;
