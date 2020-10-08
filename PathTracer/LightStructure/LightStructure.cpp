@@ -21,12 +21,6 @@ namespace LSIS {
 		float sum = 0.0f;
 		for (uint32_t i = 0; i < num_lights; i++) {
 			SHARED::Light light = lights[i];
-
-			glm::vec3 tangent = convert(light.tangent);
-			glm::vec3 bitangent = convert(light.bitangent);
-
-			const float area = glm::length(glm::cross(tangent, bitangent)) * 0.5f;
-
 			cl_float4 color = light.intensity;
 			const float power = (color.x + color.y + color.z);
 			powers[i] = power;
