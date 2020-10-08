@@ -53,14 +53,10 @@ namespace LSIS {
 		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ 0,0,0 }));
 		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0,0,0 }));
 
-		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(50, 50, 50)));
-		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(50, 0, 0)));
-		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(0, 50, 0)));
-		//m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(0, 0, 50)));
 	}
 
 	void Application::CreateWindow() {
-		Window::WindowData win_props{ "LSIS", 720, 512, BIND_EVENT_FN(Application::OnEvent) };
+		Window::WindowData win_props{ "LSIS", 512, 512, BIND_EVENT_FN(Application::OnEvent) };
 		m_window = std::make_unique<Window>(win_props);
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 	}
