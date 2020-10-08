@@ -99,7 +99,7 @@ namespace LSIS {
 		if (!ready)
 			return;
 
-		if (m_num_samples < 1000000) {
+		if (m_num_samples < 128) {
 			//PROFILE_SCOPE("PathTracer");
 			Prepare();
 
@@ -339,7 +339,7 @@ namespace LSIS {
 		m_num_samples = 0;
 	}
 
-	glm::vec3 convert(cl_float4 in) {
+	inline glm::vec3 convert(cl_float4 in) {
 		return glm::vec3(in.x, in.y, in.z);
 	}
 
@@ -484,7 +484,7 @@ namespace LSIS {
 			glm::vec3 p = ((p0+p1+p2) / 3.0f);
 
 			//lights_data.push_back(SHARED::make_light(p, n, i));
-			lights_data.push_back(SHARED::make_mesh_light(p, p1, p2, n, i));
+			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, n, i));
 			num_lights++;
 		}
 
