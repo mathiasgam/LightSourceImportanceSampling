@@ -44,6 +44,6 @@ __kernel void prepare(
 
         results[id] = (float3)(0.0f,0.0f,0.0f);
         throughputs[id] = (float3)(1.0f,1.0f,1.0f);
-        states[id] = STATE_ACTIVE;
+        states[id] = STATE_ACTIVE | STATE_FIRST;
     }
 }
