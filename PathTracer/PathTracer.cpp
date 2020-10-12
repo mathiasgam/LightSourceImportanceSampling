@@ -480,7 +480,7 @@ namespace LSIS {
 			SHARED::Material mat = materials_data[face.index.w];
 
 			glm::vec3 n = glm::normalize(n0+n1+n2);
-			glm::vec3 i = convert(mat.emission) * area;
+			glm::vec3 i = convert(mat.emission);
 			glm::vec3 p = ((p0+p1+p2) / 3.0f);
 
 			//lights_data.push_back(SHARED::make_light(p, n, i));
