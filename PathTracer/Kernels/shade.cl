@@ -64,7 +64,7 @@ int select_light(__global const float* cdf, int num_lights, float r, float* pdf_
 	const int index = max(1, lower_bound(cdf, num_lights, r)) - 1;
 
 	if (index < 0 || index >= num_lights) {
-		printf("index: %d, num_lights: %d, r: %f\n", index, num_lights, r);
+		printf("ERROR: index: %d, num_lights: %d, r: %f\n", index, num_lights, r);
 		*pdf_out = 1.0f;
 		return 0;
 	}
@@ -77,10 +77,12 @@ int select_light(__global const float* cdf, int num_lights, float r, float* pdf_
 		}
 	}
 	*/
-	const float pdf = cdf[index + 1] - cdf[index];
+	const float pdf = cdf[index + num_lights];
+	/*
 	if (pdf < 0.0f || pdf > 1.0f) {
-		printf("PDF: %f, index: %d, num_lights: %d, cdf[i]: %f, cdf[i+1]: %f\n", pdf, index, num_lights, cdf[index], cdf[index+1]);
+		printf("PDF: %f, index: %d, num_lights: %d, cdf[i]: %f, cdf[i+1]: %f\n", pdf, index, num_lights, cdf[index], cdf[index + 1]);
 	}
+	*/
 	//*pdf = 1.0f; // pdf is canceling out with power / area calculation, so all lights uses their material emission
 	// only works for area lights. need to calculate per light pdf if both point and area lights are used
 	*pdf_out = pdf;
@@ -89,6 +91,17 @@ int select_light(__global const float* cdf, int num_lights, float r, float* pdf_
 
 float sqr(float x) {
 	return x * x;
+}
+
+float triangle_solid_angle(float3 shading_point, float3 p0, float3 p1, float3 p2) {
+	const float3 r0 = normalize(p0 - shading_point);
+	const float3 r1 = normalize(p1 - shading_point);
+	const float3 r2 = normalize(p2 - shading_point);
+
+	const float N = length(dot(r0, cross(r1, r2)));
+	const float D = 1.0f + dot(r0, r1) + dot(r0, r2) + dot(r1, r2);
+
+	return 2.0f * atan2(N, D);
 }
 
 inline float3 sample_triangle(float3 ab, float3 ac, float r1, float r2) {
@@ -100,6 +113,14 @@ inline float3 sample_triangle(float3 ab, float3 ac, float r1, float r2) {
 }
 
 const sampler_t sampler_in = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_NEAREST;
+
+// Only handle diffuse lighting
+float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
+	const float3 cos_theta_in = max(-dot(w_in, normal), 0.0f);
+	const float3 cos_theta_out = max(dot(w_out, normal), 0.0f);
+
+	return diffuse * cos_theta_in * cos_theta_out;
+}
 
 __kernel void ProcessBounce(
 	IN_VAL(uint, num_samples),
@@ -140,44 +161,53 @@ __kernel void ProcessBounce(
 
 		//printf("l: %d, %f\n", i, r);
 
-		float3 result = results[id];
-		float3 throughput = throughputs[id];
 
 		// iterate over all lights
 		//for (uint i = 0; i < num_lights; i++){
 		if (state & STATE_ACTIVE) {
+
+			float3 result = results[id];
+			float3 throughput = throughputs[id];
+
 			// process miss
 			if (hit.hit == 0) {
 				float2 coord = direction_to_hdri(geometric.incoming.xyz);
 				result += read_imagef(texture, sampler_in, coord).xyz * throughput;
-				//result += GetBackground(geometric.incoming.xyz) * throughput;
+				//result += throughput;
 				state = STATE_INACTIVE;
 			}
 			else {
 				//throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
 				Light light = lights[i];
 				float3 light_pos = light.position.xyz;
-				if (light.position.w == 1.0f) {
+				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
 					const float r1 = rand(&rng);
 					const float r2 = rand(&rng);
 					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
+					//pdf *= 1.0f / area;
 				}
 
 				Material material = materials[hit.material_index];
 				float3 diffuse = material.diffuse.xyz;
 				float3 emission = material.emission.xyz;
 
+				//throughput *= max(-dot(geometric.incoming.xyz, geometric.normal.xyz), 0.0f);
 
-				throughput *= diffuse * M_1_PI_F;
+				const float3 position = geometric.position.xyz;
 
-				const float3 diff = light_pos - geometric.position.xyz;
+				const float3 diff = light_pos - position;
 				const float dist = length(diff);
 				const float dist_inv = inverse(dist);
 				const float3 dir = diff * dist_inv;
 
-				const float attenuation = inv_sqr(dist + 1.0f);
+				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+				//const float attenuation = inverse(sqr(dist) * num_lights);
+				//float d = dot(geometric.normal.xyz, dir);
 
-				float d = dot(geometric.normal.xyz, dir);
+				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
+				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
+
 
 				if (state & STATE_FIRST) {
 					// first sample does not have the next event estimation
@@ -187,20 +217,27 @@ __kernel void ProcessBounce(
 				else {
 					// Next event estimation is also a sample, 
 					// so the average of next event and emissive hit is used to combine the two into one
-					result += emission * throughput * 0.5f;
+					result += emission * throughput * 0.0f;
 				}
 
-				d *= max(-dot(light.direction.xyz, dir), 0.0f);
+				throughput *= diffuse / M_PI_F;
+
+				//larmbert five times rule of thumb
+
+				//d *= max(-dot(light.direction.xyz, dir), 0.0f);
 
 				// calculate the lights contribution
-				float3 L = light.intensity.xyz * max(d, 0.0f) * attenuation * 0.5f;
+				const float3 intensity = light.intensity.xyz;
+				const float3 L_i = intensity * cos_theta * Omega / area;// *ceil(cos_theta_light);
+				//const float3 L_i = intensity * area * cos_theta_light * inv_sqr(dist) * cos_theta;
+				//const float3 L = (L_i * cos_theta * cos_theta_light * dist_inv) / pdf;
 				//result += L * material.diffuse.xyz * throughput;
 				//sample.result.xyz += L * throughput * material.diffuse.xyz;
 
-				float3 lift = geometric.normal.xyz * 0.0001f;
+				const float3 lift = geometric.normal.xyz * 10e-6f;
 
-				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0001f, dist - 0.001f);
-				light_contribution[id] = (L * throughput) * inverse(pdf);
+				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist-10e-5f);
+				light_contribution[id] = throughput * L_i * inverse(pdf) * 1.0f;
 
 				/*
 				// Russian roulette
@@ -213,15 +250,28 @@ __kernel void ProcessBounce(
 				}
 				*/
 				
-				
+
 				float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
-				bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0001f, 1000.0f);
+				const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
+				//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); uniform sampling
+				const float pdf_bounce = 1.0f / M_PI_F; // cosine sampling cos_theta / pi, but cos_theta cancels out later
+
+				bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0f, 1000.0f);
+
+				//pdf_bounce *= 1.0f / M_PI_F;
+
+
+				throughput *= inverse(pdf_bounce);
+
+				// should not be nessesary as cosine hemisphere cancels out;
+				//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
 			}
+
+			states[id] = state;
+			results[id] = result;
+			throughputs[id] = throughput;
 		}
 
-		states[id] = state;
-		results[id] = result;
-		throughputs[id] = throughput;
 	}
 }
 

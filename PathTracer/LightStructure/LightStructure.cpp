@@ -15,35 +15,42 @@ namespace LSIS {
 
 		cl::CommandQueue queue = Compute::GetCommandQueue();
 
-		float* powers = new float[num_lights];
-		float* cdf = new float[num_lights + 1];
+		float* areas = new float[num_lights];
+		float* cdf = new float[2 * num_lights];
 
-		float sum = 0.0f;
+		float sum_area = 0.0f;
 		for (uint32_t i = 0; i < num_lights; i++) {
 			SHARED::Light light = lights[i];
 			cl_float4 color = light.intensity;
-			const float power = (color.x + color.y + color.z);
-			powers[i] = power;
-			sum += power;
+
+			const glm::vec3 tangent = convert(light.tangent);
+			const glm::vec3 bitangent = convert(light.bitangent);
+
+			const float area = glm::length(glm::cross(tangent, bitangent)) * 0.5f;
+			areas[i] = area;
+			sum_area += area;
 		}
 
-		const float inv_sum = 1.0f / sum;
+		printf("Total Area: %f\n", sum_area);
+
+		const float inv_sum = 1.0f / sum_area;
 
 		float accum = 0.0f;
 		//cdf[0] = 0.0f;
 		for (uint32_t i = 0; i < num_lights; i++) {
+			const float pdf = areas[i] * inv_sum;
 			cdf[i] = accum;
-			accum += powers[i] * inv_sum;
+			cdf[i + num_lights] = 1.0f * inv_sum; // write pdf
+			accum += pdf;
 			//cdf[i] = (powers[i]*inv_sum) + cdf[i - 1];
 		}
-		cdf[num_lights] = 1.0f;
 
-		TypedBuffer<cl_float> sampling_buffer = TypedBuffer<cl_float>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights+1);
-		CHECK(queue.enqueueWriteBuffer(sampling_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_float) * (num_lights+1), (void*)cdf));
+		TypedBuffer<cl_float> sampling_buffer = TypedBuffer<cl_float>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights * 2);
+		CHECK(queue.enqueueWriteBuffer(sampling_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_float) * (num_lights * 2), (void*)cdf));
 
 
 		// Cleanup
-		delete[] powers;
+		delete[] areas;
 		delete[] cdf;
 
 		return sampling_buffer;
