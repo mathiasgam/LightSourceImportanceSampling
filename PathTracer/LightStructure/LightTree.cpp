@@ -91,7 +91,7 @@ namespace LSIS {
 				const float devisor = accumulate_from_left(bin_left, bins);
 				const float devisor2 = accumulate_from_right(bin_right, bins);
 
-				CORE_ASSERT(devisor == devisor2, "Accumulation from left and right, should end with the same result");
+				//CORE_ASSERT(devisor == devisor2, "Accumulation from left and right, should end with the same result");
 
 				const int best_split = find_best_split(bin_left, bin_right, bins);
 
