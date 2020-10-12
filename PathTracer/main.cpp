@@ -33,6 +33,8 @@ int main(int argc, char** argv) {
 	LSIS::Application* app = LSIS::Application::Get();
 	LSIS::Input::SetCameraPosition({ -0.0f,1.0f,2.72f,1.0f });
 	LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
+	//LSIS::Input::SetCameraPosition({ 0.6f,0.8f,0.6f,1.0f });
+	//LSIS::Input::SetCameraRotation({ -0.4f,0.5f,0.0f });
 
 	std::shared_ptr<LSIS::PathTracer> pt = std::make_shared<LSIS::PathTracer>(512, 512);
 	app->AddLayer(pt);
