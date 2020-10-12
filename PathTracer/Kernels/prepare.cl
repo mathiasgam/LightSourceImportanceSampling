@@ -40,7 +40,7 @@ __kernel void prepare(
         float3 dir = (far - near).xyz;
 
         // Save the ray
-        rays[id] = CreateRay(pos.xyz, dir.xyz, 0.001, 1000);
+        rays[id] = CreateRay(pos.xyz, dir.xyz, 0.0f, 1000.0f);
 
         results[id] = (float3)(0.0f,0.0f,0.0f);
         throughputs[id] = (float3)(1.0f,1.0f,1.0f);
