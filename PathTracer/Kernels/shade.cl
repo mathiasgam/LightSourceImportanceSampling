@@ -152,22 +152,19 @@ __kernel void ProcessBounce(
 
 		int state = states[id];
 
-		// choose light
-		//uint i = random_uint(&rng, num_lights);
-		//float pdf = inverse(num_lights);
-		float r = rand(&rng);
-		float pdf;
-		uint i = select_light(light_power_cdf, num_lights, r, &pdf);
-
-		//printf("l: %d, %f\n", i, r);
-
-
 		// iterate over all lights
 		//for (uint i = 0; i < num_lights; i++){
 		if (state & STATE_ACTIVE) {
 
 			float3 result = results[id];
 			float3 throughput = throughputs[id];
+
+			// choose light
+			//uint i = random_uint(&rng, num_lights);
+			//float pdf = inverse(num_lights);
+			float r = rand(&rng);
+			float pdf;
+			uint i = select_light(light_power_cdf, num_lights, r, &pdf);
 
 			// process miss
 			if (hit.hit == 0) {
@@ -177,38 +174,11 @@ __kernel void ProcessBounce(
 				state = STATE_INACTIVE;
 			}
 			else {
-				//throughput *= max(-dot(geometric.incoming.xyz,geometric.normal.xyz),0.0f); 
-				Light light = lights[i];
-				float3 light_pos = light.position.xyz;
-				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
-				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
-					const float r1 = rand(&rng);
-					const float r2 = rand(&rng);
-					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
-					//pdf *= 1.0f / area;
-				}
-
-				Material material = materials[hit.material_index];
-				float3 diffuse = material.diffuse.xyz;
-				float3 emission = material.emission.xyz;
-
-				//throughput *= max(-dot(geometric.incoming.xyz, geometric.normal.xyz), 0.0f);
-
-				const float3 position = geometric.position.xyz;
-
-				const float3 diff = light_pos - position;
-				const float dist = length(diff);
-				const float dist_inv = inverse(dist);
-				const float3 dir = diff * dist_inv;
-
-				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
-				//const float attenuation = inverse(sqr(dist) * num_lights);
-				//float d = dot(geometric.normal.xyz, dir);
-
-				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
-				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
-
-
+				const Material material = materials[hit.material_index];
+				const float3 diffuse = material.diffuse.xyz;
+				const float3 emission = material.emission.xyz;
+				
+				// Handle emissive hit
 				if (state & STATE_FIRST) {
 					// first sample does not have the next event estimation
 					result += emission * throughput;
@@ -217,29 +187,51 @@ __kernel void ProcessBounce(
 				else {
 					// Next event estimation is also a sample, 
 					// so the average of next event and emissive hit is used to combine the two into one
-					result += emission * throughput * 0.0f;
+					result += emission * throughput * 0.5f;
 				}
 
 				throughput *= diffuse / M_PI_F;
 
-				//larmbert five times rule of thumb
+				const float3 position = geometric.position.xyz;
 
-				//d *= max(-dot(light.direction.xyz, dir), 0.0f);
+				// Handle direct light
+				Light light = lights[i];
+				float3 light_pos = light.position.xyz;
+				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
+					const float r1 = rand(&rng);
+					const float r2 = rand(&rng);
+					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
+					// PDF has precalculated 1.0/area for triangle lights
+				}
+
+				const float3 diff = light_pos - position;
+				const float dist = length(diff);
+				const float dist_inv = inverse(dist);
+				const float3 dir = diff * dist_inv;
+
+				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
+				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
 
 				// calculate the lights contribution
 				const float3 intensity = light.intensity.xyz;
-				const float3 L_i = intensity * cos_theta * Omega / area;// *ceil(cos_theta_light);
-				//const float3 L_i = intensity * area * cos_theta_light * inv_sqr(dist) * cos_theta;
-				//const float3 L = (L_i * cos_theta * cos_theta_light * dist_inv) / pdf;
-				//result += L * material.diffuse.xyz * throughput;
-				//sample.result.xyz += L * throughput * material.diffuse.xyz;
+				const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
+				//const float FTR = 1.0f;
 
+				#ifdef SOLID_ANGLE
+				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+				const float3 L_i = intensity * cos_theta * Omega * FTR;// *ceil(cos_theta_light);
+				#else
+				const float3 L_i = intensity * cos_theta_light * area * inverse(sqr(dist)) * cos_theta * FTR;
+				#endif
+				
+				// lift shading point to avoid hitting the geometry again
 				const float3 lift = geometric.normal.xyz * 10e-6f;
 
 				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist-10e-5f);
-				light_contribution[id] = throughput * L_i * inverse(pdf) * 1.0f;
+				light_contribution[id] = throughput * L_i * inverse(pdf) * 0.5f;
 
-				/*
+				#ifdef RUSSIAN_ROULETTE
 				// Russian roulette
 				float pdf_russian = (throughput.x + throughput.y + throughput.z) / 3.0f;
 				if (rand(&rng) > pdf_russian) {
@@ -248,9 +240,8 @@ __kernel void ProcessBounce(
 				else {
 					throughput = throughput * inverse(pdf_russian);
 				}
-				*/
+				#endif
 				
-
 				float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
 				const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
 				//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); uniform sampling
@@ -263,7 +254,7 @@ __kernel void ProcessBounce(
 
 				throughput *= inverse(pdf_bounce);
 
-				// should not be nessesary as cosine hemisphere cancels out;
+				// should not be nessesary as cosine hemisphere sampling cancels out;
 				//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
 			}
 
