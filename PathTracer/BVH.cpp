@@ -33,7 +33,7 @@ namespace LSIS {
 
 	void BVH::Compile()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", { "Kernels/" });
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh.cl", { "-I Kernels/" });
 		m_closest = Compute::CreateKernel(m_program, "intersect_bvh");
 		m_occlusion = Compute::CreateKernel(m_program, "occluded");
 	}

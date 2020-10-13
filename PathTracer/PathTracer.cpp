@@ -99,7 +99,7 @@ namespace LSIS {
 		if (!ready)
 			return;
 
-		if (m_num_samples < 128) {
+		if (m_num_samples < 1000) {
 			//PROFILE_SCOPE("PathTracer");
 			Prepare();
 
@@ -187,15 +187,20 @@ namespace LSIS {
 
 	void PathTracer::CompileKernels()
 	{
-		m_program_prepare = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/prepare.cl", { "Kernels/" });
+		m_program_prepare = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/prepare.cl", { "-I Kernels/" });
 		m_kernel_prepare = Compute::CreateKernel(m_program_prepare, "prepare");
 
-		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
+		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "-I Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
 		m_kernel_process_results = Compute::CreateKernel(m_program_process, "process_results");
 
-		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
+		std::vector<std::string> options = { "-I Kernels/"};
+		if (use_russian_roulette)
+			options.push_back("- D RUSSIAN_ROULETTE");
+		if (use_solid_angle)
+			options.push_back("-D SOLID_ANGLE");
+		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
 		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");
 	}

@@ -79,9 +79,10 @@ namespace LSIS {
 
 		glm::mat4 m_cam_projection;
 
-
-		bool buffer_switch = true;
 		bool ready = false;
+
+		bool use_solid_angle = true;
+		bool use_russian_roulette = false;
 
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;
