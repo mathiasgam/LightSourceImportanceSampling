@@ -119,6 +119,10 @@ inline float inv_sqr(float x) {
 
 #define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
 
+inline float max_component(float3 vec) {
+	return max3(vec.x, vec.y, vec.z);
+}
+
 inline float3 sample_hemisphere(uint* state, float3 normal) {
 	float3 vec;
 	float sqr_dist;
