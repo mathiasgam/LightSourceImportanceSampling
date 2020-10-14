@@ -52,10 +52,11 @@ namespace LSIS {
 				const float3 pmin = data.pmin[id];
 				const float3 pmax = data.pmax[id];
 				const float3 axis = data.axis[id];
+				const float energy = data.energy[id];
 				const float theta_o = data.theta_o[id];
 				const float theta_e = data.theta_e[id];
 
-				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, theta_o, theta_e, -1, left);
+				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, glm::vec3(energy), theta_o, theta_e, -1, left);
 			}
 			else if (range == 2) {
 
@@ -74,8 +75,9 @@ namespace LSIS {
 
 				bbox box = union_bbox(box_left, box_right);
 				bcone cone = union_bcone(cone_left, cone_right);
+				float energy = data.energy[id_l] + data.energy[id_r];
 
-				m_nodes[index] = SHARED::make_light_tree_node(box.pmin, box.pmax, cone.axis, cone.theta_o, cone.theta_e, index_left, index_right);
+				m_nodes[index] = SHARED::make_light_tree_node(box.pmin, box.pmax, cone.axis, glm::vec3(energy), cone.theta_o, cone.theta_e, index_left, index_right);
 
 				queue.push({ index_left, left, middle, box_left });
 				queue.push({ index_right, middle, right, box_right });
@@ -90,6 +92,11 @@ namespace LSIS {
 					bins.count[i] = 0;
 					bins.energy[i] = 0.0f;
 				}
+
+				bbox node_bbox = {};
+				bcone node_bcone = {};
+				glm::vec3 node_energy = {};
+				uint node_count = 0;
 
 				const uint k = max_axis(cb.pmax - cb.pmin);
 				const float k0 = cb.pmin[k];
@@ -117,6 +124,19 @@ namespace LSIS {
 						bins.count[bin_id] += 1;
 						bins.energy[bin_id] += data.energy[id];
 					}
+
+					if (node_count == 0) {
+						node_bbox = make_bbox(data.pmin[id], data.pmax[id]);
+						node_bcone = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
+						node_energy = glm::vec3(data.energy[id]);
+						node_count = 1;
+					}
+					else {
+						node_bbox = union_bbox(node_bbox, make_bbox(data.pmin[id], data.pmax[id]));
+						node_bcone = union_bcone(node_bcone, make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]));
+						node_energy += data.energy[id];
+						node_count++;
+					}
 				}
 
 				accumulate_from_left(bin_left, bins);
@@ -131,13 +151,13 @@ namespace LSIS {
 				const int index_left = next_index++;
 				const int index_right = next_index++;
 
-				const float3 pmin = data.pmin[left];
-				const float3 pmax = data.pmax[left];
-				const float3 axis = data.axis[left];
-				const float theta_o = data.theta_o[left];
-				const float theta_e = data.theta_e[left];
+				const float3 pmin = node_bbox.pmin;
+				const float3 pmax = node_bbox.pmax;
+				const float3 axis = node_bcone.axis;
+				const float theta_o = node_bcone.theta_o;
+				const float theta_e = node_bcone.theta_e;
 
-				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, theta_o, theta_e, index_left, index_right);
+				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, node_energy, theta_o, theta_e, index_left, index_right);
 
 				//printf("index: %d, left: %d, middle: %d, right: %d\n", index, left, middle, right);
 
@@ -487,6 +507,8 @@ namespace LSIS {
 		const glm::vec3 t = convert(light.tangent);
 		const glm::vec3 b = convert(light.bitangent);
 
+		const float area = glm::length(glm::cross(t, b)) * 0.5f;
+
 		const glm::vec3 p0 = convert(light.position);
 		const glm::vec3 p1 = p0 + t;
 		const glm::vec3 p2 = p0 + b;
@@ -499,7 +521,7 @@ namespace LSIS {
 
 		constexpr float theta_o = 0.0f;
 		constexpr float theta_e = glm::pi<float>() / 2.0f;
-		const float energy = light.intensity.x + light.intensity.y + light.intensity.z;
+		const float energy = (light.intensity.x + light.intensity.y + light.intensity.z) * area;
 
 		// Save local bounds data
 		data.pmin[index] = convert(pmin);

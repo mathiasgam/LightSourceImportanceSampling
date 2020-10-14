@@ -93,6 +93,7 @@ typedef int2    cl_int2;
         cl_float4 pmin;
         cl_float4 pmax;
         cl_float4 axis;
+        cl_float4 energy;
         float theta_o;
         float theta_e;
         int left;
@@ -161,11 +162,12 @@ typedef int2    cl_int2;
         return material;
     }
 
-    inline LightTreeNode make_light_tree_node(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, float theta_o, float theta_e, int left, int right) {
+    inline LightTreeNode make_light_tree_node(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, glm::vec3 energy, float theta_o, float theta_e, int left, int right) {
         LightTreeNode node = {};
         node.pmin = { pmin.x, pmin.y, pmin.z, 0.0f };
         node.pmax = { pmax.x, pmax.y, pmax.z, 0.0f };
         node.axis = { axis.x, axis.y, axis.z, 0.0f };
+        node.energy = { energy.x, energy.y,energy.x, 0.0f };
         node.theta_o = theta_o;
         node.theta_e = theta_e;
         node.left = left;
