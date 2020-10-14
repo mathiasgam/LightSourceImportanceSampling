@@ -122,6 +122,71 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 	return diffuse * cos_theta_in * cos_theta_out;
 }
 
+inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
+	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
+	const float3 diff = center - position;
+	const float dist = length(diff);
+	const float sqr_dist = sqr(dist);
+	const float3 dir = normalize(diff);
+
+	const float theta = acos(-dot(node.axis.xyz, dir));
+	const float theta_i = acos(dot(normal, dir));
+
+	// atan of radius of bounding sphere divided by distance
+	const float theta_u = atan2(length(node.pmax - node.pmin) * 0.5f, dist);
+
+	const float theta_t = max(0.0f, theta - node.theta_o - theta_u);
+	const float theta_ti = max(0.0f, theta_i - theta_u);
+
+	if (theta_t >= node.theta_e){
+		return 0.0f;
+	}
+	const float3 I = (diffuse * fabs(cos(theta_ti)) * node.energy.xyz) * inverse(sqr_dist) * cos(theta_t);
+	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
+	return max3(I.x, I.y, I.z);
+}
+
+inline int pick_light(__global const LightTreeNode* nodes, float3 position, float3 normal, float3 diffuse, float r, float* pdf_out) {
+	LightTreeNode node = nodes[0];
+	float pdf = 1.0f;
+	float xi = r;
+	while (true) {
+		if (node.left == -1) { // node is leaf
+			*pdf_out = pdf;
+			/*
+			if (get_global_id(0) == 0) {
+				printf("light: %d, PDF: %f\n", node.right, pdf);
+			}
+			*/
+			return node.right;
+		}
+		else { // node is internal
+			const float I_l = importance(nodes[node.left], position, normal, diffuse);
+			const float I_r = importance(nodes[node.right], position, normal, diffuse);
+
+			const float sum = I_l + I_r;
+
+			const float p_l = sum == 0.0f ? 0.5f : I_l / (sum);
+			const float p_r = sum == 0.0f ? 0.5f : I_r / (sum);
+			/*
+			if (get_global_id(0) == 0)
+				printf("I_l: %f, I_r: %f, sum: %f, p_l: %f, p_r: %f\n", I_l, I_r, sum, p_l, p_r);
+			*/
+
+			if (xi < p_l) {
+				xi = xi * inverse(p_l);
+				node = nodes[node.left];
+				pdf *= p_l;
+			}
+			else {
+				xi = (xi - p_l) * inverse(p_r);
+				node = nodes[node.right];
+				pdf *= p_r;
+			}
+		}
+	}
+}
+
 __kernel void ProcessBounce(
 	IN_VAL(uint, num_samples),
 	IN_VAL(uint, num_lights),
@@ -132,7 +197,11 @@ __kernel void ProcessBounce(
 	IN_BUF(GeometricInfo, geometrics),
 	IN_BUF(Light, lights),
 	IN_BUF(Material, materials),
+#ifdef USE_LIGHTTREE
+	IN_BUF(LightTreeNode, light_tree_nodes),
+#else
 	IN_BUF(float, light_power_cdf),
+#endif
 	OUT_BUF(float3, results),
 	OUT_BUF(float3, throughputs),
 	OUT_BUF(int, states),
@@ -159,12 +228,6 @@ __kernel void ProcessBounce(
 			float3 result = results[id];
 			float3 throughput = throughputs[id];
 
-			// choose light
-			//uint i = random_uint(&rng, num_lights);
-			//float pdf = inverse(num_lights);
-			float r = rand(&rng);
-			float pdf;
-			uint i = select_light(light_power_cdf, num_lights, r, &pdf);
 
 			// process miss
 			if (hit.hit == 0) {
@@ -187,12 +250,26 @@ __kernel void ProcessBounce(
 				else {
 					// Next event estimation is also a sample, 
 					// so the average of next event and emissive hit is used to combine the two into one
-					result += emission * throughput * 0.5f;
+					result += emission * throughput * 0.0f;
 				}
 
 				throughput *= diffuse / M_PI_F;
 
 				const float3 position = geometric.position.xyz;
+				const float3 normal = geometric.normal.xyz;
+
+#ifdef USE_LIGHTTREE
+				// choose light
+				//uint i = random_uint(&rng, num_lights);
+				//float pdf = inverse(num_lights);
+				float r = rand(&rng);
+				float pdf;
+				uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
+#else
+				float r = rand(&rng);
+				float pdf;
+				uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+#endif
 
 				// Handle direct light
 				Light light = lights[i];
@@ -203,6 +280,9 @@ __kernel void ProcessBounce(
 					const float r2 = rand(&rng);
 					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
 					// PDF has precalculated 1.0/area for triangle lights
+#ifdef USE_LIGHTTREE
+					pdf *= inverse(area);
+#endif
 				}
 
 				const float3 diff = light_pos - position;
@@ -229,7 +309,7 @@ __kernel void ProcessBounce(
 				const float3 lift = geometric.normal.xyz * 10e-6f;
 
 				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist-10e-5f);
-				light_contribution[id] = throughput * L_i * inverse(pdf) * 0.5f;
+				light_contribution[id] = throughput * L_i * inverse(pdf) * 1.0f;
 
 				#ifdef RUSSIAN_ROULETTE
 				// Russian roulette

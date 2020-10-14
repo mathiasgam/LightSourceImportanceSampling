@@ -84,6 +84,8 @@ namespace LSIS {
 		bool use_solid_angle = true;
 		bool use_russian_roulette = false;
 
+		bool use_lighttree = true;
+
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;
 		TypedBuffer<cl_float3> m_result_buffer;
@@ -117,6 +119,7 @@ namespace LSIS {
 		// Light Buffers
 		TypedBuffer<SHARED::Light> m_lights;
 		TypedBuffer<cl_float> m_cdf_power_buffer;
+		TypedBuffer<SHARED::LightTreeNode> m_lighttree_buffer;
 
 
 	};

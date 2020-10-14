@@ -99,7 +99,7 @@ namespace LSIS {
 		if (!ready)
 			return;
 
-		if (m_num_samples < 1000) {
+		if (m_num_samples < 128) {
 			//PROFILE_SCOPE("PathTracer");
 			Prepare();
 
@@ -200,6 +200,8 @@ namespace LSIS {
 			options.push_back("- D RUSSIAN_ROULETTE");
 		if (use_solid_angle)
 			options.push_back("-D SOLID_ANGLE");
+		if (use_lighttree)
+			options.push_back("-D USE_LIGHTTREE");
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
 		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");
@@ -305,7 +307,12 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(6, m_geometric_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(7, m_lights.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(8, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(9, m_cdf_power_buffer.GetBuffer()));
+		if (use_lighttree) {
+			CHECK(m_kernel_shade.setArg(9, m_lighttree_buffer.GetBuffer()));
+		}
+		else {
+			CHECK(m_kernel_shade.setArg(9, m_cdf_power_buffer.GetBuffer()));
+		}
 		CHECK(m_kernel_shade.setArg(10, m_result_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(11, m_throughput_buffer.GetBuffer()));
 		CHECK(m_kernel_shade.setArg(12, m_state_buffer.GetBuffer()));
@@ -499,7 +506,8 @@ namespace LSIS {
 			num_lights++;
 		}
 
-		//LightTree light_tree = LightTree(lights_data.data(), num_lights);
+		LightTree light_tree = LightTree(lights_data.data(), num_lights);
+		m_lighttree_buffer = light_tree.GetNodeBuffer();
 
 		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
 		if (num_lights > 0)
