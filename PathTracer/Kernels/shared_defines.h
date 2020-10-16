@@ -1,7 +1,7 @@
 #ifndef SHARED_DEFINES
 #define SHARED_DEFINES
 
-#if defined(APP_LSIS) // in CPP
+#ifdef APP_LSIS // in CPP
 // define cl types to match hlsl
 #include "CL/cl.h"
 
@@ -100,7 +100,7 @@ typedef int2    cl_int2;
         int right;
     } LightTreeNode;
 
-#if defined(APP_LSIS)
+#ifdef APP_LSIS
 
     inline Vertex make_vertex(glm::vec3 position, glm::vec3 normal, glm::vec2 uv) {
         Vertex vertex = {};
