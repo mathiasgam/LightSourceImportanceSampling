@@ -32,8 +32,6 @@ namespace LSIS {
 		queue.push({ next_index++, 0, (int)num_lights, lights_bound.spatial });
 
 		bin_data bins[3];
-		bin_accumulation_data bin_left = {};
-		bin_accumulation_data bin_right = {};
 		split_data splits[3];
 
 		// Do recursive function using queue to avoid stack overflow with many lights
@@ -96,7 +94,7 @@ namespace LSIS {
 				init_bins(bins[2]);
 
 				const glm::vec3 diagonal = cb.pmax - cb.pmin;
-				const uint k = max_axis(diagonal);
+				//const uint k = max_axis(diagonal);
 				const glm::vec3 k0 = cb.pmin;
 				const glm::vec3 k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (diagonal);
 
@@ -104,34 +102,55 @@ namespace LSIS {
 				for (int i = left; i < right; i++) {
 					const uint id = data.ids[i];
 					const glm::vec3 c_i = data.centers[id];
-					if (cb.pmin[k] > c_i[k] || cb.pmax[k] < c_i[k]) {
-						printf("ERROR: k: %d, pmin: %f, pmax: %f, c_ik: %f\n", k, cb.pmin[k], cb.pmax[k], c_i[k]);
-					}
-					const glm::ivec3 bin_id = static_cast<glm::ivec3>(k1[k] * (c_i[k] - k0[k]));
-					CORE_ASSERT(bin_id[k] >= 0 && bin_id[k] < K, "Bin ID out of bounds!");
-
+					const glm::ivec3 bin_id = static_cast<glm::ivec3>(k1 * (c_i - k0));
+					
 					const bbox cb_i = make_bbox(c_i);
 					const bbox box_i = make_bbox(data.pmin[id], data.pmax[id]);
 					const bcone cone_i = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
 					const glm::vec3 e_i = glm::vec3(data.energy[id]);
 
-					bin_update(bins[0].data[bin_id[k]], cb_i, box_i, cone_i, e_i);
+					for (int k = 0; k < 3; k++) {
+						if (diagonal[k] <= 0.0f)
+							continue;
+						CORE_ASSERT(bin_id[k] >= 0 && bin_id[k] < K, "Bin ID out of bounds!");
+						bin_update(bins[k].data[bin_id[k]], cb_i, box_i, cone_i, e_i);
+
+					}
+
+
 				}
 
-				calculate_splits(splits[0], bins[0]);
+				const glm::vec3 K_r = glm::max(glm::max(diagonal.x,diagonal.y), diagonal.z) / diagonal;
+				//const int best_split = find_best_split(splits[0], K_r);
 
-				const float K_r = glm::max(glm::max(diagonal.x,diagonal.y), diagonal.z) / diagonal[k];
-				const int best_split = find_best_split(splits[0], K_r);
+				int best_k = -1;
+				int best_split = -1;
+				float best_cost = std::numeric_limits<float>::infinity();
+				for (int k = 0; k < 3; k++) {
+					if (diagonal[k] <= 0.0f)
+						continue;
 
-				const int middle = reorder_id(data, left, right, best_split, k, k0[k], k1[k]);
+					calculate_splits(splits[k], bins[k]);
+
+					float cost;
+					const int index = find_best_split(splits[k], K_r[k], &cost);
+
+					if (cost < best_cost) {
+						best_cost = cost;
+						best_split = index;
+						best_k = k;
+					}
+				}
+
+				const int middle = reorder_id(data, left, right, best_split, best_k, k0[best_k], k1[best_k]);
 
 				//const int middle = left + (range / 2);
 				const int index_left = next_index++;
 				const int index_right = next_index++;
 
-				const bbox total_box = splits[0].data[0].bin_r.box;
-				const bcone total_cone = splits[0].data[0].bin_r.cone;
-				const glm::vec3 total_energy = splits[0].data[0].bin_r.energy;
+				const bbox total_box = splits[best_k].data[best_split].bin_r.box;
+				const bcone total_cone = splits[best_k].data[best_split].bin_r.cone;
+				const glm::vec3 total_energy = splits[best_k].data[best_split].bin_r.energy;
 
 				const float3 pmin = total_box.pmin;
 				const float3 pmax = total_box.pmax;
@@ -145,8 +164,8 @@ namespace LSIS {
 
 				CORE_ASSERT(left != middle && middle != right, "only non zero ranges are allowed!");
 
-				queue.push({ index_left, left, middle, splits[0].data[best_split].bin_l.cb });
-				queue.push({ index_right, middle, right, splits[0].data[best_split].bin_r.cb });
+				queue.push({ index_left, left, middle, splits[best_k].data[best_split].bin_l.cb });
+				queue.push({ index_right, middle, right, splits[best_k].data[best_split].bin_r.cb });
 			}
 		}
 
@@ -243,7 +262,7 @@ namespace LSIS {
 			data_out.data[i-1].bin_r = accumulation;
 		}
 	}
-	inline int LightTree::find_best_split(const split_data& splits, const float K_r)
+	inline int LightTree::find_best_split(const split_data& splits, const float K_r, float* cost_out)
 	{
 		const float M_a = bbox_measure(splits.data[0].bin_r.box);
 		const float M_o = bcone_measure(splits.data[0].bin_r.cone);
@@ -277,8 +296,10 @@ namespace LSIS {
 			}
 		}
 
-		CORE_ASSERT(index_best != -1, "Failed to find a valid split!");
+		//CORE_ASSERT(index_best != -1, "Failed to find a valid split!");
 		//printf("Best split: %d, cost: %f\n", index_best, cost_best);
+
+		*cost_out = cost_best;
 		return index_best;
 	}
 	inline int LightTree::reorder_id(build_data& data, uint start, uint end, const uint32_t split_id, int k, float k0, float k1)

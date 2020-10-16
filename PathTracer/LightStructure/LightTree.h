@@ -49,7 +49,6 @@ namespace LSIS {
 			bbox center_bound;
 		} queue_data;
 
-
 		typedef struct bin {
 			bbox cb;
 			bbox box;
@@ -61,13 +60,6 @@ namespace LSIS {
 		typedef struct bin_data {
 			bin data[K];
 		} bin_data;
-
-		typedef struct bin_accumulation_data {
-			float M_A[K]; // bounding box area measure
-			float M_O[K]; // bounding cone area measure
-			float E[K]; // energy sum
-			uint N[K]; // light count
-		} bin_accumulation_data;
 
 		typedef struct split {
 			bin bin_l;
@@ -91,7 +83,7 @@ namespace LSIS {
 		inline bound initialize_build_data(build_data& data, const SHARED::Light* lights, const size_t num_lights);
 
 		inline void calculate_splits(split_data& data_out, const bin_data& bins);
-		inline int find_best_split(const split_data& splits, const float K_r);
+		inline int find_best_split(const split_data& splits, const float K_r, float* cost_out);
 
 		inline int reorder_id(build_data& data, uint start, uint end, const uint32_t split_id, int k, float k0, float k1);
 		inline int partition(build_data& data, uint start, uint end, const uint split, int k, float k0, float k1);
