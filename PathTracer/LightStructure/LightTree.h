@@ -90,11 +90,7 @@ namespace LSIS {
 		inline void delete_build_data(build_data data);
 		inline bound initialize_build_data(build_data& data, const SHARED::Light* lights, const size_t num_lights);
 
-		inline float accumulate_from_left(bin_accumulation_data& data_out, const bin_data& bins);
-		inline float accumulate_from_right(bin_accumulation_data& data_out, const bin_data& bins);
-
 		inline void calculate_splits(split_data& data_out, const bin_data& bins);
-
 		inline int find_best_split(const split_data& splits, const float K_r);
 
 		inline int reorder_id(build_data& data, uint start, uint end, const uint32_t split_id, int k, float k0, float k1);

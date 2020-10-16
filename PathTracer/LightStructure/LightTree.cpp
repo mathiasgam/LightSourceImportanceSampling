@@ -214,68 +214,6 @@ namespace LSIS {
 		// Return global bound
 		return cb;
 	}
-	inline float LightTree::accumulate_from_left(bin_accumulation_data& data_out, const bin_data& bins)
-	{
-		// Initialize accumulative data
-		bin accumulation = {};
-		bin_init(accumulation);
-
-		int N = 0;
-		glm::vec3 E = glm::vec3(std::numeric_limits<float>::infinity());
-		float M_A = std::numeric_limits<float>::infinity();
-		float M_O = std::numeric_limits<float>::infinity();
-
-		// Handle rest of the bins usually
-		for (int i = 0; i < K; i++) {
-			const bin& other = bins.data[i];
-			if (!bin_is_empty(other)) {
-				bin_union(accumulation, other);
-
-				M_A = bbox_measure(accumulation.box);
-				M_O = bcone_measure(accumulation.cone);
-				E = accumulation.energy;
-				N = accumulation.count;
-			}
-
-			data_out.M_A[i] = M_A;
-			data_out.M_O[i] = M_O;
-			data_out.E[i] = E.x + E.y + E.z;
-			data_out.N[i] = N;
-		}
-		return M_A * M_O;
-	}
-	inline float LightTree::accumulate_from_right(bin_accumulation_data& data_out, const bin_data& bins)
-	{
-		constexpr int last = K - 1;
-
-		// Initialize accumulative data with first bin
-		bin accumulation = {};
-		bin_init(accumulation);
-
-		int N = 0;
-		glm::vec3 E = glm::vec3(std::numeric_limits<float>::infinity());
-		float M_A = std::numeric_limits<float>::infinity();
-		float M_O = std::numeric_limits<float>::infinity();
-
-		// Handle rest of the bins usually
-		for (int i = last; i >= 0; i--) {
-			const bin& other = bins.data[i];
-			if (!bin_is_empty(other)) {
-				bin_union(accumulation, other);
-
-				M_A = bbox_measure(accumulation.box);
-				M_O = bcone_measure(accumulation.cone);
-				E = accumulation.energy;
-				N = accumulation.count;
-			}
-
-			data_out.M_A[i] = M_A;
-			data_out.M_O[i] = M_O;
-			data_out.E[i] = E.x + E.y + E.z;
-			data_out.N[i] = N;
-		}
-		return M_A * M_O;
-	}
 	inline void LightTree::calculate_splits(split_data& data_out, const bin_data& bins)
 	{
 		constexpr int last = K - 1;
