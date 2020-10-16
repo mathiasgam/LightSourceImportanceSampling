@@ -74,14 +74,19 @@ namespace LSIS {
 				bcone cone_left = make_bcone(data.axis[id_l], data.theta_o[id_l], data.theta_e[id_l]);
 				bcone cone_right = make_bcone(data.axis[id_r], data.theta_o[id_r], data.theta_e[id_r]);
 
+				glm::vec3 energy_left = glm::vec3(data.energy[id_l]);
+				glm::vec3 energy_right = glm::vec3(data.energy[id_r]);
+
 				bbox box = union_bbox(box_left, box_right);
 				bcone cone = union_bcone(cone_left, cone_right);
-				float energy = data.energy[id_l] + data.energy[id_r];
+				glm::vec3 energy = energy_left + energy_right;
 
-				m_nodes[index] = SHARED::make_light_tree_node(box.pmin, box.pmax, cone.axis, glm::vec3(energy), cone.theta_o, cone.theta_e, index_left, index_right);
+				// create parent node
+				m_nodes[index] = SHARED::make_light_tree_node(box.pmin, box.pmax, cone.axis, energy, cone.theta_o, cone.theta_e, index_left, index_right);
 
-				queue.push({ index_left, left, middle, box_left });
-				queue.push({ index_right, middle, right, box_right });
+				// and create the two child nodes. No need for queing
+				m_nodes[index_left] = SHARED::make_light_tree_node(box_left.pmin, box_left.pmax, cone_left.axis, energy_left, cone_left.theta_o, cone_left.theta_e, -1, left);
+				m_nodes[index_right] = SHARED::make_light_tree_node(box_right.pmin, box_right.pmax, cone_right.axis, energy_right, cone_right.theta_o, cone_right.theta_e, -1, left + 1);
 			}
 			else { // Is Internal
 
@@ -115,7 +120,7 @@ namespace LSIS {
 
 				calculate_splits(splits[0], bins[0]);
 
-				const float K_r = 1.0f;
+				const float K_r = glm::max(glm::max(diagonal.x,diagonal.y), diagonal.z) / diagonal[k];
 				const int best_split = find_best_split(splits[0], K_r);
 
 				const int middle = reorder_id(data, left, right, best_split, k, k0[k], k1[k]);
@@ -144,13 +149,6 @@ namespace LSIS {
 				queue.push({ index_right, middle, right, splits[0].data[best_split].bin_r.cb });
 			}
 		}
-
-		/*
-		for (uint i = 0; i < next_index; i++) {
-			const LightTreeNode& node = m_nodes[i];
-			printf("Node: index: %d, left: %d, right: %d\n", i, node.left, node.right);
-		}
-		*/
 
 		// Delete build data
 		delete_build_data(data);
