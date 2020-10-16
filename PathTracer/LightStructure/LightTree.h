@@ -49,19 +49,34 @@ namespace LSIS {
 			bbox center_bound;
 		} queue_data;
 
-		typedef struct bin_data {
-			bbox box[K];
-			bcone cone[K];
-			float energy[K];
-			uint count[K];
+
+		typedef struct bin {
+			bbox cb;
+			bbox box;
+			bcone cone;
+			glm::vec3 energy;
+			uint count;
 		};
+
+		typedef struct bin_data {
+			bin data[K];
+		} bin_data;
 
 		typedef struct bin_accumulation_data {
 			float M_A[K]; // bounding box area measure
 			float M_O[K]; // bounding cone area measure
 			float E[K]; // energy sum
 			uint N[K]; // light count
-		};
+		} bin_accumulation_data;
+
+		typedef struct split {
+			bin bin_l;
+			bin bin_r;
+		} split;
+
+		typedef struct split_data {
+			split data[K - 1];
+		} split_data;
 
 	public:
 		LightTree(const SHARED::Light* lights, const size_t num_lights);
@@ -78,9 +93,11 @@ namespace LSIS {
 		inline float accumulate_from_left(bin_accumulation_data& data_out, const bin_data& bins);
 		inline float accumulate_from_right(bin_accumulation_data& data_out, const bin_data& bins);
 
-		inline int find_best_split(const bin_accumulation_data& bin_left, const bin_accumulation_data& bin_right, const bin_data& bins);
+		inline void calculate_splits(split_data& data_out, const bin_data& bins);
 
-		inline int reorder_id(build_data& data, uint start, uint end, bbox* cb_l, bbox* cb_r, const uint32_t split_bin_id, int k, float k0, float k1);
+		inline int find_best_split(const split_data& splits, const float K_r);
+
+		inline int reorder_id(build_data& data, uint start, uint end, const uint32_t split_id, int k, float k0, float k1);
 		inline int partition(build_data& data, uint start, uint end, const uint split, int k, float k0, float k1);
 
 		inline bbox make_bbox();
@@ -95,6 +112,14 @@ namespace LSIS {
 
 		inline float bbox_measure(bbox b);
 		inline float bcone_measure(bcone b);
+
+		inline void init_bins(bin_data& bin);
+
+		inline void bin_init(bin& data);
+		inline void bin_union(bin& dst, const bin& other); // store the union of the two bins in dst, to avoid creating new data
+		inline void bin_update(bin& data, const bbox& cb, const bbox& box, const bcone& cone, const glm::vec3& energy);
+		inline bool bin_is_empty(const bin& data);
+
 
 		inline bound calc_light_bounds(const SHARED::Light* lights, const uint index, const build_data& data);
 

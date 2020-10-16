@@ -31,9 +31,10 @@ namespace LSIS {
 		auto queue = std::queue<queue_data>();
 		queue.push({ next_index++, 0, (int)num_lights, lights_bound.spatial });
 
-		bin_data bins = {};
+		bin_data bins[3];
 		bin_accumulation_data bin_left = {};
 		bin_accumulation_data bin_right = {};
+		split_data splits[3];
 
 		// Do recursive function using queue to avoid stack overflow with many lights
 		while (!queue.empty()) {
@@ -84,87 +85,63 @@ namespace LSIS {
 			}
 			else { // Is Internal
 
-				
+				// set the counts to zero to indicate the bins are empty
+				init_bins(bins[0]);
+				init_bins(bins[1]);
+				init_bins(bins[2]);
+
 				const glm::vec3 diagonal = cb.pmax - cb.pmin;
-				//printf("cb: [%f,%f,%f][%f,%f,%f] d: [%f,%f,%f]\n", cb.pmin.x, cb.pmin.y, cb.pmin.z, cb.pmax.x, cb.pmax.y, cb.pmax.z, diagonal.x, diagonal.y, diagonal.z);
-
-				for (int i = 0; i < K; i++) {
-					bins.count[i] = 0;
-					bins.energy[i] = 0.0f;
-				}
-
-				bbox node_bbox = {};
-				bcone node_bcone = {};
-				glm::vec3 node_energy = {};
-				uint node_count = 0;
-
-				const uint k = max_axis(cb.pmax - cb.pmin);
-				const float k0 = cb.pmin[k];
-				const float k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (cb.pmax[k] - cb.pmin[k]);
+				const uint k = max_axis(diagonal);
+				const glm::vec3 k0 = cb.pmin;
+				const glm::vec3 k1 = (static_cast<float>(K)* (1.0f - 1e-6f)) / (diagonal);
 
 				// Calculate bins
 				for (int i = left; i < right; i++) {
 					const uint id = data.ids[i];
-					const float c_ik = data.centers[id][k];
-					if (cb.pmin[k] > c_ik || cb.pmax[k] < c_ik) {
-						printf("ERROR: k: %d, pmin: %f, pmax: %f, c_ik: %f\n", k, cb.pmin[k], cb.pmax[k], c_ik);
+					const glm::vec3 c_i = data.centers[id];
+					if (cb.pmin[k] > c_i[k] || cb.pmax[k] < c_i[k]) {
+						printf("ERROR: k: %d, pmin: %f, pmax: %f, c_ik: %f\n", k, cb.pmin[k], cb.pmax[k], c_i[k]);
 					}
-					const int bin_id = static_cast<uint32_t>(k1 * (c_ik - k0));
-					CORE_ASSERT(bin_id >= 0 && bin_id < K, "Bin ID out of bounds!");
+					const glm::ivec3 bin_id = static_cast<glm::ivec3>(k1[k] * (c_i[k] - k0[k]));
+					CORE_ASSERT(bin_id[k] >= 0 && bin_id[k] < K, "Bin ID out of bounds!");
 
-					if (bins.count[bin_id] == 0) {
-						bins.box[bin_id] = make_bbox(data.centers[id]);
-						bins.cone[bin_id] = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
-						bins.count[bin_id] = 1;
-						bins.energy[bin_id] = data.energy[id];
-					}
-					else {
-						bins.box[bin_id] = union_bbox(bins.box[bin_id], make_bbox(data.centers[id]));
-						bins.cone[bin_id] = union_bcone(bins.cone[bin_id], make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]));
-						bins.count[bin_id] += 1;
-						bins.energy[bin_id] += data.energy[id];
-					}
+					const bbox cb_i = make_bbox(c_i);
+					const bbox box_i = make_bbox(data.pmin[id], data.pmax[id]);
+					const bcone cone_i = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
+					const glm::vec3 e_i = glm::vec3(data.energy[id]);
 
-					if (node_count == 0) {
-						node_bbox = make_bbox(data.pmin[id], data.pmax[id]);
-						node_bcone = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
-						node_energy = glm::vec3(data.energy[id]);
-						node_count = 1;
-					}
-					else {
-						node_bbox = union_bbox(node_bbox, make_bbox(data.pmin[id], data.pmax[id]));
-						node_bcone = union_bcone(node_bcone, make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]));
-						node_energy += data.energy[id];
-						node_count++;
-					}
+					bin_update(bins[0].data[bin_id[k]], cb_i, box_i, cone_i, e_i);
 				}
 
-				accumulate_from_left(bin_left, bins);
-				accumulate_from_right(bin_right, bins);
+				calculate_splits(splits[0], bins[0]);
 
-				const int best_split = find_best_split(bin_left, bin_right, bins);
+				const float K_r = 1.0f;
+				const int best_split = find_best_split(splits[0], K_r);
 
-				bbox cb_l, cb_r;
-				const int middle = reorder_id(data, left, right, &cb_l, &cb_r, best_split+1, k, k0, k1);
+				const int middle = reorder_id(data, left, right, best_split, k, k0[k], k1[k]);
 
 				//const int middle = left + (range / 2);
 				const int index_left = next_index++;
 				const int index_right = next_index++;
 
-				const float3 pmin = node_bbox.pmin;
-				const float3 pmax = node_bbox.pmax;
-				const float3 axis = node_bcone.axis;
-				const float theta_o = node_bcone.theta_o;
-				const float theta_e = node_bcone.theta_e;
+				const bbox total_box = splits[0].data[0].bin_r.box;
+				const bcone total_cone = splits[0].data[0].bin_r.cone;
+				const glm::vec3 total_energy = splits[0].data[0].bin_r.energy;
 
-				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, node_energy, theta_o, theta_e, index_left, index_right);
+				const float3 pmin = total_box.pmin;
+				const float3 pmax = total_box.pmax;
+				const float3 axis = total_cone.axis;
+				const float theta_o = total_cone.theta_o;
+				const float theta_e = total_cone.theta_e;
+
+				m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, total_energy, theta_o, theta_e, index_left, index_right);
 
 				//printf("index: %d, left: %d, middle: %d, right: %d\n", index, left, middle, right);
 
 				CORE_ASSERT(left != middle && middle != right, "only non zero ranges are allowed!");
 
-				queue.push({ index_left, left, middle, cb_l});
-				queue.push({ index_right, middle, right, cb_r });
+				queue.push({ index_left, left, middle, splits[0].data[best_split].bin_l.cb });
+				queue.push({ index_right, middle, right, splits[0].data[best_split].bin_r.cb });
 			}
 		}
 
@@ -188,7 +165,7 @@ namespace LSIS {
 		// Return empty buffer if no nodes are available
 		if (m_num_nodes == 0)
 			return TypedBuffer<SHARED::LightTreeNode>();
-		
+
 		// Fetch command queue
 		const auto queue = Compute::GetCommandQueue();
 
@@ -241,36 +218,30 @@ namespace LSIS {
 	}
 	inline float LightTree::accumulate_from_left(bin_accumulation_data& data_out, const bin_data& bins)
 	{
-		// Initialize accumulative data with first bin
-		bbox box = {};
-		bcone cone = {};
-		uint N = 0;
+		// Initialize accumulative data
+		bin accumulation = {};
+		bin_init(accumulation);
 
-		float E = std::numeric_limits<float>::infinity();
+		int N = 0;
+		glm::vec3 E = glm::vec3(std::numeric_limits<float>::infinity());
 		float M_A = std::numeric_limits<float>::infinity();
 		float M_O = std::numeric_limits<float>::infinity();
 
 		// Handle rest of the bins usually
 		for (int i = 0; i < K; i++) {
-			const uint N_i = bins.count[i];
-			if (N_i > 0) { // if current bin is non empty, update accumulation data
-				if (N > 0) { // unify accumulated bin and current bin
-					box = union_bbox(box, bins.box[i]);
-					cone = union_bcone(cone, bins.cone[i]);
-					E += bins.energy[i];
-				}
-				else { // if accumulated bin is empty initialize with current bin
-					box = bins.box[i];
-					cone = bins.cone[i];
-					E = bins.energy[i];
-				}
-				M_A = bbox_measure(box);
-				M_O = bcone_measure(cone);
-				N += N_i;
+			const bin& other = bins.data[i];
+			if (!bin_is_empty(other)) {
+				bin_union(accumulation, other);
+
+				M_A = bbox_measure(accumulation.box);
+				M_O = bcone_measure(accumulation.cone);
+				E = accumulation.energy;
+				N = accumulation.count;
 			}
+
 			data_out.M_A[i] = M_A;
 			data_out.M_O[i] = M_O;
-			data_out.E[i] = E;
+			data_out.E[i] = E.x + E.y + E.z;
 			data_out.N[i] = N;
 		}
 		return M_A * M_O;
@@ -280,64 +251,85 @@ namespace LSIS {
 		constexpr int last = K - 1;
 
 		// Initialize accumulative data with first bin
-		bbox box = {};
-		bcone cone = {};
-		uint N = 0;
+		bin accumulation = {};
+		bin_init(accumulation);
 
-		float E = std::numeric_limits<float>::infinity();
+		int N = 0;
+		glm::vec3 E = glm::vec3(std::numeric_limits<float>::infinity());
 		float M_A = std::numeric_limits<float>::infinity();
 		float M_O = std::numeric_limits<float>::infinity();
 
 		// Handle rest of the bins usually
 		for (int i = last; i >= 0; i--) {
-			const uint N_i = bins.count[i];
-			if (N_i > 0) {
-				if (N > 0) {
-					box = union_bbox(box, bins.box[i]);
-					cone = union_bcone(cone, bins.cone[i]);
-					E += bins.energy[i];
-				}
-				else {
-					box = bins.box[i];
-					cone = bins.cone[i];
-					E = bins.energy[i];
-				}
-				M_A = bbox_measure(box);
-				M_O = bcone_measure(cone);
-				N += N_i;
+			const bin& other = bins.data[i];
+			if (!bin_is_empty(other)) {
+				bin_union(accumulation, other);
+
+				M_A = bbox_measure(accumulation.box);
+				M_O = bcone_measure(accumulation.cone);
+				E = accumulation.energy;
+				N = accumulation.count;
 			}
+
 			data_out.M_A[i] = M_A;
 			data_out.M_O[i] = M_O;
-			data_out.E[i] = E;
+			data_out.E[i] = E.x + E.y + E.z;
 			data_out.N[i] = N;
 		}
 		return M_A * M_O;
 	}
-	inline int LightTree::find_best_split(const bin_accumulation_data& bin_left, const bin_accumulation_data& bin_right, const bin_data& bins)
+	inline void LightTree::calculate_splits(split_data& data_out, const bin_data& bins)
 	{
-		CORE_ASSERT(bin_left.M_A[K - 1] == bin_right.M_A[0], "Last accumulated measure should be equal to the total measure!");
+		constexpr int last = K - 1;
 
-		const float K_r = 1.0f;
-		const float M_a = bin_right.M_A[0];
-		const float M_o = bin_right.M_O[0];
+		// allocate bin for accumulaton
+		bin accumulation = {};
+
+		// Accumulate from left to right
+		bin_init(accumulation);
+		for (int i = 0; i < last; i++) {
+			// Fetch left bin in the split i
+			const bin& other = bins.data[i];
+			// Accumulate with previous bins
+			bin_union(accumulation, other);
+			// accumulated bin to the left bin in the split
+			data_out.data[i].bin_l = accumulation;
+		}
+
+		// Accumulate from right to left
+		bin_init(accumulation);
+		for (int i = last; i > 0; i--) {
+			// Fetch the right bin in the split i
+			const bin& other = bins.data[i];
+			// Accumulate with previous bins
+			bin_union(accumulation, other);
+			// Save accumulation to the right bin in split i
+			data_out.data[i-1].bin_r = accumulation;
+		}
+	}
+	inline int LightTree::find_best_split(const split_data& splits, const float K_r)
+	{
+		const float M_a = bbox_measure(splits.data[0].bin_r.box);
+		const float M_o = bcone_measure(splits.data[0].bin_r.cone);
 
 		// Find the best split
 		float cost_best = std::numeric_limits<float>::infinity();
-		int index_best = 0;
-		for (int i = 0; i < K-1; i++) {
-			const float M_al = bin_left.M_A[i];
-			const float M_ol = bin_left.M_O[i];
-			const float E_l = bin_left.E[i];
-			const uint N_l = bin_left.N[i];
+		int index_best = -1;
+		for (int i = 0; i < K - 1; i++) {
+			const bin& left = splits.data[i].bin_l;
+			const bin& right = splits.data[i].bin_r;
 
-			const float M_ar = bin_right.M_A[i+1];
-			const float M_or = bin_right.M_O[i+1];
-			const float E_r = bin_right.E[i+1];
-			const uint N_r = bin_right.N[i+1];
+			const float M_al = bbox_measure(left.box);
+			const float M_ol = bcone_measure(left.cone);
+			const float E_l = left.energy.x + left.energy.y + left.energy.z;
+			const uint N_l = left.count;
+
+			const float M_ar = bbox_measure(right.box);
+			const float M_or = bcone_measure(right.cone);
+			const float E_r = right.energy.x + right.energy.y + right.energy.z;
+			const uint N_r = right.count;
 
 			const float cost = K_r * (((E_l * M_al * M_ol) + (E_r * M_ar * M_or)) / (M_a * M_o));
-			//printf("Bin: %d, cost %f, N_l: %d, N_r: %d\n", i, cost, N_l, N_r);
-			//printf("M_al: %f, M_ol: %f, E_l: %f, M_ar: %f, M_or: %f, E_r: %f\n", M_al, M_ol, E_l, M_ar, M_or, E_r);
 
 			if (N_l == 0 || N_r == 0) {
 				continue;
@@ -348,36 +340,14 @@ namespace LSIS {
 				index_best = i;
 			}
 		}
+
+		CORE_ASSERT(index_best != -1, "Failed to find a valid split!");
 		//printf("Best split: %d, cost: %f\n", index_best, cost_best);
 		return index_best;
 	}
-	inline int LightTree::reorder_id(build_data& data, uint start, uint end, bbox* cb_l, bbox* cb_r, const uint32_t split_bin_id, int k, float k0, float k1)
+	inline int LightTree::reorder_id(build_data& data, uint start, uint end, const uint32_t split_id, int k, float k0, float k1)
 	{
-		uint middle = partition(data, start, end, split_bin_id, k, k0, k1);
-
-		glm::vec3 pmin_l = glm::vec3(std::numeric_limits<float>::infinity());
-		glm::vec3 pmax_l = glm::vec3(-std::numeric_limits<float>::infinity());
-		for (int i = start; i < middle; i++) {
-			const glm::vec3 center = data.centers[data.ids[i]];
-			CORE_ASSERT(static_cast<uint>(k1 * (center[k] - k0)) < split_bin_id, "Partition failed. id should have been to the right!");
-
-			pmin_l = glm::min(pmin_l, center);
-			pmax_l = glm::max(pmax_l, center);
-		}
-		cb_l->pmin = pmin_l;
-		cb_l->pmax = pmax_l;
-
-		glm::vec3 pmin_r = glm::vec3(std::numeric_limits<float>::infinity());
-		glm::vec3 pmax_r = glm::vec3(-std::numeric_limits<float>::infinity());
-		for (int i = middle; i < end; i++) {
-			const glm::vec3 center = data.centers[data.ids[i]];
-			CORE_ASSERT(static_cast<uint>(k1 * (center[k] - k0)) >= split_bin_id, "Partition failed. id should have been to the left!");
-			pmin_r = glm::min(pmin_r, center);
-			pmax_r = glm::max(pmax_r, center);
-		}
-		cb_r->pmin = pmin_r;
-		cb_r->pmax = pmax_r;
-		
+		uint middle = partition(data, start, end, split_id + 1, k, k0, k1);
 		return middle;
 	}
 	/// Hoare partition scheme
@@ -498,6 +468,55 @@ namespace LSIS {
 		const float t_w = glm::min(t_o + t_e, PI);
 
 		return M_2_PI * (1.0f - cos(t_o)) + M_PI_2 * (2.0f * t_w * sin(t_o) - cos(t_o - 2.0f * t_w) - 2.0f * t_o * sin(t_o) + cos(t_o));
+	}
+	inline void LightTree::init_bins(bin_data& bin)
+	{
+		for (int i = 0; i < K; i++) {
+			bin_init(bin.data[i]);
+		}
+	}
+	inline void LightTree::bin_init(bin& data)
+	{
+		data.count = 0;
+	}
+	inline void LightTree::bin_union(bin& dst, const bin& other)
+	{
+		// if the other bin is empty, there's no need to do anything
+		if (bin_is_empty(other)) {
+			return;
+		}
+
+		// if the dst bin is empty just override with the other bin
+		if (bin_is_empty(dst)) {
+			dst = other;
+		}
+		else { // perform actual union
+			dst.cb = union_bbox(dst.cb, other.cb);
+			dst.box = union_bbox(dst.box, other.box);
+			dst.cone = union_bcone(dst.cone, other.cone);
+			dst.count += other.count;
+			dst.energy += other.energy;
+		}
+	}
+	inline void LightTree::bin_update(bin& data, const bbox& cb, const bbox& box, const bcone& cone, const glm::vec3& energy)
+	{
+		if (bin_is_empty(data)) {
+			data.cb = cb;
+			data.box = box;
+			data.cone = cone;
+			data.energy = energy;
+		}
+		else {
+			data.cb = union_bbox(data.cb, cb);
+			data.box = union_bbox(data.box, box);
+			data.cone = union_bcone(data.cone, cone);
+			data.energy += energy;
+		}
+		data.count++;
+	}
+	inline bool LightTree::bin_is_empty(const bin& data)
+	{
+		return data.count == 0;
 	}
 	inline LightTree::bound LightTree::calc_light_bounds(const SHARED::Light* lights, const uint index, const build_data& data)
 	{
