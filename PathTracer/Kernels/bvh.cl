@@ -63,6 +63,8 @@ inline float intersect_triangle(
     float const t_max = ray.direction.w;
     
     float const invd = inverse(dot(s1, e1));
+    if (invd <= 0.0f)
+        return t_max;
 
     float3 const d = ray.origin.xyz - v1;
     float const b1 = dot(d, s1) * invd;
