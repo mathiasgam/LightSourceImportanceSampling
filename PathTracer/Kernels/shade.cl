@@ -128,36 +128,32 @@ float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
 		return M_PI_F;
 	const float3 center = (pmin + pmax) * 0.5f;
 	const float3 diff = center - position;
+	const float3 dir = normalize(diff);
 
 	// Define the plane with the normal towards the center from position.
 	const float3 tangent = normalize(cross(normal, diff));
 	const float3 bitangent = normalize(cross(tangent, diff));
 
 	// calculate the points from the center to each corner
-	const float3 d1 = pmin - center;
-	const float3 d2 = pmax - center;
 	float3 points[8];
-	points[0] = (float3)( d1.x,d1.y,d1.z );
-	points[1] = (float3)( d2.x,d1.y,d1.z );
-	points[2] = (float3)( d1.x,d2.y,d1.z );
-	points[3] = (float3)( d2.x,d2.y,d1.z );
+	points[0] = normalize((float3)( pmin.x,pmin.y,pmin.z ) - position);
+	points[1] = normalize((float3)( pmax.x,pmin.y,pmin.z ) - position);
+	points[2] = normalize((float3)( pmin.x,pmax.y,pmin.z ) - position);
+	points[3] = normalize((float3)( pmax.x,pmax.y,pmin.z ) - position);
 
-	points[4] = (float3)( d1.x,d1.y,d2.z );
-	points[5] = (float3)( d2.x,d1.y,d2.z );
-	points[6] = (float3)( d1.x,d2.y,d2.z );
-	points[7] = (float3)( d2.x,d2.y,d2.z );
+	points[4] = normalize((float3)( pmin.x,pmin.y,pmax.z ) - position);
+	points[5] = normalize((float3)( pmax.x,pmin.y,pmax.z ) - position);
+	points[6] = normalize((float3)( pmin.x,pmax.y,pmax.z ) - position);
+	points[7] = normalize((float3)( pmax.x,pmax.y,pmax.z ) - position);
 
 	// Project the points from each corner onto the plane defined by tangent and bitangent and find their sqr length
-	float max_sqr_sin_theta = 0;
+	float min_cos_theta = 1.0f;
 	for (int i = 0; i < 8; i++) {
-		const float x = dot(tangent, points[i]);
-		const float y = dot(bitangent, points[i]);
-		const float sqr_sin_theta = sqr(x) + sqr(y);
-		max_sqr_sin_theta = max(max_sqr_sin_theta, sqr_sin_theta);
+		const float cos_theta = dot(dir, points[i]);
+		min_cos_theta = min(min_cos_theta, cos_theta);
 	}
 	// the longest sqr length is used to find the maximum angle. only do the expensive calculation once
-	const float theta = asin(sqrt(max_sqr_sin_theta));
-	return theta;
+	return acos(min_cos_theta);;
 }
 
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
@@ -292,12 +288,12 @@ __kernel void ProcessBounce(
 					result += emission * throughput * 0.0f;
 				}
 
-				/*
+				
 				if (any(isgreater(emission, 0.0f))) {
 					state = STATE_INACTIVE;
 					throughput = (float3)(0.0f);
 				}
-				*/
+				
 
 				throughput *= diffuse / M_PI_F;
 
