@@ -158,5 +158,9 @@ float3 sample_hemisphere_cosine(uint* state, float3 normal)
     return normalize(s*cos(phi)*sinTheta + t*sin(phi)*sinTheta + normal*sqrt(1.0f - sinThetaSqr));
 }
 
+inline bool contained(float3 pmin, float3 pmax, float3 position) {
+	return any(isgreater(position, pmin) && isless(position, pmax));
+}
+
 
 #endif // COMMON_CL
