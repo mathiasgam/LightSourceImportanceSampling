@@ -64,8 +64,14 @@ namespace LSIS {
 					v.normal.x = attrib.normals[3 * face.normal_index + 0];
 					v.normal.y = attrib.normals[3 * face.normal_index + 1];
 					v.normal.z = attrib.normals[3 * face.normal_index + 2];
-					v.uv.x = attrib.texcoords[2 * face.texcoord_index];
-					v.uv.y = attrib.texcoords[2 * face.texcoord_index + 1];
+					if (attrib.texcoords.empty()) {
+						v.uv.x = 0.0f;
+						v.uv.y = 0.0f;
+					}
+					else {
+						v.uv.x = attrib.texcoords[2 * face.texcoord_index];
+						v.uv.y = attrib.texcoords[2 * face.texcoord_index + 1];
+					}
 
 					vertices.push_back(v);
 					indices.push_back(index);
