@@ -133,7 +133,8 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const float theta_i = acos(dot(normal, dir));
 
 	// atan of radius of bounding sphere divided by distance
-	const float theta_u = atan2(length(node.pmax - node.pmin) * 0.5f, dist);
+	const float radius = length(node.pmax - node.pmin) * 0.5f;
+	const float theta_u = atan2(radius, dist);
 
 	const float theta_t = max(0.0f, theta - node.theta_o - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
@@ -300,13 +301,25 @@ __kernel void ProcessBounce(
 
 				#ifdef SOLID_ANGLE
 				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
-				const float3 L_i = intensity * cos_theta * Omega * FTR;// *ceil(cos_theta_light);
+				const float3 L_i = intensity * cos_theta * Omega * FTR * ceil(cos_theta_light);
 				#else
 				const float3 L_i = intensity * cos_theta_light * area * inverse(sqr(dist)) * cos_theta * FTR;
 				#endif
 				
 				// lift shading point to avoid hitting the geometry again
 				const float3 lift = geometric.normal.xyz * 10e-6f;
+
+				if (any(isnan(L_i))){
+					printf("Error: L_i has nan value: [%f,%f,%f]\n", L_i.x,L_i.y,L_i.z);
+				}
+
+				if (isnan(pdf)){
+					printf("Error: pdf is nan\n");
+				}
+
+				if (any(isnan(throughput))){
+					printf("Error: throughput has nan value\n");
+				}
 
 				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist-10e-5f);
 				light_contribution[id] = throughput * L_i * inverse(pdf) * 1.0f;
