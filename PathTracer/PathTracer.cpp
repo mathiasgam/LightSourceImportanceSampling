@@ -99,7 +99,7 @@ namespace LSIS {
 		if (!ready)
 			return;
 
-		if (m_num_samples < 128) {
+		if (m_num_samples < 1000) {
 			//PROFILE_SCOPE("PathTracer");
 			Prepare();
 
