@@ -9,7 +9,7 @@ namespace LSIS {
 
 	class LightTree {
 
-#define K 16
+#define K 256
 
 		using LightTreeNode = SHARED::LightTreeNode;
 		using float3 = glm::vec3;
