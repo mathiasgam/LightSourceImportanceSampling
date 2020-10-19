@@ -482,7 +482,9 @@ namespace LSIS {
 			glm::vec3 p1 = convert(m_vertex_data[face.index.y].position);
 			glm::vec3 p2 = convert(m_vertex_data[face.index.z].position);
 
-			const float area = glm::length(glm::cross(p1 - p0, p2 - p0)) * 0.5f;
+			const glm::vec3 cross_tan_bitan = glm::cross(p1 - p0, p2 - p0);
+			const float area = glm::length(cross_tan_bitan) * 0.5f;
+			const glm::vec3 dir = glm::normalize(cross_tan_bitan);
 			
 
 			glm::vec3 n0 = convert(m_vertex_data[face.index.x].normal);
@@ -496,7 +498,7 @@ namespace LSIS {
 			glm::vec3 p = ((p0+p1+p2) / 3.0f);
 
 			//lights_data.push_back(SHARED::make_light(p, n, i));
-			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, n, i));
+			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, dir, i));
 			num_lights++;
 		}
 

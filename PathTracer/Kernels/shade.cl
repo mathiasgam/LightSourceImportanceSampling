@@ -134,7 +134,7 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 
 	// atan of radius of bounding sphere divided by distance
 	const float radius = length(node.pmax - node.pmin) * 0.5f;
-	const float theta_u = atan2(radius, dist);
+	const float theta_u = dist < radius ? M_PI_F/2.0f : atan2(radius, dist);
 
 	const float theta_t = max(0.0f, theta - node.theta_o - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
@@ -144,7 +144,7 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	}
 	const float3 I = (diffuse * fabs(cos(theta_ti)) * node.energy.xyz) * inverse(sqr_dist) * cos(theta_t);
 	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
-	return max3(I.x, I.y, I.z);
+	return I.x + I.y + I.z;
 }
 
 inline int pick_light(__global const LightTreeNode* nodes, float3 position, float3 normal, float3 diffuse, float r, float* pdf_out) {
@@ -253,6 +253,13 @@ __kernel void ProcessBounce(
 					// so the average of next event and emissive hit is used to combine the two into one
 					result += emission * throughput * 0.0f;
 				}
+
+				/*
+				if (any(isgreater(emission, 0.0f))) {
+					state = STATE_INACTIVE;
+					throughput = (float3)(0.0f);
+				}
+				*/
 
 				throughput *= diffuse / M_PI_F;
 

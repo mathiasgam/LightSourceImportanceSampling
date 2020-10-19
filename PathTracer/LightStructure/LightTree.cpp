@@ -142,6 +142,11 @@ namespace LSIS {
 					}
 				}
 
+				if (best_k == -1) {
+					best_k = max_axis(diagonal);
+					best_split = K / 2;
+				}
+
 				const int middle = reorder_id(data, left, right, best_split, best_k, k0[best_k], k1[best_k]);
 
 				//const int middle = left + (range / 2);
@@ -311,6 +316,12 @@ namespace LSIS {
 	inline int LightTree::partition(build_data& data, uint start, uint end, const uint split, int k, float k0, float k1)
 	{
 		CORE_ASSERT(start < end, "Range has to be non zero!");
+		CORE_ASSERT(split >= 0 || split < K, "Split not within range K");
+		CORE_ASSERT(k >= 0 || k < 3, "dimension not valid!");
+
+		if (k == -1) {
+			__debugbreak();
+		}
 
 		// calculate bin ids
 		const int range = end - start;
@@ -324,6 +335,7 @@ namespace LSIS {
 
 		int left = 0;
 		int right = range - 1;
+
 
 		while (true) {
 			while (bin_ids[left] < split) {
