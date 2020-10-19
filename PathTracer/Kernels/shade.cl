@@ -122,6 +122,39 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 	return diffuse * cos_theta_in * cos_theta_out;
 }
 
+// Brute force finding the angle that captures the entire box
+float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
+	if (contained)
+		return M_PI_F;
+	const float3 center = (pmin + pmax) * 0.5f;
+	const float3 diff = center - position;
+
+	const float3 tangent = normalize(cross(normal, diff));
+	const float3 bitangent = normalize(cross(tangent, diff));
+
+	float3 points[8];
+	points[0] = (float3)( pmin.x,pmin.y,pmin.z );
+	points[1] = (float3)( pmax.x,pmin.y,pmin.z );
+	points[2] = (float3)( pmin.x,pmax.y,pmin.z );
+	points[3] = (float3)( pmax.x,pmax.y,pmin.z );
+
+	points[4] = (float3)( pmin.x,pmin.y,pmax.z );
+	points[5] = (float3)( pmax.x,pmin.y,pmax.z );
+	points[6] = (float3)( pmin.x,pmax.y,pmax.z );
+	points[7] = (float3)( pmax.x,pmax.y,pmax.z );
+
+
+	float max_sqr_sin_theta = 0;
+	for (int i = 0; i < 8; i++) {
+		const float x = dot(tangent, points[i]);
+		const float y = dot(bitangent, points[i]);
+		const float sqr_sin_theta = sqr(x) + sqr(y);
+		max_sqr_sin_theta = max(max_sqr_sin_theta, sqr_sin_theta);
+	}
+	const float theta = asin(sqrt(max_sqr_sin_theta));
+	return theta;
+}
+
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
 	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
 	const float3 diff = center - position;
@@ -134,7 +167,7 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 
 	// atan of radius of bounding sphere divided by distance
 	const float radius = length(node.pmax - node.pmin) * 0.5f;
-	const float theta_u = dist < radius ? M_PI_F/2.0f : atan2(radius, dist);
+	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position, normal);
 
 	const float theta_t = max(0.0f, theta - node.theta_o - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
