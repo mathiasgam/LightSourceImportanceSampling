@@ -45,9 +45,9 @@ inline Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
 #define GetVertexPosition(vertex) vertex.position.xyz
 
 inline uint hash1(uint t) {
-	t ^= t << 13;
-	t ^= t >> 17;
-	t ^= t << 5;
+	t ^= t << 13u;
+	t ^= t >> 17u;
+	t ^= t << 5u;
 	return t;
 }
 
@@ -61,11 +61,24 @@ inline uint hash2(uint t) {
 }
 
 inline float uintToRangedFloat(uint x) {
-	return (float)(x % 0xFFFF) / (float)(0xFFFF);
+	return (float)(x % 0xFFFFFFFF) / (float)(0xFFFFFFFF);
+}
+
+inline double ulongToRangedDouble(ulong x) {
+	return (double)(x % 0xFFFFFFFFFFFFFFFF) / (double)(0xFFFFFFFFFFFFFFFF);
+}
+
+inline double random_double(uint* state) {
+	const uint t1 = hash2(*state);
+	const uint t2 = hash2(t1);
+	*state = t2;
+
+	const ulong x = ((ulong)t1) ^ (((ulong)t1) << 32);
+	return ulongToRangedDouble(x);
 }
 
 inline float rand(uint* state) {
-	uint t = hash1(*state);
+	uint t = hash2(*state);
 	*state = t;
 	return uintToRangedFloat(t);
 }
