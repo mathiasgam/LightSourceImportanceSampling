@@ -24,9 +24,9 @@ int setenv(const char* name, const char* value, int overwrite)
 
 int main(int argc, char** argv) {
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	setenv("CUDA_CACHE_DISABLE", "1", 1);
-#endif // DEBUG
+//#endif // DEBUG
 
 	LSIS::Log::Init();
 
