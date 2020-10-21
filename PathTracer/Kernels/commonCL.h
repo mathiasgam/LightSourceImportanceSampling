@@ -172,7 +172,7 @@ float3 sample_hemisphere_cosine(uint* state, float3 normal)
 }
 
 inline bool contained(float3 pmin, float3 pmax, float3 position) {
-	return any(isgreater(position, pmin) && isless(position, pmax));
+	return all(position >= pmin) && all(position <= pmax);
 }
 
 
