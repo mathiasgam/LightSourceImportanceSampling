@@ -4,6 +4,7 @@
 #ifdef APP_LSIS // in CPP
 // define cl types to match hlsl
 #include "CL/cl.h"
+#include <cassert>
 
 namespace SHARED {
 #else // in HLSL
@@ -89,15 +90,25 @@ typedef int2    cl_int2;
         cl_float4 intensity;
     };
 
+#define LEAF(node) node.type == 0
+#define INTERNAL(node) node.type == 1
+#define THETA_O(node) node.axis.w
+#define THETA_E(node) node.energy.w
+#define AXIS(node) node.axis.xyz
+#define ENERGY(node) node.energy.xyz
+#define INDEX(node) node.left
+#define COUNT(node) node.right
+
+
     typedef struct LightTreeNode {
         cl_float4 pmin;
         cl_float4 pmax;
-        cl_float4 axis;
-        cl_float4 energy;
-        float theta_o;
-        float theta_e;
+        cl_float4 axis; // .w is theta_o
+        cl_float4 energy; // .w is theta_e
         int left;
         int right;
+        int type;
+        int padding;
     } LightTreeNode;
 
 #ifdef APP_LSIS
@@ -136,7 +147,7 @@ typedef int2    cl_int2;
     inline Light make_mesh_light(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 normal, glm::vec3 intensity) {
         Light light = {};
         light.position = { p0.x, p0.y, p0.z, 1.0f };
-        light.direction = { normal.x, normal.y, normal.z, CL_M_PI };
+        light.direction = { normal.x, normal.y, normal.z, CL_M_PI_F / 2.0f };
         light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
 
         const glm::vec3 t = p1 - p0;
@@ -162,16 +173,28 @@ typedef int2    cl_int2;
         return material;
     }
 
-    inline LightTreeNode make_light_tree_node(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, glm::vec3 energy, float theta_o, float theta_e, int left, int right) {
+    inline LightTreeNode make_light_tree_leaf(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, glm::vec3 energy, float theta_o, float theta_e, int light, int count) {
         LightTreeNode node = {};
         node.pmin = { pmin.x, pmin.y, pmin.z, 0.0f };
         node.pmax = { pmax.x, pmax.y, pmax.z, 0.0f };
-        node.axis = { axis.x, axis.y, axis.z, 0.0f };
-        node.energy = { energy.x, energy.y,energy.x, 0.0f };
-        node.theta_o = theta_o;
-        node.theta_e = theta_e;
+        node.axis = { axis.x, axis.y, axis.z, theta_o };
+        node.energy = { energy.x, energy.y,energy.x, theta_e };
+        node.left = light;
+        node.right = count;
+        node.type = 0;
+        return node;
+    }
+
+    inline LightTreeNode make_light_tree_node(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 axis, glm::vec3 energy, float theta_o, float theta_e, int left, int right) {
+        LightTreeNode node = {};
+        assert(left != -1);
+        node.pmin = { pmin.x, pmin.y, pmin.z, 0.0f };
+        node.pmax = { pmax.x, pmax.y, pmax.z, 0.0f };
+        node.axis = { axis.x, axis.y, axis.z, theta_o };
+        node.energy = { energy.x, energy.y,energy.x, theta_e };
         node.left = left;
         node.right = right;
+        node.type = 1;
         return node;
     }
 

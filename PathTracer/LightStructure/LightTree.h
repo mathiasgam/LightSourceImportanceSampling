@@ -9,7 +9,7 @@ namespace LSIS {
 
 	class LightTree {
 
-#define K 256
+#define K 128
 
 		using LightTreeNode = SHARED::LightTreeNode;
 		using float3 = glm::vec3;
@@ -38,7 +38,7 @@ namespace LSIS {
 			float3* axis;
 			float* theta_o;
 			float* theta_e;
-			float* energy;
+			float3* energy;
 			uint* ids;
 		} build_data;
 

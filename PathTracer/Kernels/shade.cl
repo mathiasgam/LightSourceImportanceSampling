@@ -124,27 +124,23 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 
 // Brute force finding the angle that captures the entire box
 float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
-	if (contained)
-		return M_PI_F;
+	//if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
+	//	return M_PI_F;
 	const float3 center = (pmin + pmax) * 0.5f;
 	const float3 diff = center - position;
 	const float3 dir = normalize(diff);
 
-	// Define the plane with the normal towards the center from position.
-	const float3 tangent = normalize(cross(normal, diff));
-	const float3 bitangent = normalize(cross(tangent, diff));
-
 	// calculate the points from the center to each corner
 	float3 points[8];
-	points[0] = normalize((float3)( pmin.x,pmin.y,pmin.z ) - position);
-	points[1] = normalize((float3)( pmax.x,pmin.y,pmin.z ) - position);
-	points[2] = normalize((float3)( pmin.x,pmax.y,pmin.z ) - position);
-	points[3] = normalize((float3)( pmax.x,pmax.y,pmin.z ) - position);
+	points[0] = normalize((float3)(pmin.x, pmin.y, pmin.z) - position);
+	points[1] = normalize((float3)(pmax.x, pmin.y, pmin.z) - position);
+	points[2] = normalize((float3)(pmin.x, pmax.y, pmin.z) - position);
+	points[3] = normalize((float3)(pmax.x, pmax.y, pmin.z) - position);
 
-	points[4] = normalize((float3)( pmin.x,pmin.y,pmax.z ) - position);
-	points[5] = normalize((float3)( pmax.x,pmin.y,pmax.z ) - position);
-	points[6] = normalize((float3)( pmin.x,pmax.y,pmax.z ) - position);
-	points[7] = normalize((float3)( pmax.x,pmax.y,pmax.z ) - position);
+	points[4] = normalize((float3)(pmin.x, pmin.y, pmax.z) - position);
+	points[5] = normalize((float3)(pmax.x, pmin.y, pmax.z) - position);
+	points[6] = normalize((float3)(pmin.x, pmax.y, pmax.z) - position);
+	points[7] = normalize((float3)(pmax.x, pmax.y, pmax.z) - position);
 
 	// Project the points from each corner onto the plane defined by tangent and bitangent and find their sqr length
 	float min_cos_theta = 1.0f;
@@ -159,65 +155,79 @@ float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
 	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
 	const float3 diff = center - position;
-	const float dist = length(diff);
-	const float sqr_dist = sqr(dist);
+	const double dist = length(diff);
+	const double sqr_dist = sqr(dist);
 	const float3 dir = normalize(diff);
 
 	const float theta = acos(-dot(node.axis.xyz, dir));
 	const float theta_i = acos(dot(normal, dir));
 
 	// atan of radius of bounding sphere divided by distance
-	const float radius = length(node.pmax - node.pmin) * 0.5f;
 	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position, normal);
 
-	const float theta_t = max(0.0f, theta - node.theta_o - theta_u);
+	const float theta_t = max(0.0f, (theta - THETA_O(node)) - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
 
-	if (theta_t >= node.theta_e){
+	if (theta_t < THETA_E(node))
 		return 0.0f;
-	}
+
 	const float3 I = (diffuse * fabs(cos(theta_ti)) * node.energy.xyz) * inverse(sqr_dist) * cos(theta_t);
 	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
+
 	return I.x + I.y + I.z;
 }
 
-inline int pick_light(__global const LightTreeNode* nodes, float3 position, float3 normal, float3 diffuse, float r, float* pdf_out) {
+inline int pick_light(__global const LightTreeNode* nodes, float3 position, float3 normal, float3 diffuse, double r, float* pdf_out) {
 	LightTreeNode node = nodes[0];
-	float pdf = 1.0f;
-	float xi = r;
+	double pdf = 1.0f;
+	double xi = r;
 	while (true) {
-		if (node.left == -1) { // node is leaf
-			*pdf_out = pdf;
-			/*
-			if (get_global_id(0) == 0) {
-				printf("light: %d, PDF: %f\n", node.right, pdf);
+		if (LEAF(node)) { // node is leaf
+			float estimations[10];
+
+			// Fetch range of ids
+			const int start_index = INDEX(node);
+			const int count = COUNT(node);
+
+			// construct cdf
+			float3 sum = (float3)(0.0f);
+			for (int i = 0; i < count; i++) {
+
 			}
-			*/
-			return node.right;
+
+			// find light by xi and predecessor search
+
+			
+			pdf *= inverse((float)(count));
+
+			// return values
+			*pdf_out = pdf;
+			return INDEX(node);
 		}
 		else { // node is internal
-			const float I_l = importance(nodes[node.left], position, normal, diffuse);
-			const float I_r = importance(nodes[node.right], position, normal, diffuse);
+			const double I_l = importance(nodes[node.left], position, normal, diffuse);
+			const double I_r = importance(nodes[node.right], position, normal, diffuse);
 
-			const float sum = I_l + I_r;
+			const double sum = I_l + I_r;
 
-			const float p_l = sum == 0.0f ? 0.5f : I_l / (sum);
-			const float p_r = sum == 0.0f ? 0.5f : I_r / (sum);
+			const double p_l = sum == 0.0 ? 0.5 : I_l / sum;
+			const double p_r = sum == 0.0 ? 0.5 : I_r / sum;
 			/*
 			if (get_global_id(0) == 0)
 				printf("I_l: %f, I_r: %f, sum: %f, p_l: %f, p_r: %f\n", I_l, I_r, sum, p_l, p_r);
 			*/
 
 			if (xi < p_l) {
-				xi = xi * inverse(p_l);
+				xi = xi / p_l;
 				node = nodes[node.left];
 				pdf *= p_l;
 			}
 			else {
-				xi = (xi - p_l) * inverse(p_r);
+				xi = (xi - p_l) / p_r;
 				node = nodes[node.right];
 				pdf *= p_r;
 			}
+
 		}
 	}
 }
@@ -246,7 +256,7 @@ __kernel void ProcessBounce(
 	__read_only image2d_t texture
 ) {
 	int id = get_global_id(0);
-	uint rng = hash2(hash2(id) ^ hash1(seed));
+	uint rng = hash2(hash1(id) ^ hash1(seed));
 
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 
@@ -275,7 +285,7 @@ __kernel void ProcessBounce(
 				const Material material = materials[hit.material_index];
 				const float3 diffuse = material.diffuse.xyz;
 				const float3 emission = material.emission.xyz;
-				
+
 				// Handle emissive hit
 				if (state & STATE_FIRST) {
 					// first sample does not have the next event estimation
@@ -288,108 +298,117 @@ __kernel void ProcessBounce(
 					result += emission * throughput * 0.0f;
 				}
 
-				
+
 				if (any(isgreater(emission, 0.0f))) {
 					state = STATE_INACTIVE;
 					throughput = (float3)(0.0f);
 				}
-				
+				else
+				{
 
-				throughput *= diffuse / M_PI_F;
 
-				const float3 position = geometric.position.xyz;
-				const float3 normal = geometric.normal.xyz;
+
+					throughput *= diffuse / M_PI_F;
+
+					const float3 position = geometric.position.xyz;
+					const float3 normal = geometric.normal.xyz;
 
 #ifdef USE_LIGHTTREE
-				// choose light
-				//uint i = random_uint(&rng, num_lights);
-				//float pdf = inverse(num_lights);
-				float r = rand(&rng);
-				float pdf;
-				uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
+					// choose light
+					//uint i = random_uint(&rng, num_lights);
+					//float pdf = inverse(num_lights);
+					double r = random_double(&rng);
+					float pdf;
+					uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
 #else
-				float r = rand(&rng);
-				float pdf;
-				uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+					float r = rand(&rng);
+					float pdf;
+					uint i = select_light(light_power_cdf, num_lights, r, &pdf);
 #endif
 
-				// Handle direct light
-				Light light = lights[i];
-				float3 light_pos = light.position.xyz;
-				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
-				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
-					const float r1 = rand(&rng);
-					const float r2 = rand(&rng);
-					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
-					// PDF has precalculated 1.0/area for triangle lights
+					// Handle direct light
+					Light light = lights[i];
+					float3 light_pos = light.position.xyz;
+					const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+
+					if (isnan(area)) {
+						printf("ERROR: area is nan!\n");
+					}
+
+					if (light.position.w == 1.0f) { // if light is triangle, then sample the position
+						const float r1 = rand(&rng);
+						const float r2 = rand(&rng);
+						light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
+						// PDF has precalculated 1.0/area for triangle lights
 #ifdef USE_LIGHTTREE
-					pdf *= inverse(area);
+						pdf *= inverse(area);
 #endif
+					}
+
+					const float3 diff = light_pos - position;
+					const float dist = length(diff);
+					const float dist_inv = inverse(dist);
+					const float3 dir = diff * dist_inv;
+
+					const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
+					const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
+
+					// calculate the lights contribution
+					const float3 intensity = light.intensity.xyz;
+					const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
+					//const float FTR = 1.0f;
+
+#ifdef SOLID_ANGLE
+					const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+#else
+					const float Omega = cos_theta_light * area * inv_sqr(dist);
+#endif
+					const float3 L_i = intensity * cos_theta * Omega * ceil(cos_theta_light) * inverse(area); // WHY !?!?
+
+					// lift shading point to avoid hitting the geometry again
+					const float3 lift = geometric.normal.xyz * 10e-6f;
+
+					if (any(isnan(L_i))) {
+						printf("Error: L_i has nan value: [%f,%f,%f]\n", L_i.x, L_i.y, L_i.z);
+					}
+
+					if (isnan(pdf)) {
+						printf("Error: pdf is nan\n");
+					}
+
+					if (any(isnan(throughput))) {
+						printf("Error: throughput has nan value\n");
+					}
+
+					shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
+					const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
+					light_contribution[id] = L;
+
+#ifdef RUSSIAN_ROULETTE
+					// Russian roulette
+					float pdf_russian = (throughput.x + throughput.y + throughput.z) / 3.0f;
+					if (rand(&rng) > pdf_russian) {
+						state = STATE_INACTIVE;
+					}
+					else {
+						throughput = throughput * inverse(pdf_russian);
+					}
+#endif
+
+					float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
+					const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
+					//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); // uniform sampling
+					const float pdf_bounce = 1.0f / M_PI_F; // cosine sampling cos_theta / pi, but cos_theta cancels out with cosine sampling
+
+					bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0f, 1000.0f);
+
+					//pdf_bounce *= 1.0f / M_PI_F;
+
+					throughput *= inverse(pdf_bounce);
+
+					// should not be nessesary as cosine hemisphere sampling cancels out;
+					//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
 				}
-
-				const float3 diff = light_pos - position;
-				const float dist = length(diff);
-				const float dist_inv = inverse(dist);
-				const float3 dir = diff * dist_inv;
-
-				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
-				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
-
-				// calculate the lights contribution
-				const float3 intensity = light.intensity.xyz;
-				const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
-				//const float FTR = 1.0f;
-
-				#ifdef SOLID_ANGLE
-				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
-				const float3 L_i = intensity * cos_theta * Omega * FTR * ceil(cos_theta_light);
-				#else
-				const float3 L_i = intensity * cos_theta_light * area * inverse(sqr(dist)) * cos_theta * FTR;
-				#endif
-				
-				// lift shading point to avoid hitting the geometry again
-				const float3 lift = geometric.normal.xyz * 10e-6f;
-
-				if (any(isnan(L_i))){
-					printf("Error: L_i has nan value: [%f,%f,%f]\n", L_i.x,L_i.y,L_i.z);
-				}
-
-				if (isnan(pdf)){
-					printf("Error: pdf is nan\n");
-				}
-
-				if (any(isnan(throughput))){
-					printf("Error: throughput has nan value\n");
-				}
-
-				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist-10e-5f);
-				light_contribution[id] = throughput * L_i * inverse(pdf) * 1.0f;
-
-				#ifdef RUSSIAN_ROULETTE
-				// Russian roulette
-				float pdf_russian = (throughput.x + throughput.y + throughput.z) / 3.0f;
-				if (rand(&rng) > pdf_russian) {
-					state = STATE_INACTIVE;
-				}
-				else {
-					throughput = throughput * inverse(pdf_russian);
-				}
-				#endif
-				
-				float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
-				const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
-				//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); uniform sampling
-				const float pdf_bounce = 1.0f / M_PI_F; // cosine sampling cos_theta / pi, but cos_theta cancels out later
-
-				bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0f, 1000.0f);
-
-				//pdf_bounce *= 1.0f / M_PI_F;
-
-
-				throughput *= inverse(pdf_bounce);
-
-				// should not be nessesary as cosine hemisphere sampling cancels out;
-				//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
 			}
 
 			states[id] = state;
