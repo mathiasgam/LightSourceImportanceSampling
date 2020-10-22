@@ -3,8 +3,8 @@
 
 namespace LSIS {
 
-	Material::Material(std::shared_ptr<Shader> shader, glm::vec4 color)
-		: m_shader(shader), m_diffuse(color), m_specular({0.0f,0.0f,0.0f})
+	Material::Material(std::shared_ptr<Shader> shader, glm::vec4 color, glm::vec3 emission)
+		: m_shader(shader), m_diffuse(color), m_specular({0.0f,0.0f,0.0f}), m_emission(emission)
 	{
 	}
 

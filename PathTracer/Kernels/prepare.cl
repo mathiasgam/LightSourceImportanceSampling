@@ -12,13 +12,9 @@ __kernel void prepare(
     OUT_BUF(int, states))
 {
     const int id = get_global_id(0);
-    const int N = width * height * multi_samples_count;
+    const int N = width * height;
 
     uint rng = hash2(hash2(id) ^ hash1(seed));
-
-    if (id == 0){
-        //printf("size: [%d,%d], rays: %d, samples: %d, seed: %d\n", width, height, N, samples, seed);
-    }
 
     //barrier(CLK_GLOBAL_MEM_FENCE);
     if (id < N) {
@@ -44,10 +40,10 @@ __kernel void prepare(
         float3 dir = (far - near).xyz;
 
         // Save the ray
-        rays[id] = CreateRay(pos.xyz, dir.xyz, 0.001, 1000);
+        rays[id] = CreateRay(pos.xyz, dir.xyz, 0.0f, 1000.0f);
 
         results[id] = (float3)(0.0f,0.0f,0.0f);
         throughputs[id] = (float3)(1.0f,1.0f,1.0f);
-        states[id] = STATE_ACTIVE;
+        states[id] = STATE_ACTIVE | STATE_FIRST;
     }
 }

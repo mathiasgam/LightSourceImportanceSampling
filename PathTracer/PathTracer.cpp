@@ -12,7 +12,10 @@
 #include <tuple>
 
 #include "AccelerationStructure/LBVHStructure.h"
-#include "AccelerationStructure/BVHBuilder.h"
+#include "AccelerationStructure/SAHBVHStructure.h"
+
+#include "LightStructure/LightStructure.h"
+#include "LightStructure/LightTree.h"
 
 #include "IO/Image.h"
 
@@ -43,32 +46,29 @@ namespace LSIS {
 			exit(err);
 		}
 
-		int hdr_width, hdr_height, hdr_channels;
-		float* hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
-		/*
-		const float pixels[] = {
-			1.0f,1.0f,1.0f,1.0f,
-			1.0f,0.0f,0.0f,1.0f,
-			0.0f,1.0f,0.0f,1.0f,
-			0.0f,0.0f,1.0f,1.0f
-		};
-		*/
+		bool use_hdri = false;
 
-		//m_background_texture = cl::Image2D(image);
+		float* hdr_data;
+		int hdr_width, hdr_height, hdr_channels;
+		if (use_hdri) {
+			hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		}
+		else {
+			hdr_width = 1;
+			hdr_height = 1;
+			hdr_channels = 3;
+			hdr_data = new float[3];
+			hdr_data[0] = 0.0f;
+			hdr_data[1] = 0.0f;
+			hdr_data[2] = 0.0f;
+		}
+
 		cl::ImageFormat format = {};
 		format.image_channel_order = CL_RGBA;
 		format.image_channel_data_type = CL_FLOAT;
 		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
 		size_t origin[3] = { 0,0,0 };
 		size_t region[3] = { hdr_width,hdr_height,1 };
-		/*
-		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), image, CL_TRUE, origin, region, 0, 0, (void*)pixels, 0, nullptr, nullptr);
-		if (err) {
-			auto err_string = GET_CL_ERROR_CODE(err);
-			printf("Error: %s\n", err_string.c_str());
-			exit(err);
-		}
-		*/
 
 		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
 		if (err) {
@@ -76,6 +76,9 @@ namespace LSIS {
 			printf("Error: %s\n", err_string.c_str());
 			exit(err);
 		}
+
+		delete[] hdr_data;
+		CHECK(Compute::GetCommandQueue().finish());
 	}
 
 	PathTracer::~PathTracer()
@@ -92,34 +95,41 @@ namespace LSIS {
 
 	void PathTracer::OnUpdate(float delta)
 	{
-		PROFILE_SCOPE("PathTracer");
-		Prepare();
+		// Don't do anything if not ready
+		if (!ready)
+			return;
 
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+		if (m_num_samples < 1000) {
+			//PROFILE_SCOPE("PathTracer");
+			Prepare();
 
-		for (auto bounce = 0; bounce < 4; bounce++) {
-			// Handle bounce
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
-			//ProcessIntersections();
+			Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
 
-			// Process bounce and prepare shadow rays
-			Shade();
+			for (auto bounce = 0; bounce < 4; bounce++) {
+				// Handle bounce
+				m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
+				//ProcessIntersections();
 
-			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
-			ProcessOcclusion();
+				// Process bounce and prepare shadow rays
+				Shade();
+
+				// if the shadow ray is not occluded, the lights contribution is added to the result
+				m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
+				ProcessOcclusion();
+			}
+
+			// copy results into pixelbuffer
+			ProcessResults();
+			m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
+			CHECK(Compute::GetCommandQueue().finish());
+
+			m_num_samples++;
+
+			if (m_num_samples % 100 == 0) {
+				printf("Samples: %d\n", m_num_samples);
+			}
 		}
-
-		// copy results into pixelbuffer
-		ProcessResults();
-
-		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		m_viewer.Render();
-
-		Compute::GetCommandQueue().finish();
-
-		m_num_samples++;
-		printf("Num Samples %d, ", m_num_samples);
 	}
 
 	bool PathTracer::OnEvent(const Event& e)
@@ -142,7 +152,8 @@ namespace LSIS {
 		}
 		if (e.GetEventType() == EventType::CameraUpdated) {
 			ResetSamples();
-			std::cout << "Cam update\n";
+			auto cam = Application::Get()->GetScene()->GetCamera();
+			m_cam_projection = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
 			return true;
 		}
 		return false;
@@ -176,22 +187,29 @@ namespace LSIS {
 
 	void PathTracer::CompileKernels()
 	{
-		m_program_prepare = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/prepare.cl", { "Kernels/" });
+		m_program_prepare = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/prepare.cl", { "-I Kernels/" });
 		m_kernel_prepare = Compute::CreateKernel(m_program_prepare, "prepare");
 
-		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "Kernels/" });
+		m_program_process = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/process.cl", { "-I Kernels/" });
 		m_kernel_process = Compute::CreateKernel(m_program_process, "process_intersections");
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
 		m_kernel_process_results = Compute::CreateKernel(m_program_process, "process_results");
 
-		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", { "Kernels/" });
+		std::vector<std::string> options = { "-I Kernels/"};
+		if (use_russian_roulette)
+			options.push_back("- D RUSSIAN_ROULETTE");
+		if (use_solid_angle)
+			options.push_back("-D SOLID_ANGLE");
+		if (use_lighttree)
+			options.push_back("-D USE_LIGHTTREE");
+		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
 		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");
 	}
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
-		size_t num_pixels = static_cast<size_t>(m_image_width)* static_cast<size_t>(m_image_height);
+		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
 		size_t num_concurrent_samples = num_pixels * m_num_samples_per_pixel;
 
 		m_state_buffer = TypedBuffer<cl_int>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
@@ -216,42 +234,37 @@ namespace LSIS {
 	void PathTracer::BuildStructure()
 	{
 		//LoadMaterials();
-		LoadGeometry();
-		LoadLights();
-
+		LoadSceneData();
 
 		//BVHBuilder builder = BVHBuilder();
-
+#ifdef USE_LBVH
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(m_vertex_buffer, m_face_buffer);
-
-		//auto context = Compute::GetContext();
-
-		//m_vertex_buffer = structure.GetVertices();
-		//m_face_buffer = structure.GetFaces();
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
-
-		//auto pair = builder.Build(m_vertex_buffer, m_face_buffer);
-		//m_bvh_buffer = pair.first;
-		//m_bboxes_buffer = pair.second;
+#else // Use Binned SAH BVH
+		SAHBVHStructure structure = SAHBVHStructure(m_vertex_data, m_face_data, m_num_faces);
+		m_bvh_buffer = structure.GetNodesBuffer();
+		m_bboxes_buffer = structure.GetBoundsBuffer();
+#endif // USE_LBVH
 
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
 
 		ResetSamples();
-	}
+
+		CHECK(Compute::GetCommandQueue().finish());
+}
 
 	void PathTracer::Prepare()
 	{
-		auto cam = Application::Get()->GetScene()->GetCamera();
-		glm::mat4 cam_matrix = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
+		uint32_t seed = rand();
 
 		CHECK(m_kernel_prepare.setArg(0, sizeof(cl_uint), &m_image_width));
 		CHECK(m_kernel_prepare.setArg(1, sizeof(cl_uint), &m_image_height));
 		CHECK(m_kernel_prepare.setArg(2, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_prepare.setArg(3, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_prepare.setArg(4, sizeof(cl_float4) * 4, &cam_matrix));
+		CHECK(m_kernel_prepare.setArg(3, sizeof(cl_uint), &seed));
+		CHECK(m_kernel_prepare.setArg(4, sizeof(cl_float4) * 4, &m_cam_projection));
 		CHECK(m_kernel_prepare.setArg(5, m_ray_buffer.GetBuffer()));
 		CHECK(m_kernel_prepare.setArg(6, m_result_buffer.GetBuffer()));
 		CHECK(m_kernel_prepare.setArg(7, m_throughput_buffer.GetBuffer()));
@@ -283,22 +296,30 @@ namespace LSIS {
 	void PathTracer::Shade()
 	{
 		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
+		cl_uint seed = rand();
 
 		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
 		CHECK(m_kernel_shade.setArg(2, sizeof(cl_uint), &m_num_pixels));
 		CHECK(m_kernel_shade.setArg(3, sizeof(cl_uint), &m_num_samples));
-		CHECK(m_kernel_shade.setArg(4, m_intersection_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(5, m_geometric_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(6, m_lights.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(7, m_material_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(8, m_result_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(9, m_throughput_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(10, m_state_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(11, m_light_contribution_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(12, m_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(13, m_occlusion_ray_buffer.GetBuffer()));
-		CHECK(m_kernel_shade.setArg(14, m_background_texture));
+		CHECK(m_kernel_shade.setArg(4, sizeof(cl_uint), &seed));
+		CHECK(m_kernel_shade.setArg(5, m_intersection_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(6, m_geometric_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(7, m_lights.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(8, m_material_buffer.GetBuffer()));
+		if (use_lighttree) {
+			CHECK(m_kernel_shade.setArg(9, m_lighttree_buffer.GetBuffer()));
+		}
+		else {
+			CHECK(m_kernel_shade.setArg(9, m_cdf_power_buffer.GetBuffer()));
+		}
+		CHECK(m_kernel_shade.setArg(10, m_result_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(11, m_throughput_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(12, m_state_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(13, m_light_contribution_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(14, m_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(15, m_occlusion_ray_buffer.GetBuffer()));
+		CHECK(m_kernel_shade.setArg(16, m_background_texture));
 		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
@@ -330,18 +351,27 @@ namespace LSIS {
 		m_num_samples = 0;
 	}
 
-	void PathTracer::LoadGeometry()
+	inline glm::vec3 convert(cl_float4 in) {
+		return glm::vec3(in.x, in.y, in.z);
+	}
+
+	void PathTracer::LoadSceneData()
 	{
 		auto scene = Application::Get()->GetScene();
 		Scene* p_scene = scene.get();
-		
+
 		auto entities = scene->GetEntities<MeshComponent, TransformComponent>();
 
 		size_t num_vertices = 0;
 		size_t num_indices = 0;
 		size_t num_materials = 0;
-		std::unordered_map<Ref<Material>, uint32_t> material_index_map{};
-		std::list<std::tuple<Ref<MeshData>, glm::mat4, Ref<Material>>> objects{};
+
+		if (entities.empty()) {
+			m_num_faces = 0;
+			m_num_vertices = 0;
+			ready = false;
+			return;
+		}
 
 		for (auto handle : entities) {
 			Entity entity = { handle, p_scene };
@@ -349,43 +379,46 @@ namespace LSIS {
 			auto transform = entity.GetComponent<TransformComponent>().Transform;
 			num_vertices += mesh->GetNumVertices();
 			num_indices += mesh->GetNumIndices();
-
-			auto material = entity.GetComponent<MeshComponent>().material;
-			if (material_index_map.find(material) == material_index_map.end()) {
-				material_index_map.insert({ material, num_materials++ });
-			}
-
-			objects.push_back(std::make_tuple(mesh, transform, material));
+			num_materials += mesh->GetNumMaterials();
 		}
 
-		size_t num_faces = num_indices / 3;
+		size_t num_faces = num_indices;
 
 		std::vector<SHARED::Material> materials_data = std::vector<SHARED::Material>(num_materials);
 		std::vector<SHARED::Vertex> vertices_data = std::vector<SHARED::Vertex>(num_vertices);
 		std::vector<SHARED::Face> faces_data = std::vector<SHARED::Face>(num_faces);
 
-		for (auto index : material_index_map) {
-			auto mat = index.first;
-			auto id = index.second;
-			materials_data[id] = SHARED::make_material(mat->GetDiffuse(), mat->GetSpecular());
-		}
+		size_t num_emissive_faces = 0;
+		std::list<int> mesh_light_indices{};
 
 		size_t index_face = 0;
 		size_t index_vertex = 0;
-		for (auto& [mesh, transform, material] : objects) {
+		size_t index_material = 0;
+
+		for (auto handle : entities) {
+			Entity entity = { handle, p_scene };
+			auto mesh = entity.GetComponent<MeshComponent>().mesh->GetData();
+			auto transform = entity.GetComponent<TransformComponent>().Transform;
 			auto indices = mesh->GetIndices();
 			auto vertices = mesh->GetVertices();
+			auto materials = mesh->GetMaterials();
 
-			cl_uint material_index = material_index_map[material];
-
-			size_t num_faces_object = mesh->GetNumIndices() / 3;
+			size_t num_faces_object = mesh->GetNumIndices();
 			size_t num_vertices_object = mesh->GetNumVertices();
+			size_t num_materials_object = mesh->GetNumMaterials();
 
 			for (size_t i = 0; i < num_faces_object; i++) {
-				uint32_t v0 = indices[i * 3 + 0] + index_vertex;
-				uint32_t v1 = indices[i * 3 + 1] + index_vertex;
-				uint32_t v2 = indices[i * 3 + 2] + index_vertex;
-				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, material_index);
+				FaceData face = indices[i];
+				uint32_t v0 = face.vertex0 + index_vertex;
+				uint32_t v1 = face.vertex1 + index_vertex;
+				uint32_t v2 = face.vertex2 + index_vertex;
+				int idx_mat = face.material + index_material;
+				glm::vec3 e = materials[face.material].emissive;
+				if (e.x > 0.0f || e.y > 0.0f || e.z > 0.0f) {
+					num_emissive_faces++;
+					mesh_light_indices.push_back(index_face);
+				}
+				faces_data[index_face++] = SHARED::make_face(v0, v1, v2, idx_mat);
 			}
 
 			for (size_t i = 0; i < num_vertices_object; i++) {
@@ -396,55 +429,45 @@ namespace LSIS {
 				glm::vec3 normal = { n.x,n.y,n.z };
 				vertices_data[index_vertex++] = SHARED::make_vertex(position, normal, v.uv);
 			}
+
+			for (size_t i = 0; i < num_materials_object; i++) {
+				MaterialData data = materials[i];
+				materials_data[index_material++] = SHARED::make_material(data.diffuse, data.specular, data.emissive);
+			}
+
 		}
 
+		auto context = Compute::GetContext();
 		auto queue = Compute::GetCommandQueue();
 
-		std::vector<cl::Event> write_events = std::vector<cl::Event>(3);
-		write_events[0] = cl::Event();
-		write_events[1] = cl::Event();
-		write_events[2] = cl::Event();
+		m_face_buffer = TypedBuffer<SHARED::Face>(context, CL_MEM_READ_ONLY, num_faces);
+		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(context, CL_MEM_READ_ONLY, num_vertices);
+		m_material_buffer = TypedBuffer<SHARED::Material>(context, CL_MEM_READ_ONLY, num_materials);
 
-		m_face_buffer = TypedBuffer<SHARED::Face>(Compute::GetContext(), CL_MEM_READ_ONLY, num_faces);
-		m_vertex_buffer = TypedBuffer<SHARED::Vertex>(Compute::GetContext(), CL_MEM_READ_ONLY, num_vertices);
-		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
+		CHECK(queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data()));
+		CHECK(queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data()));
+		CHECK(queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data()));
 
-		queue.enqueueWriteBuffer(m_face_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Face) * faces_data.size(), faces_data.data(), nullptr, &write_events[0]);
-		queue.enqueueWriteBuffer(m_vertex_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Vertex) * vertices_data.size(), vertices_data.data(), nullptr, &write_events[1]);
-		queue.enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_FALSE, 0, sizeof(SHARED::Material) * materials_data.size(), materials_data.data(), nullptr, &write_events[2]);
+		if (m_vertex_data != nullptr)
+			delete[] m_vertex_data;
+		if (m_face_data != nullptr)
+			delete[] m_face_data;
 
-		// Wait for data to be uploaded
-		cl::WaitForEvents(write_events);
+		m_vertex_data = new SHARED::Vertex[num_vertices];
+		m_face_data = new SHARED::Face[num_faces];
+		m_num_vertices = num_vertices;
+		m_num_faces = num_faces;
 
-		printf("indices: %zd, vertices: %zd, materials: %zd\n", num_indices, num_vertices, num_materials);
-	}
+		memcpy(m_vertex_data, vertices_data.data(), num_vertices * sizeof(SHARED::Vertex));
+		memcpy(m_face_data, faces_data.data(), num_faces * sizeof(SHARED::Face));
 
-	void PathTracer::LoadMaterials()
-	{
-		auto scene_materials = Application::Get()->GetScene()->GetMaterials();
+		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
 
-		const size_t num_materials = scene_materials.size();
-		std::vector<SHARED::Material> material_data = std::vector<SHARED::Material>(num_materials);
-
-		for (auto i = 0; i < num_materials; i++) {
-			auto& material = scene_materials[i];
-			material_data[i] = SHARED::make_material(material->GetDiffuse(), material->GetSpecular());
-		}
-
-		m_material_buffer = TypedBuffer<SHARED::Material>(Compute::GetContext(), CL_MEM_READ_ONLY, num_materials);
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_material_buffer.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Material) * num_materials, material_data.data());
-
-		printf("Num Materials: %zd\n", num_materials);
-	}
-
-	void PathTracer::LoadLights()
-	{
 		// load scene lights
-		auto app = Application::Get();
-		auto scene_lights = app->GetScene()->GetLights();
+		auto scene_lights = scene->GetLights();
 
 		// get the number of lights and allocate the space for the temporary buffer data
-		const size_t num_lights = scene_lights.size();
+		size_t num_lights = scene_lights.size();
 		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
 
 		// format and store scene lights data
@@ -453,10 +476,49 @@ namespace LSIS {
 			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
 		}
 
-		m_lights = TypedBuffer<SHARED::Light>(Compute::GetContext(), CL_MEM_READ_ONLY, num_lights);
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data());
+		for (auto i : mesh_light_indices) {
+			SHARED::Face face = m_face_data[i];
+			glm::vec3 p0 = convert(m_vertex_data[face.index.x].position);
+			glm::vec3 p1 = convert(m_vertex_data[face.index.y].position);
+			glm::vec3 p2 = convert(m_vertex_data[face.index.z].position);
 
-		printf("Num lights: %zd\n", num_lights);
+			const glm::vec3 cross_tan_bitan = glm::cross(p1 - p0, p2 - p0);
+			const float area = glm::length(cross_tan_bitan) * 0.5f;
+			const glm::vec3 dir = glm::normalize(cross_tan_bitan);
+
+
+			glm::vec3 n0 = convert(m_vertex_data[face.index.x].normal);
+			glm::vec3 n1 = convert(m_vertex_data[face.index.y].normal);
+			glm::vec3 n2 = convert(m_vertex_data[face.index.z].normal);
+
+			SHARED::Material mat = materials_data[face.index.w];
+
+			glm::vec3 n = glm::normalize(n0+n1+n2);
+			glm::vec3 i = convert(mat.emission);
+			glm::vec3 p = ((p0+p1+p2) / 3.0f);
+
+			//lights_data.push_back(SHARED::make_light(p, n, i));
+			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, dir, i));
+			num_lights++;
+		}
+
+		// if no lights are present in the scene, push a empty, light to avoid crashing the kernel
+		if (lights_data.empty()) {
+			lights_data.push_back(SHARED::make_light({ 0,0,0 }, { 0,1,0 }, { 0,0,0 }));
+			num_lights++;
+		}
+
+		LightTree light_tree = LightTree(lights_data.data(), num_lights);
+		m_lighttree_buffer = light_tree.GetNodeBuffer();
+
+		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
+		if (num_lights > 0)
+			CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
+
+		m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
+
+		ready = true;
+		printf("PointLights: %zd, MeshLights: %zd\n", num_lights, num_emissive_faces);
 	}
 
 }

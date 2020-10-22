@@ -3,6 +3,8 @@
 #include <memory>
 
 #include "Light/Light.h"
+#include "Compute/Buffer.h"
+#include "Kernels/shared_defines.h"
 
 namespace LSIS {
 
@@ -18,5 +20,7 @@ namespace LSIS {
 
 	private:
 	};
+
+	TypedBuffer<cl_float> build_power_sampling_buffer(const SHARED::Light* lights, const size_t num_lights);
 
 }

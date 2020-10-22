@@ -63,6 +63,8 @@ inline float intersect_triangle(
     float const t_max = ray.direction.w;
     
     float const invd = inverse(dot(s1, e1));
+    if (invd <= 0.0f)
+        return t_max;
 
     float3 const d = ray.origin.xyz - v1;
     float const b1 = dot(d, s1) * invd;
@@ -216,9 +218,11 @@ __kernel void intersect_bvh(
             const float3 normal_shading = interpolate(GetVertexNormal(v0), GetVertexNormal(v1), GetVertexNormal(v2), uv);
             const float2 tex_coord = interpolate(GetVertexUV(v0),GetVertexUV(v1),GetVertexUV(v2),uv);
 
+            const float flip = dot(ray.direction.xyz, normal_shading) < 0.0f ? 1.0f : -1.0f;
+
             hit.material_index = face.index.w;
             info.position = (float4)(hit_pos, 0.0f);
-            info.normal = (float4)(normal_shading, 0.0f);
+            info.normal = (float4)(normal_shading * flip, 0.0f);
             info.uvwt = (float4)(uv.xy, 0.0f, t_max);
         }else{
             hit.material_index = -1;

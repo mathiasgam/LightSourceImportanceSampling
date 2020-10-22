@@ -49,34 +49,15 @@ namespace LSIS {
 
 		auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 		auto m1 = std::make_shared<Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
-		auto m2 = std::make_shared<Material>(flat, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f));
-		auto m3 = std::make_shared<Material>(flat, glm::vec4(0.2f, 0.2f, 0.8f, 1.0f));
-		auto m4 = std::make_shared<Material>(flat, glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
-		auto m5 = std::make_shared<Material>(flat, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
 
-		auto square = MeshLoader::CreateCube(0.5f);
-		//auto bunny = MeshLoader::LoadFromOBJ("../models/bunny.obj");
-
-		m_scene->LoadObject("../Assets/Models/bunny.obj", m1, Transform({ -1,0,-1 }));
-		m_scene->LoadObject("../Assets/Models/cube.obj", m2, Transform({ 1,0,1 }));
-		m_scene->LoadObject("../Assets/Models/cube.obj", m3, Transform({ -1,0,1 }));
-		m_scene->LoadObject("../Assets/Models/cube.obj", m4, Transform({ 1,0,-1 }));
-		{
-			auto entity = m_scene->CreateEntity();
-			auto mesh = std::make_shared<Mesh>(MeshLoader::CreateRect({ 10.0,10.0 }));
-			auto transform = Transform({ 0,0,0 }, { -3.14 / 2.0,0,0 });
-			const glm::mat4 mat = transform.GetModelMatrix();
-			entity.AddComponent<TransformComponent>(mat);
-			entity.AddComponent<MeshComponent>(mesh, m5);
-		}
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(0, 5, 0), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(4, 4, 4), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(2, 3, -5), glm::vec3(10, 10, 10)));
-		m_scene->AddLight(std::make_shared<Light>(glm::vec3(-5, 4, -1), glm::vec3(10, 10, 10)));
+		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ 0,0,0 }));
+		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0.0f,0.0f,0.0f }));
+		//m_scene->LoadObject("../Assets/Models/Buddha.obj", m1, Transform({ 0,0,0 }));
+		m_scene->LoadObject("../Assets/Models/Background.obj", m1, Transform({ 0,0,0 }));
 	}
 
 	void Application::CreateWindow() {
-		Window::WindowData win_props{ "LSIS", 720, 512, BIND_EVENT_FN(Application::OnEvent) };
+		Window::WindowData win_props{ "LSIS", 512, 512, BIND_EVENT_FN(Application::OnEvent) };
 		m_window = std::make_unique<Window>(win_props);
 		m_window->SetClearColor({ 0.05,0.05,0.05,1.0 });
 	}

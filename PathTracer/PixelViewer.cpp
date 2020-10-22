@@ -113,7 +113,7 @@ namespace LSIS {
 		const int num_pixels = width * height;
 
 		m_kernel.setArg(0, pixels.GetBuffer());
-		m_kernel.setArg(1, sizeof(int2), &dim);
+		m_kernel.setArg(1, sizeof(cl_int2), &dim);
 		clSetKernelArg(m_kernel(), 2, sizeof(m_shared_texture), &m_shared_texture);
 
 		queue.enqueueNDRangeKernel(m_kernel, 0, cl::NDRange(num_pixels), cl::NullRange);
@@ -137,7 +137,7 @@ namespace LSIS {
 
 	void PixelViewer::CompileKernels()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/write_pixels.cl", { "Kernels/" });
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/write_pixels.cl", { "-I Kernels/" });
 		m_kernel = Compute::CreateKernel(m_program, "write_pixels");
 	}
 

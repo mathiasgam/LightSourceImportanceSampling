@@ -159,22 +159,22 @@ namespace LSIS {
 		return ss.str();
 	}
 
-	cl::Program Compute::CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename, const std::vector<std::string>& include_paths)
+	cl::Program Compute::CreateProgram(const cl::Context& context, const cl::Device& device, const std::string& filename, const std::vector<std::string>& options)
 	{
 		std::string str = ReadFile(filename);
 		cl::Program::Sources source(1, std::make_pair(str.c_str(), str.length() + 1));
 		cl::Program program(context, source);
 
-		std::stringstream options{};
-		for (auto path : include_paths) {
-			options << "-I " << path << " ";
+		std::stringstream options_string{};
+		for (auto option : options) {
+			options_string << option << " ";
 		}
 
 #ifdef DEBUG
-		options << "-D DEBUG";
+		options_string << "-D DEBUG";
 #endif // DEBUG
 
-		auto err = program.build(options.str().c_str());
+		auto err = program.build(options_string.str().c_str());
 
 		if (err) {
 			std::cout << "Failed to build kernel program!!!\n";

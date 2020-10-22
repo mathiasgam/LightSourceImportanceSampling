@@ -8,8 +8,25 @@ namespace LSIS {
 	class TypedBuffer {
 	public:
 		TypedBuffer() : m_buffer(), m_count(0) {}
-		TypedBuffer(const cl::Context& context, cl_mem_flags mem_flags, size_t count) : m_buffer(context, mem_flags, sizeof(T) * count), m_count(count) {}
-		virtual ~TypedBuffer(){}
+		TypedBuffer(const cl::Context& context, cl_mem_flags mem_flags, size_t count) {
+			cl_int err = 0;
+
+			if (count == 0) {
+				printf("Empty Buffer!\n");
+				m_buffer = cl::Buffer();
+			}
+			else {
+				m_buffer = cl::Buffer(context, mem_flags, sizeof(T) * count, nullptr, &err);
+			}
+
+			// Check for errors
+			if (err != 0) {
+				std::cout << "Error: " << err << ": " << GET_CL_ERROR_CODE(err) << ", line: " << __LINE__ << ", " << __FILE__ << "\n";
+				__debugbreak();
+			}
+			m_count = count;
+		}
+		virtual ~TypedBuffer() {}
 
 		TypedBuffer(const TypedBuffer& buf) {
 			m_buffer = buf.m_buffer;

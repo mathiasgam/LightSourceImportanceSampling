@@ -14,6 +14,7 @@
 #define TWO_PI (3.14159265358979323846f * 2.0f)
 
 #define STATE_INACTIVE 0
+#define STATE_FIRST 2
 #define STATE_ACTIVE 1
 
 #ifdef AMD_MEDIA_OPS
@@ -44,9 +45,9 @@ inline Ray CreateRay(float3 origin, float3 dir, float tmin, float tmax) {
 #define GetVertexPosition(vertex) vertex.position.xyz
 
 inline uint hash1(uint t) {
-	t ^= t << 13;
-	t ^= t >> 17;
-	t ^= t << 5;
+	t ^= t << 13u;
+	t ^= t >> 17u;
+	t ^= t << 5u;
 	return t;
 }
 
@@ -60,11 +61,24 @@ inline uint hash2(uint t) {
 }
 
 inline float uintToRangedFloat(uint x) {
-	return (float)(x % 0xFFFF) / (float)(0xFFFF);
+	return (float)(x % 0xFFFFFFFF) / (float)(0xFFFFFFFF);
+}
+
+inline double ulongToRangedDouble(ulong x) {
+	return (double)(x % 0xFFFFFFFFFFFFFFFF) / (double)(0xFFFFFFFFFFFFFFFF);
+}
+
+inline double random_double(uint* state) {
+	const uint t1 = hash2(*state);
+	const uint t2 = hash2(t1);
+	*state = t2;
+
+	const ulong x = ((ulong)t1) ^ (((ulong)t1) << 32);
+	return ulongToRangedDouble(x);
 }
 
 inline float rand(uint* state) {
-	uint t = hash1(*state);
+	uint t = hash2(*state);
 	*state = t;
 	return uintToRangedFloat(t);
 }
@@ -112,7 +126,15 @@ inline float inv_sqrt(float x){
 #endif
 }
 
+inline float inv_sqr(float x) {
+	return inverse(x * x);
+}
+
 #define interpolate(f0,f1,f2,uv) mix(mix(f0,f1, uv.x), f2, uv.y)
+
+inline float max_component(float3 vec) {
+	return max3(vec.x, vec.y, vec.z);
+}
 
 inline float3 sample_hemisphere(uint* state, float3 normal) {
 	float3 vec;
@@ -147,6 +169,10 @@ float3 sample_hemisphere_cosine(uint* state, float3 normal)
     const float3 s = cross(normal, t);
 
     return normalize(s*cos(phi)*sinTheta + t*sin(phi)*sinTheta + normal*sqrt(1.0f - sinThetaSqr));
+}
+
+inline bool contained(float3 pmin, float3 pmax, float3 position) {
+	return all(position >= pmin) && all(position <= pmax);
 }
 
 

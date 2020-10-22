@@ -8,6 +8,19 @@
 
 namespace LSIS {
 
+	struct MaterialData {
+		glm::vec3 diffuse;
+		glm::vec3 specular;
+		glm::vec3 emissive;
+	};
+
+	struct FaceData {
+		int vertex0;
+		int vertex1;
+		int vertex2;
+		int material;
+	};
+
 	struct VertexData {
 		glm::vec3 position;
 		glm::vec3 normal;
@@ -31,19 +44,22 @@ namespace LSIS {
 
 	class MeshData {
 	public:
-		MeshData(const std::vector<VertexData>& vertices, const std::vector<uint32_t>& indices);
+		MeshData(const std::vector<VertexData>& vertices, const std::vector<FaceData>& faces, const std::vector<MaterialData>& materials);
 		virtual ~MeshData();
 
 		const VertexData* GetVertices() const { return m_vertices.data(); }
-		const uint32_t* GetIndices() const { return m_indices.data(); }
+		const FaceData* GetIndices() const { return m_indices.data(); }
+		const MaterialData* GetMaterials() const { return m_materials.data(); }
 		size_t GetNumVertices() const { return m_vertices.size(); }
 		size_t GetNumIndices() const { return m_indices.size(); }
+		size_t GetNumMaterials() const { return m_materials.size(); }
 
 	private:
 		std::vector<VertexData> m_vertices;
 		//std::vector<float> m_vertices;
 		//std::vector<float> m_normals;
-		std::vector<uint32_t> m_indices;
+		std::vector<FaceData> m_indices;
+		std::vector<MaterialData> m_materials;
 	};
 
 	class Mesh {

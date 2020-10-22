@@ -33,7 +33,7 @@ namespace LSIS {
 
 	void BVHBuilder::Compile()
 	{
-		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh_builder.cl", { "Kernels/" });
+		m_program = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/bvh_builder.cl", { "-I Kernels/" });
 		m_kernel_prepare = Compute::CreateKernel(m_program, "prepare_geometry_data");
 		m_kernel_scene_bounds = Compute::CreateKernel(m_program, "calc_scene_bounds");
 		m_kernel_morton_code = Compute::CreateKernel(m_program, "generate_morton_codes");

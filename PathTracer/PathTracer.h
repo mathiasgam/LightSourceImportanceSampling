@@ -44,9 +44,7 @@ namespace LSIS {
 
 		void ResetSamples();
 
-		void LoadGeometry();
-		void LoadMaterials();
-		void LoadLights();
+		void LoadSceneData();
 
 	private:
 		uint32_t m_image_width, m_image_height;
@@ -55,6 +53,11 @@ namespace LSIS {
 		uint32_t m_num_concurrent_samples = m_num_pixels * m_num_samples_per_pixel;
 		uint32_t m_num_rays;
 		uint32_t m_num_samples = 0;
+
+		SHARED::Face* m_face_data = nullptr;
+		SHARED::Vertex* m_vertex_data = nullptr;
+		size_t m_num_faces = 0;
+		size_t m_num_vertices = 0;
 
 		PixelViewer m_viewer;
 		BVH m_bvh;
@@ -74,8 +77,14 @@ namespace LSIS {
 		cl::Sampler m_sampler;
 		cl::Image2D m_background_texture;
 
+		glm::mat4 m_cam_projection;
 
-		bool buffer_switch = true;
+		bool ready = false;
+
+		bool use_solid_angle = true;
+		bool use_russian_roulette = false;
+
+		bool use_lighttree = true;
 
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;
@@ -109,6 +118,8 @@ namespace LSIS {
 
 		// Light Buffers
 		TypedBuffer<SHARED::Light> m_lights;
+		TypedBuffer<cl_float> m_cdf_power_buffer;
+		TypedBuffer<SHARED::LightTreeNode> m_lighttree_buffer;
 
 
 	};
