@@ -124,8 +124,8 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 
 // Brute force finding the angle that captures the entire box
 float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
-	//if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
-	//	return M_PI_F;
+	if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
+		return M_PI_F;
 	const float3 center = (pmin + pmax) * 0.5f;
 	const float3 diff = center - position;
 	const float3 dir = normalize(diff);
@@ -149,7 +149,7 @@ float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
 		min_cos_theta = min(min_cos_theta, cos_theta);
 	}
 	// the longest sqr length is used to find the maximum angle. only do the expensive calculation once
-	return acos(min_cos_theta);;
+	return acos(min_cos_theta);
 }
 
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
@@ -159,7 +159,7 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const double sqr_dist = sqr(dist);
 	const float3 dir = normalize(diff);
 
-	const float theta = acos(-dot(node.axis.xyz, dir));
+	const float theta = acos(-dot(AXIS(node), dir));
 	const float theta_i = acos(dot(normal, dir));
 
 	// atan of radius of bounding sphere divided by distance
@@ -168,10 +168,10 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const float theta_t = max(0.0f, (theta - THETA_O(node)) - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
 
-	if (theta_t < THETA_E(node))
+	if (theta_t >= THETA_E(node))
 		return 0.0f;
 
-	const float3 I = (diffuse * fabs(cos(theta_ti)) * node.energy.xyz) * inverse(sqr_dist) * cos(theta_t);
+	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * inverse(sqr_dist) * cos(theta_t);
 	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
 
 	return I.x + I.y + I.z;
@@ -256,7 +256,7 @@ __kernel void ProcessBounce(
 	__read_only image2d_t texture
 ) {
 	int id = get_global_id(0);
-	uint rng = hash2(hash1(id) ^ hash1(seed));
+	uint rng = hash2(hash1(id) ^ hash2(seed));
 
 	//barrier(CLK_GLOBAL_MEM_FENCE);
 
