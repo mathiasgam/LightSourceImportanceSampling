@@ -51,9 +51,9 @@ namespace LSIS {
 		auto m1 = std::make_shared<Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
 
 		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ 0,0,0 }));
-		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0,0,0 }));
+		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0.0f,0.0f,0.0f }));
 		//m_scene->LoadObject("../Assets/Models/Buddha.obj", m1, Transform({ 0,0,0 }));
-		//m_scene->LoadObject("../Assets/Models/Background.obj", m1, Transform({ 0,0,0 }));
+		m_scene->LoadObject("../Assets/Models/Background.obj", m1, Transform({ 0,0,0 }));
 	}
 
 	void Application::CreateWindow() {

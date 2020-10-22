@@ -485,7 +485,7 @@ namespace LSIS {
 			const glm::vec3 cross_tan_bitan = glm::cross(p1 - p0, p2 - p0);
 			const float area = glm::length(cross_tan_bitan) * 0.5f;
 			const glm::vec3 dir = glm::normalize(cross_tan_bitan);
-			
+
 
 			glm::vec3 n0 = convert(m_vertex_data[face.index.x].normal);
 			glm::vec3 n1 = convert(m_vertex_data[face.index.y].normal);

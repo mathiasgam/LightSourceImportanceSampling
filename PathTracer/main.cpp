@@ -9,6 +9,9 @@
 #include "entt.hpp"
 #include "Scene/Components.h"
 
+#include "gtc/constants.hpp"
+#include "gtx/rotate_vector.hpp"
+
 #ifdef LSIS_PLATFORM_WIN
 int setenv(const char* name, const char* value, int overwrite)
 {
@@ -35,6 +38,8 @@ int main(int argc, char** argv) {
 	LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
 	//LSIS::Input::SetCameraPosition({ 0.6f,0.8f,0.6f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.4f,0.5f,0.0f });
+	//LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
+	//LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
 
 	std::shared_ptr<LSIS::PathTracer> pt = std::make_shared<LSIS::PathTracer>(512, 512);
 	app->AddLayer(pt);
