@@ -147,7 +147,7 @@ typedef int2    cl_int2;
     inline Light make_mesh_light(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 normal, glm::vec3 intensity) {
         Light light = {};
         light.position = { p0.x, p0.y, p0.z, 1.0f };
-        light.direction = { normal.x, normal.y, normal.z, CL_M_PI_F / 2.0f };
+        light.direction = { normal.x, normal.y, normal.z, CL_M_PI_2_F };
         light.intensity = { intensity.x, intensity.y, intensity.z, 0.0f };
 
         const glm::vec3 t = p1 - p0;
