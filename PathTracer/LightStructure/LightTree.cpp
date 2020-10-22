@@ -93,15 +93,15 @@ namespace LSIS {
 				init_bins(bins[1]);
 				init_bins(bins[2]);
 
-				const glm::vec3 diagonal = cb.pmax - cb.pmin;
+				const float3 diagonal = cb.pmax - cb.pmin;
 				//const uint k = max_axis(diagonal);
-				const glm::vec3 k0 = cb.pmin;
-				const glm::vec3 k1 = (static_cast<float>(K) * (1.0f - 1e-6f)) / (diagonal);
+				const float3 k0 = cb.pmin;
+				const float3 k1 = (static_cast<float>(K) * (1.0f - 1e-6f)) / (diagonal);
 
 				// Calculate bins
 				for (int i = left; i < right; i++) {
 					const uint id = data.ids[i];
-					const glm::vec3 c_i = data.centers[id];
+					const float3 c_i = data.centers[id];
 					const glm::ivec3 bin_id = static_cast<glm::ivec3>(k1 * (c_i - k0));
 
 					const bbox cb_i = make_bbox(c_i);
@@ -412,9 +412,9 @@ namespace LSIS {
 	}
 	inline void LightTree::swap(bcone& a, bcone& b)
 	{
-		bcone tmp = a;
-		a = b;
-		b = tmp;
+		std::swap(a.axis, b.axis);
+		std::swap(a.theta_o, b.theta_o);
+		std::swap(a.theta_e, b.theta_e);
 	}
 	inline LightTree::bbox LightTree::union_bbox(bbox a, bbox b)
 	{
