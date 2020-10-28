@@ -428,7 +428,7 @@ namespace LSIS {
 		if (b.theta_o > a.theta_o) {
 			swap(a, b);
 		}
-		const float d = glm::min(1.0f, glm::dot(a.axis, b.axis));
+		const float d = a.axis == b.axis ? 1.0f : glm::max(-1.0f, glm::min(1.0f, glm::dot(a.axis, b.axis)));
 		const float theta_d = glm::acos(d);
 #ifdef DEBUG
 		if (isnan(theta_d)) {
