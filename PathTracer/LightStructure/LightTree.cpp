@@ -93,6 +93,9 @@ namespace LSIS {
 				init_bins(bins[1]);
 				init_bins(bins[2]);
 
+				bin total = {};
+				bin_init(total);
+
 				const float3 diagonal = cb.pmax - cb.pmin;
 				//const uint k = max_axis(diagonal);
 				const float3 k0 = cb.pmin;
@@ -116,6 +119,8 @@ namespace LSIS {
 					if (isnan(cone_i.axis.x) || isnan(cone_i.axis.y) || isnan(cone_i.axis.z)) {
 						__debugbreak();
 					}
+
+					bin_update(total, cb_i, box_i, cone_i, e_i);
 
 					for (int k = 0; k < 3; k++) {
 						if (diagonal[k] <= 0.0f)
@@ -151,38 +156,38 @@ namespace LSIS {
 					}
 				}
 
+				int middle;
 				if (best_k == -1) {
 					best_k = max_axis(diagonal);
 					best_split = K / 2;
 					printf("Failed to find split!\n");
 					printf("Range: %d\n", range);
+					middle = left + range / 2;
+				}
+				else {
+					middle = reorder_id(data, left, right, best_split, best_k, k0[best_k], k1[best_k]);
 				}
 
-				const bbox total_box = splits[0].data[0].bin_r.box;
-				const bcone total_cone = splits[0].data[0].bin_r.cone;
-				const float3 total_energy = splits[0].data[0].bin_r.energy;
-
-				const float3 pmin = total_box.pmin;
-				const float3 pmax = total_box.pmax;
-				const float3 axis = total_cone.axis;
-				const float theta_o = total_cone.theta_o;
-				const float theta_e = total_cone.theta_e;
+				const float3 pmin =	total.box.pmin;
+				const float3 pmax = total.box.pmax;
+				const float3 axis = total.cone.axis;
+				const float theta_o = total.cone.theta_o;
+				const float theta_e = total.cone.theta_e;
 
 				constexpr int max_light_per_node = 1;
 
-				if (range <= max_light_per_node && best_cost >= total_energy.x + total_energy.y + total_energy.z) {
+				if (range <= max_light_per_node && best_cost >= total.energy.x + total.energy.y + total.energy.z) {
 					printf("Range: %d, Don't devide!\n", range);
-					m_nodes[index] = SHARED::make_light_tree_leaf(pmin, pmax, axis, total_energy, theta_o, theta_e, data.ids[left], range);
+					m_nodes[index] = SHARED::make_light_tree_leaf(pmin, pmax, axis, total.energy, theta_o, theta_e, data.ids[left], range);
 				}
 				else {
 					printf("Range: %d, Divide!\n", range);
-					const int middle = reorder_id(data, left, right, best_split, best_k, k0[best_k], k1[best_k]);
 
 					//const int middle = left + (range / 2);
 					const int index_left = next_index++;
 					const int index_right = next_index++;
 
-					m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, total_energy, theta_o, theta_e, index_left, index_right);
+					m_nodes[index] = SHARED::make_light_tree_node(pmin, pmax, axis, total.energy, theta_o, theta_e, index_left, index_right);
 
 					//printf("index: %d, left: %d, middle: %d, right: %d\n", index, left, middle, right);
 
