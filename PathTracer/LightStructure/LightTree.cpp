@@ -10,7 +10,7 @@ namespace LSIS {
 
 	LightTree::LightTree(const SHARED::Light* lights, const size_t num_lights)
 	{
-		PROFILE_SCOPE("LightTree Construction");
+		//PROFILE_SCOPE("LightTree Construction");
 		if (num_lights == 0) {
 			m_num_nodes = 0;
 			return;
@@ -29,7 +29,7 @@ namespace LSIS {
 
 		// Initialize queue and push the root node
 		auto queue = std::queue<queue_data>();
-		queue.push({ next_index++, 0, (int)num_lights, lights_bound.spatial });
+		queue.push({ next_index++, 0, (int)num_lights});
 
 		bin_data bins[3];
 		split_data splits[3];
@@ -37,7 +37,7 @@ namespace LSIS {
 		// Do recursive function using queue to avoid stack overflow with many lights
 		while (!queue.empty()) {
 			// Fetch next iteration data from the queue and pop the element
-			const auto [index, left, right, cb] = queue.front(); queue.pop();
+			const auto [index, left, right] = queue.front(); queue.pop();
 			//printf("index: %d, left: %d, right: %d\n", index, left, right);
 			CORE_ASSERT(index >= 0 && index < m_num_nodes, "index out of bounds!");
 			CORE_ASSERT(left >= 0 && left < num_lights, "left is out of bounds!");
@@ -96,6 +96,12 @@ namespace LSIS {
 				bin total = {};
 				bin_init(total);
 
+				bbox cb = make_bbox();
+				for (int i = left; i < right; i++) {
+					float3 c_i = data.centers[data.ids[i]];
+					cb = union_bbox(cb, make_bbox(c_i));
+				}
+
 				const float3 diagonal = cb.pmax - cb.pmin;
 				//const uint k = max_axis(diagonal);
 				const float3 k0 = cb.pmin;
@@ -111,14 +117,6 @@ namespace LSIS {
 					const bbox box_i = make_bbox(data.pmin[id], data.pmax[id]);
 					const bcone cone_i = make_bcone(data.axis[id], data.theta_o[id], data.theta_e[id]);
 					const float3 e_i = data.energy[id];
-
-					if (isnan(cone_i.theta_e) || isnan(cone_i.theta_o)) {
-						__debugbreak();
-					}
-
-					if (isnan(cone_i.axis.x) || isnan(cone_i.axis.y) || isnan(cone_i.axis.z)) {
-						__debugbreak();
-					}
 
 					bin_update(total, cb_i, box_i, cone_i, e_i);
 
@@ -177,11 +175,11 @@ namespace LSIS {
 				constexpr int max_light_per_node = 1;
 
 				if (range <= max_light_per_node && best_cost >= total.energy.x + total.energy.y + total.energy.z) {
-					printf("Range: %d, Don't devide!\n", range);
+					//printf("Range: %d, Don't devide!\n", range);
 					m_nodes[index] = SHARED::make_light_tree_leaf(pmin, pmax, axis, total.energy, theta_o, theta_e, data.ids[left], range);
 				}
 				else {
-					printf("Range: %d, Divide!\n", range);
+					//printf("Range: %d, Divide!\n", range);
 
 					//const int middle = left + (range / 2);
 					const int index_left = next_index++;
@@ -193,8 +191,8 @@ namespace LSIS {
 
 					CORE_ASSERT(left != middle && middle != right, "only non zero ranges are allowed!");
 
-					queue.push({ index_left, left, middle, splits[best_k].data[best_split].bin_l.cb });
-					queue.push({ index_right, middle, right, splits[best_k].data[best_split].bin_r.cb });
+					queue.push({ index_left, left, middle });
+					queue.push({ index_right, middle, right });
 				}
 
 			}

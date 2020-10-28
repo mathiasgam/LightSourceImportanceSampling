@@ -46,7 +46,6 @@ namespace LSIS {
 			int index;
 			int left;
 			int right;
-			bbox center_bound;
 		} queue_data;
 
 		typedef struct bin {

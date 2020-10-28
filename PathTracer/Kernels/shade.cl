@@ -174,62 +174,42 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * inverse(sqr_dist) * cos(theta_t);
 	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
 
-	return I.x + I.y + I.z;
+	return max3(I.x, I.y, I.z);
 }
 
 inline int pick_light(__global const LightTreeNode* nodes, float3 position, float3 normal, float3 diffuse, double r, float* pdf_out) {
 	LightTreeNode node = nodes[0];
 	double pdf = 1.0f;
 	double xi = r;
-	while (true) {
-		if (LEAF(node)) { // node is leaf
-			float estimations[10];
 
-			// Fetch range of ids
-			const int start_index = INDEX(node);
-			const int count = COUNT(node);
+	while (!LEAF(node)) {
+		// node is internal
+		const double I_l = importance(nodes[node.left], position, normal, diffuse);
+		const double I_r = importance(nodes[node.right], position, normal, diffuse);
 
-			// construct cdf
-			float3 sum = (float3)(0.0f);
-			for (int i = 0; i < count; i++) {
+		const double sum = I_l + I_r;
 
-			}
+		const double p_l = sum == 0.0 ? 0.5 : I_l / sum;
+		const double p_r = sum == 0.0 ? 0.5 : I_r / sum;
+		/*
+		if (get_global_id(0) == 0)
+			printf("I_l: %f, I_r: %f, sum: %f, p_l: %f, p_r: %f\n", I_l, I_r, sum, p_l, p_r);
+		*/
 
-			// find light by xi and predecessor search
-
-			
-			pdf *= inverse((float)(count));
-
-			// return values
-			*pdf_out = pdf;
-			return INDEX(node);
+		if (xi < p_l) {
+			xi = xi / p_l;
+			node = nodes[node.left];
+			pdf *= p_l;
 		}
-		else { // node is internal
-			const double I_l = importance(nodes[node.left], position, normal, diffuse);
-			const double I_r = importance(nodes[node.right], position, normal, diffuse);
-
-			const double sum = I_l + I_r;
-
-			const double p_l = sum == 0.0 ? 0.5 : I_l / sum;
-			const double p_r = sum == 0.0 ? 0.5 : I_r / sum;
-			/*
-			if (get_global_id(0) == 0)
-				printf("I_l: %f, I_r: %f, sum: %f, p_l: %f, p_r: %f\n", I_l, I_r, sum, p_l, p_r);
-			*/
-
-			if (xi < p_l) {
-				xi = xi / p_l;
-				node = nodes[node.left];
-				pdf *= p_l;
-			}
-			else {
-				xi = (xi - p_l) / p_r;
-				node = nodes[node.right];
-				pdf *= p_r;
-			}
-
+		else {
+			xi = (xi - p_l) / p_r;
+			node = nodes[node.right];
+			pdf *= p_r;
 		}
 	}
+
+	*pdf_out = pdf;
+	return INDEX(node);
 }
 
 __kernel void ProcessBounce(

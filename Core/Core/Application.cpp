@@ -44,16 +44,16 @@ namespace LSIS {
 		m_scene = std::make_shared<Scene>();
 
 		m_cam = std::make_shared<Camera>();
-		m_cam->SetPosition({ -3.0f,1.0f,3.0f });
+		//m_cam->SetPosition({ -3.0f,1.0f,3.0f });
 		m_scene->SetCamera(m_cam);
 
-		auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
-		auto m1 = std::make_shared<Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
+		//auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
+		//auto m1 = std::make_shared<Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
 
-		m_scene->LoadObject("../Assets/Models/CornellBox.obj", m1, Transform({ 0,0,0 }));
-		m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0.0f,0.0f,0.0f }));
+		//m_scene->LoadObject("../Assets/Models/San_Miguel/san-miguel.obj", m1, Transform({ 0,0,0 }));
+		//m_scene->LoadObject("../Assets/Models/Helix.obj", m1, Transform({ 0.0f,0.0f,0.0f }));
 		//m_scene->LoadObject("../Assets/Models/Buddha.obj", m1, Transform({ 0,0,0 }));
-		m_scene->LoadObject("../Assets/Models/Background.obj", m1, Transform({ 0,0,0 }));
+		//m_scene->LoadObject("../Assets/Models/Background.obj", m1, Transform({ 0,0,0 }));
 	}
 
 	void Application::CreateWindow() {
@@ -120,6 +120,8 @@ namespace LSIS {
 		double last = glfwGetTime();
 		double time;
 
+		m_window->Show();
+
 		while (!m_window->IsCloseRequested()) {
 			time = glfwGetTime();
 			float delta = (float)(time - last);
@@ -145,6 +147,16 @@ namespace LSIS {
 			m_window->SwapBuffers();
 			m_window->PollEvents();
 		}
+	}
+
+	void Application::Show()
+	{
+		m_window->Show();
+	}
+
+	void Application::Hide()
+	{
+		m_window->Hide();
 	}
 
 	void Application::AddLayer(Ref<Layer> layer)
