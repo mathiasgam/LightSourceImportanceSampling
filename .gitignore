@@ -24,6 +24,7 @@ bin-int/
 !**.inl
 
 !Test/**.py
+!Test/**.ipynb
 
 !models/**
 !Assets/**
