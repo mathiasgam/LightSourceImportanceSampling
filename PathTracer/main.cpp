@@ -17,6 +17,11 @@
 #include <chrono>
 #include <thread>
 
+#include <iostream>
+#include <fstream>
+
+#include "IO/Image.h"
+
 
 #ifdef LSIS_PLATFORM_WIN
 int setenv(const char* name, const char* value, int overwrite)
@@ -30,6 +35,33 @@ int setenv(const char* name, const char* value, int overwrite)
 	return _putenv_s(name, value);
 }
 #endif // LSIS_PLATFORM_WIN
+
+
+void save_result(const std::vector<float>& data, std::string filepath) {
+	if (data.size() % 4 != 0) {
+		printf("Result format not recognized!\n");
+	}
+
+	std::ofstream file;
+	file.open(filepath, std::ios::out);
+
+	if (file.is_open()) {
+		size_t num_pixels = data.size() / 4;
+		for (size_t i = 0; i < num_pixels; i++) {
+			file << data[i * 4 + 0] << ", " << data[i * 4 + 1] << ", " << data[i * 4 + 2] << "\n";
+		}
+		file.close();
+	}
+	else {
+		printf("Failed to create file!\n");
+	}
+
+	int channels = 4;
+	int width = 512;
+	int height = 512;
+
+	LSIS::SaveImageFromFloatBuffer("../Result.png", width, height, channels, data.data());
+}
 
 int main(int argc, char** argv) {
 
@@ -50,17 +82,17 @@ int main(int argc, char** argv) {
 	//LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
 
-
 	auto flat = LSIS::Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 	auto m1 = std::make_shared<LSIS::Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
 
 
 	bool interactive = false;
-	size_t sample_target = 10;
+	size_t sample_target = 100;
 	auto scene = app->GetScene();
 
 	for (int i = 1; i < argc; i++) {
 		const std::string& arg = arg_list[i];
+		printf("Arg: %s\n", arg.c_str());
 		if (arg == "-obj") {
 			const std::string& filepath = arg_list[++i];
 			printf("Loading Object: %s\n", filepath.c_str());
@@ -87,25 +119,40 @@ int main(int argc, char** argv) {
 		app->Run();
 	}
 	else {
+		auto pt = std::make_shared<LSIS::PathTracer>(512, 512);
+		
 		printf("Sleeping\n");
 		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+		printf("Woke Up\n");
 
-		app->GetScene()->Update();
-		printf("Start\n");
+		LSIS::Input::Update(0.0f);
+		scene->Update();
+		app->UpdateCam();
+
+		auto cam = scene->GetCamera();
+		pt->SetCameraProjection(glm::transpose(glm::inverse(cam->GetViewProjectionMatrix())));
 
 		LSIS::PROFILE_SCOPE("Total Time");
 
-		LSIS::PathTracer pt = LSIS::PathTracer(512, 512);
-		//pt.Reset();
+		pt->Reset();
+
+		printf("Start Rendering\n");
 		{
+			int i = 0;
+			//pt->Reset();
 			LSIS::PROFILE_SCOPE("Render Time");
-			while (pt.GetNumSamples() < sample_target) {
-				pt.ProcessPass();
-				//pt.UpdateRenderTexture();
+			pt->ResetSamples();
+			while (pt->GetNumSamples() < sample_target) {
+				pt->ProcessPass();
+				//pt->UpdateRenderTexture();
 				//printf("samples: %d\n", i++);
 			}
 		}
-		const auto profile = pt.GetProfileData();
+
+		const auto data = pt->GetPixelBufferData();
+		save_result(data, "../Test/Test.csv");
+
+		const auto profile = pt->GetProfileData();
 		printf("Build BVH       : %f ms\n", profile.time_build_bvh);
 		printf("Build Lighttree : %f ms\n", profile.time_build_lightstructure);
 		printf("Num Samples     : %zd\n", profile.samples);

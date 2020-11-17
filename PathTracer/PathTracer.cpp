@@ -34,7 +34,6 @@ namespace LSIS {
 
 		PrepareCameraRays(Compute::GetContext());
 
-
 		CompileKernels();
 		BuildStructure();
 
@@ -78,7 +77,7 @@ namespace LSIS {
 		}
 
 		delete[] hdr_data;
-		CHECK(Compute::GetCommandQueue().finish());
+		//CHECK(Compute::GetCommandQueue().finish());
 	}
 
 	PathTracer::~PathTracer()
@@ -91,6 +90,20 @@ namespace LSIS {
 		m_image_height = height;
 
 		PrepareCameraRays(Compute::GetContext());
+	}
+
+	std::vector<float> PathTracer::GetPixelBufferData() const
+	{
+		std::vector<float> result = std::vector<float>(m_num_pixels * 4);
+
+		auto queue = Compute::GetCommandQueue();
+		
+		cl_int err = queue.enqueueReadBuffer(m_pixel_buffer.GetBuffer(), CL_TRUE, 0, m_num_pixels * sizeof(cl_float4), result.data());
+		if (err != CL_SUCCESS) {
+			printf("Failed to read buffer!\n");
+		}
+		
+		return result;
 	}
 
 	size_t PathTracer::CalculateMemory() const
@@ -143,7 +156,7 @@ namespace LSIS {
 		m_depth_buffer = TypedBuffer<cl_float>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
 		//m_sample_buffer = TypedBuffer<SHARED::Sample>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_geometric_buffer = TypedBuffer<SHARED::GeometricInfo>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
-		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE, num_pixels);
+		m_pixel_buffer = TypedBuffer<SHARED::Pixel>(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY, num_pixels);
 
 		m_source_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, num_concurrent_samples);
 		m_active_count_buffer = TypedBuffer<cl_uint>(context, CL_MEM_READ_WRITE, 1);
@@ -162,15 +175,14 @@ namespace LSIS {
 		LoadSceneData();
 
 		//BVHBuilder builder = BVHBuilder();
+		const auto start = std::chrono::high_resolution_clock::now();
+
 #ifdef USE_LBVH
 		LBVHStructure structure = LBVHStructure();
 		structure.Build(m_vertex_buffer, m_face_buffer);
-		m_bvh_buffer = structure.GetNodes();
-		m_bboxes_buffer = structure.GetBBoxes();
 #else // Use Binned SAH BVH
-		const auto start = std::chrono::high_resolution_clock::now();
-
 		SAHBVHStructure structure = SAHBVHStructure(m_vertex_data, m_face_data, m_num_faces);
+#endif // USE_LBVH
 
 		const auto end = std::chrono::high_resolution_clock::now();
 		const std::chrono::duration<double, std::milli> duration = end - start;
@@ -178,7 +190,6 @@ namespace LSIS {
 
 		m_bvh_buffer = structure.GetNodesBuffer();
 		m_bboxes_buffer = structure.GetBoundsBuffer();
-#endif // USE_LBVH
 
 		m_bvh.SetBVHBuffer(m_bvh_buffer, m_bboxes_buffer);
 		m_bvh.SetGeometryBuffers(m_vertex_buffer, m_face_buffer);
@@ -285,6 +296,7 @@ namespace LSIS {
 		m_bvh.Compile();
 		BuildStructure();
 		ResetSamples();
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
 	}
 
 	void PathTracer::ResetSamples()
@@ -306,7 +318,7 @@ namespace LSIS {
 		//PROFILE_SCOPE("PathTracer");
 		Prepare();
 
-		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+		//Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce

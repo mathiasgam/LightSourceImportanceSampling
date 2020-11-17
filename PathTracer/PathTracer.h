@@ -53,6 +53,8 @@ namespace LSIS {
 		size_t GetNumSamples() const { return m_num_samples; }
 		profile_data GetProfileData() const { return m_profile_data; }
 
+		std::vector<float> GetPixelBufferData() const;
+
 		size_t CalculateMemory() const;
 
 	private:

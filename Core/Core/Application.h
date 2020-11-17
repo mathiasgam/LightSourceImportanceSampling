@@ -24,6 +24,10 @@ namespace LSIS {
 		void Destroy();
 		void Run();
 
+		void Show();
+		void Hide();
+		void UpdateCam();
+
 		void AddLayer(Ref<Layer> layer);
 
 		const Ref<Scene> GetScene() const { return m_scene; }
@@ -41,7 +45,6 @@ namespace LSIS {
 		void LoadScene();
 		void CreateWindow();
 		void CreateCLContext();
-		void UpdateCam();
 
 	private:
 		bool Initialized = false;

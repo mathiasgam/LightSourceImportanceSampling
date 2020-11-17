@@ -44,7 +44,7 @@ namespace LSIS {
 		m_scene = std::make_shared<Scene>();
 
 		m_cam = std::make_shared<Camera>();
-		m_cam->SetPosition({ -3.0f,1.0f,3.0f });
+		//m_cam->SetPosition({ -3.0f,1.0f,3.0f });
 		m_scene->SetCamera(m_cam);
 
 		//auto flat = Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
@@ -147,6 +147,16 @@ namespace LSIS {
 			m_window->SwapBuffers();
 			m_window->PollEvents();
 		}
+	}
+
+	void Application::Show()
+	{
+		m_window->Show();
+	}
+
+	void Application::Hide()
+	{
+		m_window->Hide();
 	}
 
 	void Application::AddLayer(Ref<Layer> layer)
