@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import List
 
 # instance = subprocess.run(["../bin/Release-windows-x86_64/PathTracer.exe", "-obj ../Assets/Models/Helix.obj -obj ../Assets/Models/Buddha.obj -obj ../Assets/Models/Background.obj"])
 
@@ -18,7 +19,7 @@ os.chdir("c:/repos/LightSourceImportanceSampling/PathTracer")
 
 #subprocess.run(["../bin/Release-windows-x86_64/PathTracer.exe"] + scene + arguments)
 
-def run(args):
+def run(args:List[str]):
     subprocess.run(["../bin/Release-windows-x86_64/PathTracer.exe"] + args)
 
 def arg_num_samples(n:int):
@@ -27,7 +28,7 @@ def arg_num_samples(n:int):
 def arg_load_obj(filepath:str):
     return ["-obj", filepath]
 
-def arg_scene(files:list):
+def arg_scene(files:List[str]):
     res = []
     for file in files:
         res = res + arg_load_obj(file)
@@ -45,6 +46,7 @@ def arg_output(filepath:str):
 
 models = ["../Assets/Models/Helix.obj", "../Assets/Models/CornellBox.obj"]
 
-args = arg_scene(models) + arg_num_samples(1000)
+args_scene = arg_scene(models)
 
-run(args)
+run(args_scene + arg_num_samples(10))
+run(args_scene + arg_num_samples(100))
