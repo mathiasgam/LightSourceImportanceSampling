@@ -13,22 +13,51 @@
 
 namespace LSIS {
 
-	class PathTracer : public Layer {
-
+	class PathTracer {
 	public:
+		using time = double;
+		typedef struct profile_data {
+			std::string parameters;
+			std::string platform;
+			std::string device;
+			std::string host;
+
+			time time_exstract_tri_lights;
+			time time_build_lightstructure;
+			time time_build_bvh;
+			time time_transfer_lightstructure;
+			time time_transfer_bvh;
+			time time_compile_kernel_bvh;
+			time time_compile_kernel_shade;
+
+			size_t occlusion_rays;
+			size_t shading_rays;
+			size_t width;
+			size_t height;
+			size_t samples;
+		};
+
 		PathTracer(uint32_t width, uint32_t height);
 		virtual ~PathTracer();
 
 		void SetImageSize(const uint32_t width, const uint32_t height);
 
-		virtual void OnUpdate(float delta) override;
-		virtual bool OnEvent(const Event& e) override;
-		virtual void OnAttach() override;
-		virtual void OnDetach() override;
+		void Reset();
+		void ResetSamples();
+		void SetCameraProjection(glm::mat4 projection);
+
+		void ProcessPass();
+		void UpdateRenderTexture();
+
+		bool isDone() const { return m_num_samples == m_target_samples; }
+		size_t GetNumSamples() const { return m_num_samples; }
+		profile_data GetProfileData() const { return m_profile_data; }
 
 		size_t CalculateMemory() const;
 
 	private:
+
+		profile_data m_profile_data;
 
 		void CompileKernels();
 		void PrepareCameraRays(const cl::Context& context);
@@ -42,8 +71,6 @@ namespace LSIS {
 		void ProcessOcclusion();
 		void ProcessResults();
 
-		void ResetSamples();
-
 		void LoadSceneData();
 
 	private:
@@ -53,6 +80,8 @@ namespace LSIS {
 		uint32_t m_num_concurrent_samples = m_num_pixels * m_num_samples_per_pixel;
 		uint32_t m_num_rays;
 		uint32_t m_num_samples = 0;
+
+		uint32_t m_target_samples = 10;
 
 		SHARED::Face* m_face_data = nullptr;
 		SHARED::Vertex* m_vertex_data = nullptr;

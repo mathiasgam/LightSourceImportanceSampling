@@ -33,7 +33,7 @@ namespace LSIS {
 		printf("resolution: [%d,%d]", width, height);
 
 		PrepareCameraRays(Compute::GetContext());
-		SetEventCategoryFlags(EventCategory::EventCategoryApplication | EventCategory::EventCategoryKeyboard);
+
 
 		CompileKernels();
 		BuildStructure();
@@ -93,81 +93,6 @@ namespace LSIS {
 		PrepareCameraRays(Compute::GetContext());
 	}
 
-	void PathTracer::OnUpdate(float delta)
-	{
-		// Don't do anything if not ready
-		if (!ready)
-			return;
-
-		if (m_num_samples < 1000) {
-			//PROFILE_SCOPE("PathTracer");
-			Prepare();
-
-			Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
-
-			for (auto bounce = 0; bounce < 4; bounce++) {
-				// Handle bounce
-				m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
-				//ProcessIntersections();
-
-				// Process bounce and prepare shadow rays
-				Shade();
-
-				// if the shadow ray is not occluded, the lights contribution is added to the result
-				m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
-				ProcessOcclusion();
-			}
-
-			// copy results into pixelbuffer
-			ProcessResults();
-			m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
-			CHECK(Compute::GetCommandQueue().finish());
-
-			m_num_samples++;
-
-			if (m_num_samples % 100 == 0) {
-				printf("Samples: %d\n", m_num_samples);
-			}
-		}
-		m_viewer.Render();
-	}
-
-	bool PathTracer::OnEvent(const Event& e)
-	{
-		if (e.GetEventType() == EventType::KeyPressed) {
-			auto key_event = (const KeyPressedEvent&)e;
-			auto key = key_event.GetKey();
-			if (key == KEY_B) {
-				std::cout << "PT Event: " << e << std::endl;
-				BuildStructure();
-				return true;
-			}
-			else if (key == KEY_R) {
-				CompileKernels();
-				m_viewer.CompileKernels();
-				m_bvh.Compile();
-				std::cout << "PT: Kernels Recompiled!\n";
-				return true;
-			}
-		}
-		if (e.GetEventType() == EventType::CameraUpdated) {
-			ResetSamples();
-			auto cam = Application::Get()->GetScene()->GetCamera();
-			m_cam_projection = glm::transpose(glm::inverse(cam->GetViewProjectionMatrix()));
-			return true;
-		}
-		return false;
-	}
-
-	void PathTracer::OnAttach()
-	{
-
-	}
-
-	void PathTracer::OnDetach()
-	{
-	}
-
 	size_t PathTracer::CalculateMemory() const
 	{
 		size_t mem_size = 0;
@@ -195,7 +120,7 @@ namespace LSIS {
 		m_kernel_lightsample = Compute::CreateKernel(m_program_process, "process_light_sample");
 		m_kernel_process_results = Compute::CreateKernel(m_program_process, "process_results");
 
-		std::vector<std::string> options = { "-I Kernels/"};
+		std::vector<std::string> options = { "-I Kernels/" };
 		if (use_russian_roulette)
 			options.push_back("- D RUSSIAN_ROULETTE");
 		if (use_solid_angle)
@@ -209,7 +134,7 @@ namespace LSIS {
 
 	void PathTracer::PrepareCameraRays(const cl::Context& context)
 	{
-		size_t num_pixels = static_cast<size_t>(m_image_width) * static_cast<size_t>(m_image_height);
+		size_t num_pixels = static_cast<size_t>(m_image_width)* static_cast<size_t>(m_image_height);
 		size_t num_concurrent_samples = num_pixels * m_num_samples_per_pixel;
 
 		m_state_buffer = TypedBuffer<cl_int>(context, CL_READ_WRITE_CACHE, num_concurrent_samples);
@@ -243,7 +168,14 @@ namespace LSIS {
 		m_bvh_buffer = structure.GetNodes();
 		m_bboxes_buffer = structure.GetBBoxes();
 #else // Use Binned SAH BVH
+		const auto start = std::chrono::high_resolution_clock::now();
+
 		SAHBVHStructure structure = SAHBVHStructure(m_vertex_data, m_face_data, m_num_faces);
+
+		const auto end = std::chrono::high_resolution_clock::now();
+		const std::chrono::duration<double, std::milli> duration = end - start;
+		m_profile_data.time_build_bvh = duration.count();
+
 		m_bvh_buffer = structure.GetNodesBuffer();
 		m_bboxes_buffer = structure.GetBoundsBuffer();
 #endif // USE_LBVH
@@ -254,7 +186,7 @@ namespace LSIS {
 		ResetSamples();
 
 		CHECK(Compute::GetCommandQueue().finish());
-}
+	}
 
 	void PathTracer::Prepare()
 	{
@@ -346,9 +278,61 @@ namespace LSIS {
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process_results, 0, cl::NDRange(m_num_concurrent_samples)));
 	}
 
+	void PathTracer::Reset()
+	{
+		CompileKernels();
+		m_viewer.CompileKernels();
+		m_bvh.Compile();
+		BuildStructure();
+		ResetSamples();
+	}
+
 	void PathTracer::ResetSamples()
 	{
 		m_num_samples = 0;
+	}
+
+	void PathTracer::SetCameraProjection(glm::mat4 projection)
+	{
+		m_cam_projection = projection;
+	}
+
+	void PathTracer::ProcessPass()
+	{
+		// Don't do anything if not ready
+		if (!ready)
+			return;
+
+		//PROFILE_SCOPE("PathTracer");
+		Prepare();
+
+		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
+
+		for (auto bounce = 0; bounce < 4; bounce++) {
+			// Handle bounce
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
+			//ProcessIntersections();
+
+			// Process bounce and prepare shadow rays
+			Shade();
+
+			// if the shadow ray is not occluded, the lights contribution is added to the result
+			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
+			ProcessOcclusion();
+		}
+
+		// copy results into pixelbuffer
+		ProcessResults();
+
+		m_num_samples++;
+		m_profile_data.samples = m_num_samples;
+	}
+
+	void PathTracer::UpdateRenderTexture()
+	{
+		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
+		CHECK(Compute::GetCommandQueue().finish());
+		m_viewer.Render();
 	}
 
 	inline glm::vec3 convert(cl_float4 in) {
@@ -493,9 +477,9 @@ namespace LSIS {
 
 			SHARED::Material mat = materials_data[face.index.w];
 
-			glm::vec3 n = glm::normalize(n0+n1+n2);
+			glm::vec3 n = glm::normalize(n0 + n1 + n2);
 			glm::vec3 i = convert(mat.emission);
-			glm::vec3 p = ((p0+p1+p2) / 3.0f);
+			glm::vec3 p = ((p0 + p1 + p2) / 3.0f);
 
 			//lights_data.push_back(SHARED::make_light(p, n, i));
 			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, dir, i));
@@ -508,8 +492,15 @@ namespace LSIS {
 			num_lights++;
 		}
 
-		LightTree light_tree = LightTree(lights_data.data(), num_lights);
-		m_lighttree_buffer = light_tree.GetNodeBuffer();
+		{
+			const auto start = std::chrono::high_resolution_clock::now();
+			LightTree light_tree = LightTree(lights_data.data(), num_lights);
+			const auto end = std::chrono::high_resolution_clock::now();
+			const std::chrono::duration<double, std::milli> duration = end - start;
+			m_profile_data.time_build_lightstructure = duration.count();
+
+			m_lighttree_buffer = light_tree.GetNodeBuffer();
+		}
 
 		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
 		if (num_lights > 0)

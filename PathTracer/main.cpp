@@ -2,15 +2,21 @@
 
 #include "Core/Application.h"
 #include "Core/Log.h"
+#include "Core/Timer.h"
 #include "Input/Input.h"
 
 #include "PathTracer.h"
+#include "PathtracingLayer.h"
 
 #include "entt.hpp"
 #include "Scene/Components.h"
 
 #include "gtc/constants.hpp"
 #include "gtx/rotate_vector.hpp"
+
+#include <chrono>
+#include <thread>
+
 
 #ifdef LSIS_PLATFORM_WIN
 int setenv(const char* name, const char* value, int overwrite)
@@ -27,9 +33,12 @@ int setenv(const char* name, const char* value, int overwrite)
 
 int main(int argc, char** argv) {
 
-//#ifdef DEBUG
+	std::vector<std::string> arg_list(argv, argc + argv);
+
+
+	//#ifdef DEBUG
 	setenv("CUDA_CACHE_DISABLE", "1", 1);
-//#endif // DEBUG
+	//#endif // DEBUG
 
 	LSIS::Log::Init();
 
@@ -41,11 +50,67 @@ int main(int argc, char** argv) {
 	//LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
 
-	std::shared_ptr<LSIS::PathTracer> pt = std::make_shared<LSIS::PathTracer>(512, 512);
-	app->AddLayer(pt);
+
+	auto flat = LSIS::Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
+	auto m1 = std::make_shared<LSIS::Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
+
+
+	bool interactive = false;
+	size_t sample_target = 10;
+	auto scene = app->GetScene();
+
+	for (int i = 1; i < argc; i++) {
+		const std::string& arg = arg_list[i];
+		if (arg == "-obj") {
+			const std::string& filepath = arg_list[++i];
+			printf("Loading Object: %s\n", filepath.c_str());
+			scene->LoadObject(filepath, m1, LSIS::Transform({ 0,0,0 }));
+		}
+		else if (arg == "-n") {
+			const std::string& number = arg_list[++i];
+			int n = std::stoi(number);
+			printf("Set Target Number of samples: %s, %d\n", number, n);
+
+			sample_target = n;
+		}
+		else {
+			printf("Unknown argument: %s\n", arg);
+		}
+	}
+
+
 
 	// Run the program
-	app->Run();
+	if (interactive) {
+		std::shared_ptr<LSIS::PathtracingLayer> pt = std::make_shared<LSIS::PathtracingLayer>(512, 512);
+		app->AddLayer(pt);
+		app->Run();
+	}
+	else {
+		printf("Sleeping\n");
+		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+		app->GetScene()->Update();
+		printf("Start\n");
+
+		LSIS::PROFILE_SCOPE("Total Time");
+
+		LSIS::PathTracer pt = LSIS::PathTracer(512, 512);
+		//pt.Reset();
+		{
+			LSIS::PROFILE_SCOPE("Render Time");
+			while (pt.GetNumSamples() < sample_target) {
+				pt.ProcessPass();
+				//pt.UpdateRenderTexture();
+				//printf("samples: %d\n", i++);
+			}
+		}
+		const auto profile = pt.GetProfileData();
+		printf("Build BVH       : %f ms\n", profile.time_build_bvh);
+		printf("Build Lighttree : %f ms\n", profile.time_build_lightstructure);
+		printf("Num Samples     : %zd\n", profile.samples);
+	}
+
 	app->Destroy();
 
 	return 0;
