@@ -136,25 +136,32 @@ int main(int argc, char** argv) {
 
 		pt->Reset();
 
+		double render_time;
+
 		printf("Start Rendering\n");
 		{
 			int i = 0;
 			//pt->Reset();
-			LSIS::PROFILE_SCOPE("Render Time");
+			const auto start = std::chrono::high_resolution_clock::now();
+			//LSIS::PROFILE_SCOPE("Render Time");
 			pt->ResetSamples();
 			while (pt->GetNumSamples() < sample_target) {
 				pt->ProcessPass();
 				//pt->UpdateRenderTexture();
 				//printf("samples: %d\n", i++);
 			}
+			const auto end = std::chrono::high_resolution_clock::now();
+			const std::chrono::duration<double, std::milli> duration = end - start;
+			render_time = duration.count();
 		}
 
 		const auto data = pt->GetPixelBufferData();
 		save_result(data, "../Test/Test.csv");
 
 		const auto profile = pt->GetProfileData();
-		printf("Build BVH       : %f ms\n", profile.time_build_bvh);
-		printf("Build Lighttree : %f ms\n", profile.time_build_lightstructure);
+		printf("Render Time     : %fms\n", render_time);
+		printf("Build BVH       : %fms\n", profile.time_build_bvh);
+		printf("Build Lighttree : %fms\n", profile.time_build_lightstructure);
 		printf("Num Samples     : %zd\n", profile.samples);
 	}
 
