@@ -10,7 +10,7 @@ namespace LSIS {
 
 	LightTree::LightTree(const SHARED::Light* lights, const size_t num_lights)
 	{
-		PROFILE_SCOPE("LightTree Construction");
+		//PROFILE_SCOPE("LightTree Construction");
 		if (num_lights == 0) {
 			m_num_nodes = 0;
 			return;
@@ -171,11 +171,11 @@ namespace LSIS {
 				constexpr int max_light_per_node = 1;
 
 				if (range <= max_light_per_node && best_cost >= total_energy.x + total_energy.y + total_energy.z) {
-					printf("Range: %d, Don't devide!\n", range);
+					//printf("Range: %d, Don't devide!\n", range);
 					m_nodes[index] = SHARED::make_light_tree_leaf(pmin, pmax, axis, total_energy, theta_o, theta_e, data.ids[left], range);
 				}
 				else {
-					printf("Range: %d, Divide!\n", range);
+					//printf("Range: %d, Divide!\n", range);
 					const int middle = reorder_id(data, left, right, best_split, best_k, k0[best_k], k1[best_k]);
 
 					//const int middle = left + (range / 2);
