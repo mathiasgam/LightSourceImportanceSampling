@@ -23,5 +23,7 @@ bin-int/
 !**.cpp
 !**.inl
 
+!Test/**.py
+
 !models/**
 !Assets/**
