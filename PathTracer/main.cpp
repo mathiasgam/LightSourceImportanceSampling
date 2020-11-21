@@ -75,14 +75,12 @@ int main(int argc, char** argv) {
 	LSIS::Log::Init();
 
 	LSIS::Application* app = LSIS::Application::Get();
-	//LSIS::Input::SetCameraPosition({ -0.0f,1.0f,2.72f,1.0f });
-	//LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
+	LSIS::Input::SetCameraPosition({ -0.0f,1.0f,2.72f,1.0f });
+	LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
 	//LSIS::Input::SetCameraPosition({ 0.6f,0.8f,0.6f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.4f,0.5f,0.0f });
 	//LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
-	LSIS::Input::SetCameraPosition({ 1.12f,1.57f,3.36f,1.0f });
-	LSIS::Input::SetCameraRotation({ 0.04f,-1.31f,0.0f });
 
 	auto flat = LSIS::Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 	auto m1 = std::make_shared<LSIS::Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
