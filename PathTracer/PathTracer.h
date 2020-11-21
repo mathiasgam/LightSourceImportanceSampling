@@ -115,6 +115,7 @@ namespace LSIS {
 		bool use_solid_angle = true;
 		bool use_russian_roulette = false;
 
+		bool use_naive = false;
 		bool use_lighttree = true;
 
 		// Result Buffers

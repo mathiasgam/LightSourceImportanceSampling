@@ -136,10 +136,16 @@ namespace LSIS {
 		std::vector<std::string> options = { "-I Kernels/" };
 		if (use_russian_roulette)
 			options.push_back("- D RUSSIAN_ROULETTE");
-		if (use_solid_angle)
-			options.push_back("-D SOLID_ANGLE");
-		if (use_lighttree)
-			options.push_back("-D USE_LIGHTTREE");
+		
+		if (use_naive) {
+			options.push_back("-D USE_NAIVE");
+		}
+		else {
+			if (use_solid_angle)
+				options.push_back("-D SOLID_ANGLE");
+			if (use_lighttree)
+				options.push_back("-D USE_LIGHTTREE");
+		}
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
 		m_kernel_shade_occlusion = Compute::CreateKernel(m_program_shade, "shade_occlusion");

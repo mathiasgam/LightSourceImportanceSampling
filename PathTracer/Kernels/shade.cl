@@ -275,7 +275,9 @@ __kernel void ProcessBounce(
 				else {
 					// Next event estimation is also a sample, 
 					// so the average of next event and emissive hit is used to combine the two into one
-					result += emission * throughput * 0.0f;
+#ifdef USE_NAIVE
+					result += emission * throughput;
+#endif // USE_NAIVE
 				}
 
 
@@ -293,6 +295,7 @@ __kernel void ProcessBounce(
 					const float3 position = geometric.position.xyz;
 					const float3 normal = geometric.normal.xyz;
 
+#ifndef USE_NAIVE
 #ifdef USE_LIGHTTREE
 					// choose light
 					//uint i = random_uint(&rng, num_lights);
@@ -363,6 +366,9 @@ __kernel void ProcessBounce(
 					shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
 					const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
 					light_contribution[id] = L;
+#else
+					const float3 lift = geometric.normal.xyz * 10e-6f;
+#endif // !USE_NAIVE
 
 #ifdef RUSSIAN_ROULETTE
 					// Russian roulette
