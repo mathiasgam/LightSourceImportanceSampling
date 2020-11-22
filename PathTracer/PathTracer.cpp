@@ -344,13 +344,29 @@ namespace LSIS {
 
 		m_num_samples++;
 		m_profile_data.samples = m_num_samples;
-	}
-
+	}	
+	
 	void PathTracer::UpdateRenderTexture()
 	{
 		m_viewer.UpdateTexture(m_pixel_buffer, m_image_width, m_image_height);
 		CHECK(Compute::GetCommandQueue().finish());
 		m_viewer.Render();
+	}
+
+	void PathTracer::SetMethod(Method m)
+	{
+		if (m == naive) {
+			use_naive = true;
+			use_lighttree = false;
+		}
+		else if (m == energy) {
+			use_naive = false;
+			use_lighttree = false;
+		}
+		else {
+			use_naive = false;
+			use_lighttree = true;
+		}
 	}
 
 	inline glm::vec3 convert(cl_float4 in) {

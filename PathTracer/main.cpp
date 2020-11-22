@@ -89,6 +89,11 @@ int main(int argc, char** argv) {
 
 
 	bool interactive = false;
+	auto pt_method = LSIS::PathTracer::Method::lighttree;
+
+	std::string output_folder = "../Test/";
+	std::string output_name = "Test";
+
 	size_t sample_target = 10;
 	auto scene = app->GetScene();
 
@@ -107,6 +112,29 @@ int main(int argc, char** argv) {
 
 			sample_target = n;
 		}
+		else if (arg == "-method") {
+			const std::string& method = arg_list[++i];
+			if (method == "naive") {
+				pt_method = LSIS::PathTracer::Method::naive;
+			}
+			else if (method == "energy") {
+				pt_method = LSIS::PathTracer::Method::energy;
+			}
+			else if (method == "lighttree") {
+				pt_method = LSIS::PathTracer::Method::lighttree;
+			}
+			else {
+				printf("Unknown option\n");
+			}
+		}
+		else if (arg == "-name") {
+			const std::string& name = arg_list[++i];
+			output_name = name;
+		}
+		else if (arg == "-outdir") {
+			const std::string& out_folder = arg_list[++i];
+			output_folder = out_folder;
+		}
 		else {
 			printf("Unknown argument: %s\n", arg);
 		}
@@ -122,6 +150,7 @@ int main(int argc, char** argv) {
 	}
 	else {
 		auto pt = std::make_shared<LSIS::PathTracer>(512, 512);
+		pt->SetMethod(pt_method);
 		
 		printf("Sleeping\n");
 		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -158,7 +187,7 @@ int main(int argc, char** argv) {
 		}
 
 		const auto data = pt->GetPixelBufferData();
-		save_result(data, "../Test/Test.csv");
+		save_result(data, output_folder + output_name + ".csv");
 
 		const auto profile = pt->GetProfileData();
 		printf("Render Time     : %fms\n", render_time);

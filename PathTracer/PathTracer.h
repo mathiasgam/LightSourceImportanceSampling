@@ -37,6 +37,12 @@ namespace LSIS {
 			size_t samples;
 		};
 
+		enum Method {
+			naive,
+			energy,
+			lighttree
+		};
+
 		PathTracer(uint32_t width, uint32_t height);
 		virtual ~PathTracer();
 
@@ -48,6 +54,8 @@ namespace LSIS {
 
 		void ProcessPass();
 		void UpdateRenderTexture();
+
+		void SetMethod(Method m);
 
 		bool isDone() const { return m_num_samples == m_target_samples; }
 		size_t GetNumSamples() const { return m_num_samples; }
