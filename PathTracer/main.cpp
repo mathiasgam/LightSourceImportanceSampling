@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <time.h>
 
 #include "IO/Image.h"
 
@@ -67,6 +68,7 @@ int main(int argc, char** argv) {
 
 	std::vector<std::string> arg_list(argv, argc + argv);
 
+	srand(time(NULL));
 
 	//#ifdef DEBUG
 	setenv("CUDA_CACHE_DISABLE", "1", 1);
@@ -87,7 +89,7 @@ int main(int argc, char** argv) {
 
 
 	bool interactive = false;
-	size_t sample_target = 100;
+	size_t sample_target = 10;
 	auto scene = app->GetScene();
 
 	for (int i = 1; i < argc; i++) {
