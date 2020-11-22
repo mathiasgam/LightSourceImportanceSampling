@@ -334,9 +334,11 @@ namespace LSIS {
 			// Process bounce and prepare shadow rays
 			Shade();
 
-			// if the shadow ray is not occluded, the lights contribution is added to the result
-			m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
-			ProcessOcclusion();
+			if (!use_naive) {
+				// if the shadow ray is not occluded, the lights contribution is added to the result
+				m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
+				ProcessOcclusion();
+			}
 		}
 
 		// copy results into pixelbuffer
