@@ -152,10 +152,51 @@ float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
 	return acos(min_cos_theta);
 }
 
+#define MIN_DIST
+#define AVOID_SINGULARITY
+
+inline float sqr_length(float3 vec){
+	return dot(vec,vec);
+}
+
+inline float bbox_min_sqr_distance(float3 pmin, float3 pmax, float3 p){
+#ifdef MIN_DIST
+	float3 vec;
+	vec.x = max3(pmin.x - p.x, p.x - pmax.x, 0.0f);
+	vec.y = max3(pmin.y - p.y, p.y - pmax.y, 0.0f);
+	vec.z = max3(pmin.z - p.z, p.z - pmax.z, 0.0f);
+	return sqr_length(vec);
+#else
+	const float3 center = (pmax - pmin) * 0.5f;
+	const float3 diff = p - center;
+	return sqr_length(diff);
+#endif
+}
+
+
+inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_left, float3 pmin_right, float3 position){
+	float dist_left = bbox_min_sqr_distance(pmax_left, pmin_left, position);
+	float dist_right = bbox_min_sqr_distance(pmax_right, pmin_right, position);
+
+#ifdef AVOID_SINGULARITY
+	float diagonal_left = sqr_length(pmax_left - pmin_left);
+	float diagonal_right = sqr_length(pmax_right - pmin_right);
+	float alpha = 1.0f;
+	if (dist_left > diagonal_left * alpha && dist_right > diagonal_right * alpha){
+		return (float2)(inverse(dist_left),inverse(dist_right));
+	}else{
+		return (float2)(1.0f);
+	}
+#else
+	return (float2)(inverse(dist_left),inverse(dist_right));
+#endif
+}
+
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
 	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
 	const float3 diff = center - position;
 	const double dist = length(diff);
+	//const float dist = bbox_min_distance(node.pmin.xyz, node.pmax.xyz, position.xyz);
 	const double sqr_dist = sqr(dist);
 	const float3 dir = normalize(diff);
 
@@ -171,7 +212,7 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	if (theta_t >= THETA_E(node))
 		return 0.0f;
 
-	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * inverse(sqr_dist) * cos(theta_t);
+	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * cos(theta_t);
 	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
 
 	return max3(I.x, I.y, I.z);
@@ -184,8 +225,14 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 
 	while (!LEAF(node)) {
 		// node is internal
-		const double I_l = importance(nodes[node.left], position, normal, diffuse);
-		const double I_r = importance(nodes[node.right], position, normal, diffuse);
+		LightTreeNode node_l = nodes[node.left];
+		LightTreeNode node_r = nodes[node.right];
+
+		// Store the attenuation of the left node in x and right in y
+		float2 attenuation = calc_attenuation(node_l.pmax.xyz,node_r.pmax.xyz,node_l.pmin.xyz,node_r.pmin.xyz,position);
+
+		const double I_l = importance(node_l, position, normal, diffuse) * attenuation.x;
+		const double I_r = importance(node_r, position, normal, diffuse) * attenuation.y;
 
 		const double sum = I_l + I_r;
 
@@ -198,12 +245,12 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 
 		if (xi < p_l) {
 			xi = xi / p_l;
-			node = nodes[node.left];
+			node = node_l;
 			pdf *= p_l;
 		}
 		else {
 			xi = (xi - p_l) / p_r;
-			node = nodes[node.right];
+			node = node_r;
 			pdf *= p_r;
 		}
 	}
