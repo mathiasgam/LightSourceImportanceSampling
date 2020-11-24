@@ -152,9 +152,6 @@ float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
 	return acos(min_cos_theta);
 }
 
-#define MIN_DIST
-#define AVOID_SINGULARITY
-
 inline float sqr_length(float3 vec){
 	return dot(vec,vec);
 }
@@ -172,7 +169,6 @@ inline float bbox_min_sqr_distance(float3 pmin, float3 pmax, float3 p){
 	return sqr_length(diff);
 #endif
 }
-
 
 inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_left, float3 pmin_right, float3 position){
 	float dist_left = bbox_min_sqr_distance(pmax_left, pmin_left, position);

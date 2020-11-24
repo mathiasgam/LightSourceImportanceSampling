@@ -22,6 +22,10 @@ namespace LSIS {
 			std::string device;
 			std::string host;
 
+			std::string sampling;
+			std::string attenuation;
+
+			time time_render;
 			time time_exstract_tri_lights;
 			time time_build_lightstructure;
 			time time_build_bvh;
@@ -43,6 +47,12 @@ namespace LSIS {
 			lighttree
 		};
 
+		enum ClusterAttenuation {
+			Center,
+			Conditional,
+			ConditionalMinDist
+		};
+
 		PathTracer(uint32_t width, uint32_t height);
 		virtual ~PathTracer();
 
@@ -56,6 +66,7 @@ namespace LSIS {
 		void UpdateRenderTexture();
 
 		void SetMethod(Method m);
+		void SetClusterAttenuation(ClusterAttenuation atten);
 
 		bool isDone() const { return m_num_samples == m_target_samples; }
 		size_t GetNumSamples() const { return m_num_samples; }
@@ -120,11 +131,13 @@ namespace LSIS {
 
 		bool ready = false;
 
-		bool use_solid_angle = true;
+		bool use_solid_angle = false;
 		bool use_russian_roulette = false;
 
 		bool use_naive = false;
 		bool use_lighttree = true;
+		bool use_conditional_attenuation = true;
+		bool use_min_distance = true;
 
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;

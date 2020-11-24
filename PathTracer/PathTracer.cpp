@@ -76,6 +76,11 @@ namespace LSIS {
 			exit(err);
 		}
 
+		m_profile_data.device = Compute::GetName(Compute::GetDevice());
+		m_profile_data.platform = Compute::GetName(Compute::GetPlatform());
+		m_profile_data.width = width;
+		m_profile_data.height = height;
+
 		delete[] hdr_data;
 		//CHECK(Compute::GetCommandQueue().finish());
 	}
@@ -145,6 +150,11 @@ namespace LSIS {
 				options.push_back("-D SOLID_ANGLE");
 			if (use_lighttree)
 				options.push_back("-D USE_LIGHTTREE");
+			if (use_min_distance)
+				options.push_back("-D MIN_DIST");
+			if (use_conditional_attenuation)
+				options.push_back("-D AVOID_SINGULARITY");
+
 		}
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
 		m_kernel_shade = Compute::CreateKernel(m_program_shade, "ProcessBounce");
@@ -360,14 +370,36 @@ namespace LSIS {
 		if (m == naive) {
 			use_naive = true;
 			use_lighttree = false;
+			m_profile_data.sampling = "naive";
 		}
 		else if (m == energy) {
 			use_naive = false;
 			use_lighttree = false;
+			m_profile_data.sampling = "energy";
 		}
-		else {
+		else if (m == lighttree) {
 			use_naive = false;
 			use_lighttree = true;
+			m_profile_data.sampling = "lighttree";
+		}
+	}
+
+	void PathTracer::SetClusterAttenuation(ClusterAttenuation atten)
+	{
+		if (atten == ClusterAttenuation::Center) {
+			use_min_distance = false;
+			use_conditional_attenuation = false;
+			m_profile_data.attenuation = "center";
+		}
+		else if (atten == ClusterAttenuation::Conditional) {
+			use_min_distance = false;
+			use_conditional_attenuation = true;
+			m_profile_data.attenuation = "conditional";
+		}
+		else if (atten == ClusterAttenuation::ConditionalMinDist) {
+			use_min_distance = true;
+			use_conditional_attenuation = true;
+			m_profile_data.attenuation = "mindist";
 		}
 	}
 
@@ -528,21 +560,24 @@ namespace LSIS {
 			num_lights++;
 		}
 
-		{
-			const auto start = std::chrono::high_resolution_clock::now();
-			LightTree light_tree = LightTree(lights_data.data(), num_lights);
-			const auto end = std::chrono::high_resolution_clock::now();
-			const std::chrono::duration<double, std::milli> duration = end - start;
-			m_profile_data.time_build_lightstructure = duration.count();
-
-			m_lighttree_buffer = light_tree.GetNodeBuffer();
-		}
-
 		m_lights = TypedBuffer<SHARED::Light>(context, CL_MEM_READ_ONLY, num_lights);
 		if (num_lights > 0)
 			CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
 
-		m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
+		{
+			const auto start = std::chrono::high_resolution_clock::now();
+
+			if (use_lighttree) {
+				LightTree light_tree = LightTree(lights_data.data(), num_lights);
+				m_lighttree_buffer = light_tree.GetNodeBuffer();
+			}
+			else {
+				m_cdf_power_buffer = build_power_sampling_buffer(lights_data.data(), num_lights);
+			}
+			const auto end = std::chrono::high_resolution_clock::now();
+			const std::chrono::duration<double, std::milli> duration = end - start;
+			m_profile_data.time_build_lightstructure = duration.count();
+		}
 
 		ready = true;
 		printf("PointLights: %zd, MeshLights: %zd\n", num_lights, num_emissive_faces);

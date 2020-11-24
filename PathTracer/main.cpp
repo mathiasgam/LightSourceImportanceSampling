@@ -37,6 +37,27 @@ int setenv(const char* name, const char* value, int overwrite)
 }
 #endif // LSIS_PLATFORM_WIN
 
+void save_profile(LSIS::PathTracer::profile_data profile, std::string filepath) {
+	std::ofstream file;
+	file.open(filepath, std::ios::out);
+
+	if (file.is_open()) {
+		//file << "host, " << profile.host << std::endl;
+		file << "device, " << profile.device << std::endl;
+		file << "platform, " << profile.platform << std::endl;
+		file << "sampling, " << profile.sampling << std::endl;
+		file << "attenuation, " << profile.attenuation << std::endl;
+		file << "num_samples, " << profile.samples << std::endl;
+		file << "time_build_lightstructure, " << profile.time_build_lightstructure << std::endl;
+		file << "time_build_bvh, " << profile.time_build_bvh << std::endl;
+		file << "time_render, " << profile.time_render << std::endl;
+
+		file.close();
+	}
+	else {
+		printf("Failed to create file!\n");
+	}
+}
 
 void save_result(const std::vector<float>& data, std::string filepath) {
 	if (data.size() % 4 != 0) {
@@ -77,12 +98,12 @@ int main(int argc, char** argv) {
 	LSIS::Log::Init();
 
 	LSIS::Application* app = LSIS::Application::Get();
-	LSIS::Input::SetCameraPosition({ -0.0f,1.0f,2.72f,1.0f });
-	LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
+	//LSIS::Input::SetCameraPosition({ -0.0f,1.0f,2.72f,1.0f });
+	//LSIS::Input::SetCameraRotation({ -0.0f,-0.0f,0.0f });
 	//LSIS::Input::SetCameraPosition({ 0.6f,0.8f,0.6f,1.0f });
 	//LSIS::Input::SetCameraRotation({ -0.4f,0.5f,0.0f });
-	//LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
-	//LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
+	LSIS::Input::SetCameraPosition({ -0.0f,1.1f,1.3f,1.0f });
+	LSIS::Input::SetCameraRotation({ -0.5f,-0.0f,0.0f });
 
 	auto flat = LSIS::Shader::Create("../Assets/Shaders/flat.vert", "../Assets/Shaders/flat.frag");
 	auto m1 = std::make_shared<LSIS::Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
@@ -90,16 +111,17 @@ int main(int argc, char** argv) {
 
 	bool interactive = false;
 	auto pt_method = LSIS::PathTracer::Method::lighttree;
+	auto pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ConditionalMinDist;
 
 	std::string output_folder = "../Test/";
 	std::string output_name = "Test";
 
-	size_t sample_target = 10;
+	size_t sample_target = 100;
 	auto scene = app->GetScene();
 
 	for (int i = 1; i < argc; i++) {
 		const std::string& arg = arg_list[i];
-		printf("Arg: %s\n", arg.c_str());
+		//printf("Arg: %s\n", arg.c_str());
 		if (arg == "-obj") {
 			const std::string& filepath = arg_list[++i];
 			printf("Loading Object: %s\n", filepath.c_str());
@@ -127,6 +149,21 @@ int main(int argc, char** argv) {
 				printf("Unknown option\n");
 			}
 		}
+		else if (arg == "-atten") {
+			const std::string& atten = arg_list[++i];
+			if (atten == "center") {
+				pt_attenuation = LSIS::PathTracer::ClusterAttenuation::Center;
+			}
+			else if (atten == "conditional") {
+				pt_attenuation = LSIS::PathTracer::ClusterAttenuation::Conditional;
+			}
+			else if (atten == "mindist") {
+				pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ConditionalMinDist;
+			}
+			else {
+				printf("unknown cluster attenuation method\n");
+			}
+		}
 		else if (arg == "-name") {
 			const std::string& name = arg_list[++i];
 			output_name = name;
@@ -151,8 +188,11 @@ int main(int argc, char** argv) {
 	else {
 		auto pt = std::make_shared<LSIS::PathTracer>(512, 512);
 		pt->SetMethod(pt_method);
-		
+		pt->SetClusterAttenuation(pt_attenuation);
+
 		printf("Sleeping\n");
+		std::cout << std::flush;
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 		printf("Woke Up\n");
 
@@ -175,21 +215,40 @@ int main(int argc, char** argv) {
 			//pt->Reset();
 			const auto start = std::chrono::high_resolution_clock::now();
 			//LSIS::PROFILE_SCOPE("Render Time");
+
+			// Print at every percent
+			size_t print_interval = std::max<size_t>(10, sample_target / 100);
+			size_t next_print = print_interval;
+
 			pt->ResetSamples();
-			while (pt->GetNumSamples() < sample_target) {
+			size_t num_samples = 0;
+			while (num_samples < sample_target) {
 				pt->ProcessPass();
 				//pt->UpdateRenderTexture();
 				//printf("samples: %d\n", i++);
+
+				num_samples = pt->GetNumSamples();
+				if (num_samples >= next_print) {
+					next_print += print_interval;
+					float percent = ((float)num_samples / (float)sample_target) * 100.0f;
+					printf("[%zd,%zd]: %.2f pct\n", num_samples, sample_target, percent);
+					std::cout << std::flush;
+				}
 			}
 			const auto end = std::chrono::high_resolution_clock::now();
 			const std::chrono::duration<double, std::milli> duration = end - start;
 			render_time = duration.count();
+
 		}
 
 		const auto data = pt->GetPixelBufferData();
 		save_result(data, output_folder + output_name + ".csv");
 
-		const auto profile = pt->GetProfileData();
+		auto profile = pt->GetProfileData();
+		profile.time_render = render_time;
+
+		save_profile(profile, output_folder + output_name + "_profile.csv");
+
 		printf("Render Time     : %fms\n", render_time);
 		printf("Build BVH       : %fms\n", profile.time_build_bvh);
 		printf("Build Lighttree : %fms\n", profile.time_build_lightstructure);
