@@ -40,7 +40,7 @@ namespace LSIS {
 				data.specular = { mat.specular[0], mat.specular[1], mat.specular[2] };
 				data.emissive = { mat.emission[0], mat.emission[1], mat.emission[2] };
 
-				printf("Material: [%f,%f,%f]\n", data.diffuse.x, data.diffuse.y, data.diffuse.z);
+				//printf("Material: [%f,%f,%f]\n", data.diffuse.x, data.diffuse.y, data.diffuse.z);
 				materials[i] = data;
 			}
 
