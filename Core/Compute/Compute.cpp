@@ -132,7 +132,7 @@ namespace LSIS {
 	cl::CommandQueue Compute::CreateCommandQueue(const cl::Context& context, const cl::Device& device)
 	{
 		cl_int err;
-		cl_command_queue_properties props{};
+		cl_command_queue_properties props = CL_QUEUE_PROFILING_ENABLE;
 		cl::CommandQueue queue = cl::CommandQueue(context, device, props, &err);
 
 		if (err) {
