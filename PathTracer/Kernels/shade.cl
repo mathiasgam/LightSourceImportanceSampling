@@ -117,8 +117,40 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 	return diffuse * cos_theta_in * cos_theta_out;
 }
 
+float fast_max_angle(float3 pmin, float3 pmax, float sqr_dist){
+	const float3 diagonal = pmax - pmin;
+	const float sqr_radius = dot(diagonal, diagonal);
+
+	return asin(sqrt(sqr_radius) / sqrt(sqr_dist));
+}
+
+float logical_max_angle(float3 pmin, float3 pmax, float3 position){
+	const float3 center = (pmin + pmax) * 0.5f;
+	const float3 diff = position - center;
+	const float3 half_diagonal = (pmax - pmin) * 0.5f;
+	const float3 dir = normalize(diff);
+
+	const float3 abs_diff = fabs(diff);
+
+	bool dx = diff.x > 0;
+	if (abs_diff.x < abs_diff.y || abs_diff.x < abs_diff.z) {
+		dx = !dx;
+	}
+	bool dy = diff.y > 0;
+	if (abs_diff.y < abs_diff.x || abs_diff.y < abs_diff.z) {
+		dy = !dy;
+	}
+	bool dz = diff.z > 0;
+	if (abs_diff.z < abs_diff.x || abs_diff.z < abs_diff.y) {
+		dz = !dz;
+	}
+	const float3 corner = (float3)(dx ? pmax.x : pmin.x, dy ? pmax.y : pmin.y, dz ? pmax.z : pmin.z);
+	const float3 corner_dir = normalize(position - center);
+	return acos(dot(corner_dir, dir));
+}
+
 // Brute force finding the angle that captures the entire box
-float max_angle(float3 pmin, float3 pmax, float3 position, float3 normal) {
+float max_angle(float3 pmin, float3 pmax, float3 position) {
 	if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
 		return M_PI_F;
 	const float3 center = (pmin + pmax) * 0.5f;
@@ -183,7 +215,11 @@ inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_
 #endif
 }
 
+//#define FAST_THETA_U
+//#define LOGICAL_THETA_U
+
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
+#ifdef USE_ORIENTATION
 	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
 	const float3 diff = center - position;
 	const double dist = length(diff);
@@ -195,7 +231,13 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const float theta_i = acos(dot(normal, dir));
 
 	// atan of radius of bounding sphere divided by distance
-	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position, normal);
+#if defined FAST_THETA_U
+	const float theta_u = fast_max_angle(node.pmin.xyz, node.pmax.xyz, sqr_dist);
+#elif defined LOGICAL_THETA_U // FAST_THETA_U
+	const float theta_u = logical_max_angle(node.pmin.xyz, node.pmax.xyz, position);
+#else
+	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position);
+#endif // FAST_THETA_U
 
 	const float theta_t = max(0.0f, (theta - THETA_O(node)) - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
@@ -204,8 +246,9 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 		return 0.0f;
 
 	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * cos(theta_t);
-	//const float3 I = (diffuse * node.energy.xyz) * inverse(sqr_dist);
-
+#else
+	const float3 I = (diffuse * ENERGY(node));
+#endif // USE_ORIENTATION
 	return max3(I.x, I.y, I.z);
 }
 
@@ -241,6 +284,8 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 			pdf *= p_r;
 		}
 	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	*pdf_out = pdf;
 	return INDEX(node);
@@ -313,107 +358,95 @@ __kernel void ProcessBounce(
 					result += emission * throughput;
 #endif // USE_NAIVE
 				}
+				throughput *= diffuse / M_PI_F;
 
-
-				if (any(isgreater(emission, 0.0f))) {
-					state = STATE_INACTIVE;
-					throughput = (float3)(0.0f);
-				}
-				else
-				{
-
-
-
-					throughput *= diffuse / M_PI_F;
-
-					const float3 position = geometric.position.xyz;
-					const float3 normal = geometric.normal.xyz;
+				const float3 position = geometric.position.xyz;
+				const float3 normal = geometric.normal.xyz;
 
 #ifndef USE_NAIVE
 #ifdef USE_LIGHTTREE
-					// choose light
-					//uint i = random_uint(&rng, num_lights);
-					//float pdf = inverse(num_lights);
-					double r = random_double(&rng);
-					float pdf;
-					uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
+				// choose light
+				//uint i = random_uint(&rng, num_lights);
+				//float pdf = inverse(num_lights);
+				double r = random_double(&rng);
+				float pdf;
+				uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
 #else
-					float r = rand(&rng);
-					float pdf;
-					uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+				float r = rand(&rng);
+				float pdf;
+				uint i = select_light(light_power_cdf, num_lights, r, &pdf);
 #endif
 
-					// Handle direct light
-					Light light = lights[i];
-					float3 light_pos = light.position.xyz;
-					const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+				// Handle direct light
+				Light light = lights[i];
+				float3 light_pos = light.position.xyz;
+				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
 
-					if (light.position.w == 1.0f) { // if light is triangle, then sample the position
-						const float r1 = rand(&rng);
-						const float r2 = rand(&rng);
-						light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
-						// PDF has precalculated 1.0/area for triangle lights
+				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
+					const float r1 = rand(&rng);
+					const float r2 = rand(&rng);
+					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
+					// PDF has precalculated 1.0/area for triangle lights
 #ifdef USE_LIGHTTREE
-						pdf *= inverse(area);
+					pdf *= inverse(area);
 #endif
-					}
+				}
 
-					const float3 diff = light_pos - position;
-					const float dist = length(diff);
-					const float dist_inv = inverse(dist);
-					const float3 dir = diff * dist_inv;
+				const float3 diff = light_pos - position;
+				const float dist = length(diff);
+				const float dist_inv = inverse(dist);
+				const float3 dir = diff * dist_inv;
 
-					const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
-					const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
+				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
+				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
 
-					// calculate the lights contribution
-					const float3 intensity = light.intensity.xyz;
-					const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
-					//const float FTR = 1.0f;
+				// calculate the lights contribution
+				const float3 intensity = light.intensity.xyz;
+				const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
+				//const float FTR = 1.0f;
 
 #ifdef SOLID_ANGLE
-					const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
 #else
-					const float Omega = cos_theta_light * area * inv_sqr(dist);
+				const float Omega = cos_theta_light * area * inv_sqr(dist);
 #endif
-					const float3 L_i = intensity * cos_theta * Omega * ceil(cos_theta_light) * inverse(area); // WHY !?!?
+				const float3 L_i = intensity * cos_theta * Omega * ceil(cos_theta_light) * inverse(area); // WHY !?!?
 
-					// lift shading point to avoid hitting the geometry again
-					const float3 lift = geometric.normal.xyz * 10e-6f;
+				// lift shading point to avoid hitting the geometry again
+				const float3 lift = geometric.normal.xyz * 10e-6f;
 
 
-					shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
-					const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
-					light_contribution[id] = L;
+				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
+				const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
+				light_contribution[id] = L;
 #else
-					const float3 lift = geometric.normal.xyz * 10e-6f;
+				const float3 lift = geometric.normal.xyz * 10e-6f;
 #endif // !USE_NAIVE
 
 #ifdef RUSSIAN_ROULETTE
-					// Russian roulette
-					float pdf_russian = (throughput.x + throughput.y + throughput.z) / 3.0f;
-					if (rand(&rng) > pdf_russian) {
-						state = STATE_INACTIVE;
-					}
-					else {
-						throughput = throughput * inverse(pdf_russian);
-					}
+				// Russian roulette
+				float pdf_russian = (throughput.x + throughput.y + throughput.z) / 3.0f;
+				if (rand(&rng) > pdf_russian) {
+					state = STATE_INACTIVE;
+				}
+				else {
+					throughput = throughput * inverse(pdf_russian);
+				}
 #endif
 
-					float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
-					const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
-					//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); // uniform sampling
-					const float pdf_bounce = 1.0f / M_PI_F; // cosine sampling cos_theta / pi, but cos_theta cancels out with cosine sampling
+				float3 out_dir = sample_hemisphere_cosine(&rng, geometric.normal.xyz);
+				const float cos_theta_out = max(dot(geometric.normal.xyz, out_dir), 0.0f);
+				//const float pdf_bounce = 1.0f / (2.0f * M_PI_F); // uniform sampling
+				const float pdf_bounce = 1.0f / M_PI_F; // cosine sampling cos_theta / pi, but cos_theta cancels out with cosine sampling
 
-					bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0f, 1000.0f);
+				bounce_rays[id] = CreateRay(geometric.position.xyz + lift, out_dir, 0.0f, 1000.0f);
 
-					//pdf_bounce *= 1.0f / M_PI_F;
+				//pdf_bounce *= 1.0f / M_PI_F;
 
-					throughput *= inverse(pdf_bounce);
+				throughput *= inverse(pdf_bounce);
 
-					// should not be nessesary as cosine hemisphere sampling cancels out;
-					//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
-				}
+				// should not be nessesary as cosine hemisphere sampling cancels out;
+				//throughput *= max(dot(geometric.normal.xyz, out_dir), 0.0f);
 			}
 
 			states[id] = state;

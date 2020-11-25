@@ -51,6 +51,7 @@ namespace LSIS {
 		enum Method {
 			naive,
 			energy,
+			spatial,
 			lighttree
 		};
 
@@ -137,13 +138,14 @@ namespace LSIS {
 
 		bool ready = false;
 
-		bool use_solid_angle = false;
+		bool use_solid_angle = true;
 		bool use_russian_roulette = false;
 
 		bool use_naive = false;
 		bool use_lighttree = true;
 		bool use_conditional_attenuation = true;
 		bool use_min_distance = true;
+		bool use_orientation = true;
 
 		EventQueue m_event_queue = EventQueue(100);
 

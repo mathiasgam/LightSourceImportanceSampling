@@ -13,6 +13,7 @@
 
 #include "gtc/constants.hpp"
 #include "gtx/rotate_vector.hpp"
+#include "gtc/random.hpp"
 
 #include <chrono>
 #include <thread>
@@ -51,6 +52,11 @@ void save_profile(LSIS::PathTracer::profile_data profile, std::string filepath) 
 		file << "time_build_lightstructure, " << profile.time_build_lightstructure << std::endl;
 		file << "time_build_bvh, " << profile.time_build_bvh << std::endl;
 		file << "time_render, " << profile.time_render << std::endl;
+		file << "time_kernel_prepare, " << profile.time_kernel_prepare / 1000000.0 << std::endl;
+		file << "time_kernel_trace, " << profile.time_kernel_trace / 1000000.0 << std::endl;
+		file << "time_kernel_shade, " << profile.time_kernel_shade / 1000000.0 << std::endl;
+		file << "time_kernel_process_occlusion, " << profile.time_kernel_process_occlusion / 1000000.0 << std::endl;
+		file << "time_kernel_process_results, " << profile.time_kernel_process_results / 1000000.0 << std::endl;
 
 		file.close();
 	}
@@ -85,9 +91,134 @@ void save_result(const std::vector<float>& data, std::string filepath) {
 	LSIS::SaveImageFromFloatBuffer("../Result.png", width, height, channels, data.data());
 }
 
+bool contained(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 position) {
+	if (position.x < pmin.x || position.x > pmax.x)
+		return false;
+	if (position.y < pmin.y || position.y > pmax.y)
+		return false;
+	if (position.z < pmin.z || position.z > pmax.z)
+		return false;
+	return true;
+}
+
+glm::ivec3 logical_max_angle(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 position) {
+	if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
+		return glm::ivec3(2);
+	const glm::vec3 center = (pmin + pmax) * 0.5f;
+	const glm::vec3 diff = center - position;
+	const glm::vec3 half_diagonal = (pmax - pmin) * 0.5f;
+	const glm::vec3 dir = normalize(diff);
+
+	const glm::vec3 abs_diff = glm::abs(diff);
+
+	bool dx;
+	if (abs_diff.y < half_diagonal.y && abs_diff.z < half_diagonal.z) {
+		bool dx = true;
+	}
+	else {
+
+	}
+
+
+	bool dy = diff.y > 0;
+	if (abs_diff.y < abs_diff.x && abs_diff.y < abs_diff.z)
+		dy = !dy;
+
+	bool dz = diff.z > 0;
+	if (abs_diff.z > abs_diff.x && abs_diff.z > abs_diff.y)
+		dz = !dz;
+
+	int x = dx == true ? 1 : 0;
+	int y = dy == true ? 1 : 0;
+	int z = dz == true ? 1 : 0;
+	return glm::ivec3(x, y, z);
+	/*
+	glm::vec3 corner = glm::vec3(dx ? pmax.x : pmin.x, dy ? pmax.y : pmin.y, dz ? pmax.z : pmin.z);
+	const glm::vec3 corner_dir = normalize(position - corner);
+	return acos(dot(corner_dir, dir));
+	*/
+}
+
+// Brute force finding the angle that captures the entire box
+glm::ivec3 max_angle(glm::vec3 pmin, glm::vec3 pmax, glm::vec3 position) {
+	if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
+		return glm::ivec3(2);
+	const glm::vec3 center = (pmin + pmax) * 0.5f;
+	const glm::vec3 diff = center - position;
+	const glm::vec3 dir = normalize(diff);
+
+	// calculate the points from the center to each corner
+	glm::ivec3  points[8];
+	points[0] = glm::ivec3(0, 0, 0);
+	points[1] = glm::ivec3(1, 0, 0);
+	points[2] = glm::ivec3(0, 1, 0);
+	points[3] = glm::ivec3(1, 1, 0);
+	points[4] = glm::ivec3(0, 0, 1);
+	points[5] = glm::ivec3(1, 0, 1);
+	points[6] = glm::ivec3(0, 1, 1);
+	points[7] = glm::ivec3(1, 1, 1);
+
+	// Project the points from each corner onto the plane defined by tangent and bitangent and find their sqr length
+	glm::ivec3 best = glm::ivec3(3);
+	float max_angle = -std::numeric_limits<float>::infinity();
+	for (int i = 0; i < 8; i++) {
+		const glm::ivec3 p = points[i];
+		const glm::vec3 pos = glm::vec3(p.x ? pmin.x : pmax.x, p.y ? pmin.y : pmax.y, p.z ? pmin.z : pmax.z);
+		const glm::vec3 dir_corner = normalize(pos - position);
+		const float cos_theta = glm::clamp(dot(dir_corner, dir),0.0f,1.0f);
+		const float angle = acos(cos_theta);
+		if (angle > max_angle) {
+			max_angle = angle;
+			best = points[i];
+		}
+	}
+	// the longest sqr length is used to find the maximum angle. only do the expensive calculation once
+	return best;
+}
+
+glm::vec3 rand_float3(float min, float max) {
+	return glm::vec3(glm::linearRand(min, max), glm::linearRand(min, max), glm::linearRand(min, max));
+}
+
+void printvec(glm::vec3 vec) {
+	printf("[%.2f,%.2f,%.2f]", vec.x, vec.y, vec.z);
+}
+
+void printivec(glm::ivec3 vec) {
+	printf("[%d,%d,%d]", vec.x, vec.y, vec.z);
+}
+
 int main(int argc, char** argv) {
 
 	std::vector<std::string> arg_list(argv, argc + argv);
+
+	size_t N = 100;
+	for (auto i = 0; i < N; i++) {
+
+		glm::vec3 center = rand_float3(-10.0f, 10.0f);
+		glm::vec3 size = rand_float3(1.0f, 5.0f);
+		glm::vec3 pmin = center - size;
+		glm::vec3 pmax = center + size;
+
+		glm::vec3 position = rand_float3(-20.0f, 20.0f);
+
+		glm::ivec3 res1 = max_angle(pmin, pmax, position);
+		glm::ivec3 res2 = logical_max_angle(pmin, pmax, position);
+
+		printivec(res1);
+		printivec(res2);
+		if (res1.x != res2.x || res1.y != res2.y || res1.z != res2.z) {
+			printf("FAIL");
+		}
+		printf("\n");
+		//printf("a1: %f, a2: %f, diff: %f\n", a1, a2, glm::abs(a1-a2));
+		//float angle_error = glm::abs(a1 - a2);
+		//printf("a1:%.4f, a2:%.4f, error:%.4f\n", a1, a2, angle_error);
+		//if (angle_error > max_angle_error) {
+		//	max_angle_error = angle_error;
+		//}
+
+	}
 
 	srand(time(NULL));
 

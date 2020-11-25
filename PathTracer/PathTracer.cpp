@@ -165,6 +165,8 @@ namespace LSIS {
 				options.push_back("-D MIN_DIST");
 			if (use_conditional_attenuation)
 				options.push_back("-D AVOID_SINGULARITY");
+			if (use_orientation)
+				options.push_back("-D USE_ORIENTATION");
 
 		}
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
@@ -393,16 +395,25 @@ namespace LSIS {
 		if (m == naive) {
 			use_naive = true;
 			use_lighttree = false;
+			use_orientation = false;
 			m_profile_data.sampling = "naive";
 		}
 		else if (m == energy) {
 			use_naive = false;
 			use_lighttree = false;
+			use_orientation = false;
 			m_profile_data.sampling = "energy";
 		}
 		else if (m == lighttree) {
 			use_naive = false;
 			use_lighttree = true;
+			use_orientation = true;
+			m_profile_data.sampling = "lighttree";
+		}
+		else if (m == spatial) {
+			use_naive = false;
+			use_lighttree = true;
+			use_orientation = false;
 			m_profile_data.sampling = "lighttree";
 		}
 	}
