@@ -21,6 +21,17 @@
 
 namespace LSIS {
 
+	static void accumulate(cl_event e, cl_int event_command_exec_status, void* user_data) {
+		cl_ulong* nano_seconds = (cl_ulong*)user_data;
+		
+		cl_ulong time_start;
+		cl_ulong time_end;
+
+		clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+		clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+
+		*nano_seconds += time_end - time_start;
+	}
 
 	PathTracer::PathTracer(uint32_t width, uint32_t height) :
 		m_image_width(width),
@@ -229,7 +240,9 @@ namespace LSIS {
 		CHECK(m_kernel_prepare.setArg(7, m_throughput_buffer.GetBuffer()));
 		CHECK(m_kernel_prepare.setArg(8, m_state_buffer.GetBuffer()));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_prepare, 0, cl::NDRange(m_num_concurrent_samples)));
+		cl::Event* e = m_event_queue.GetNextEvent();
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_prepare, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, e));
+		CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_prepare));
 	}
 
 	void PathTracer::ProcessIntersections()
@@ -250,6 +263,7 @@ namespace LSIS {
 		//CHECK(m_kernel_process.setArg(9, m_sample_buffer.GetBuffer()));
 
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process, 0, cl::NDRange(num_rays)));
+		
 	}
 
 	void PathTracer::Shade()
@@ -257,7 +271,6 @@ namespace LSIS {
 		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
 		cl_uint seed = rand();
 
-		m_event_shade = cl::Event();
 		
 		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
@@ -283,7 +296,9 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(16, m_background_texture));
 		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, &m_event_shade));
+		cl::Event* e = m_event_queue.GetNextEvent();
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, e));
+		CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_shade));
 	}
 
 	void PathTracer::ProcessOcclusion()
@@ -294,7 +309,9 @@ namespace LSIS {
 		CHECK(m_kernel_shade_occlusion.setArg(3, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade_occlusion.setArg(4, m_result_buffer.GetBuffer()));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade_occlusion, 0, cl::NDRange(m_num_concurrent_samples)));
+		cl::Event* e = m_event_queue.GetNextEvent();
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade_occlusion, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, e));
+		CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_process_occlusion));
 	}
 
 	void PathTracer::ProcessResults()
@@ -304,7 +321,9 @@ namespace LSIS {
 		CHECK(m_kernel_process_results.setArg(2, sizeof(cl_uint), &m_num_samples));
 		CHECK(m_kernel_process_results.setArg(3, m_pixel_buffer.GetBuffer()));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process_results, 0, cl::NDRange(m_num_concurrent_samples)));
+		cl::Event* e = m_event_queue.GetNextEvent();
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_process_results, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, e));
+		CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_process_results));
 	}
 
 	void PathTracer::Reset()
@@ -340,7 +359,9 @@ namespace LSIS {
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer);
+			cl::Event* e = m_event_queue.GetNextEvent();
+			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer, e);
+			CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_trace));
 			//ProcessIntersections();
 
 			// Process bounce and prepare shadow rays
@@ -355,18 +376,6 @@ namespace LSIS {
 
 		// copy results into pixelbuffer
 		ProcessResults();
-
-		Compute::GetCommandQueue().finish();
-
-		cl_ulong time_start;
-		cl_ulong time_end;
-
-		clGetEventProfilingInfo(m_event_shade(), CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
-		clGetEventProfilingInfo(m_event_shade(), CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
-
-		double kernel_time = time_end - time_start;
-		time_kernel_shade_nano += kernel_time;
-		printf("OpenCl Execution time is: %0.3f milliseconds \n", kernel_time / 1000000.0);
 
 		m_num_samples++;
 		m_profile_data.samples = m_num_samples;

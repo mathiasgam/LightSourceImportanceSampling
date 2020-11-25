@@ -10,6 +10,7 @@
 
 #include "PixelViewer.h"
 #include "BVH.h"
+#include "EventQueue.h"
 
 namespace LSIS {
 
@@ -33,6 +34,12 @@ namespace LSIS {
 			time time_transfer_bvh;
 			time time_compile_kernel_bvh;
 			time time_compile_kernel_shade;
+
+			cl_ulong time_kernel_prepare = 0;
+			cl_ulong time_kernel_shade = 0;
+			cl_ulong time_kernel_trace = 0;
+			cl_ulong time_kernel_process_occlusion = 0;
+			cl_ulong time_kernel_process_results = 0;
 
 			size_t occlusion_rays;
 			size_t shading_rays;
@@ -78,7 +85,6 @@ namespace LSIS {
 
 	private:
 
-		profile_data m_profile_data;
 
 		void CompileKernels();
 		void PrepareCameraRays(const cl::Context& context);
@@ -139,9 +145,9 @@ namespace LSIS {
 		bool use_conditional_attenuation = true;
 		bool use_min_distance = true;
 
-		cl::Event m_event_shade;
+		EventQueue m_event_queue = EventQueue(100);
 
-		double time_kernel_shade_nano = 0.0;
+		profile_data m_profile_data;
 
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;

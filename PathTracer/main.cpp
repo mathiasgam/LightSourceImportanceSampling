@@ -234,12 +234,16 @@ int main(int argc, char** argv) {
 					printf("[%zd,%zd]: %.2f pct\n", num_samples, sample_target, percent);
 					std::cout << std::flush;
 				}
+				if (num_samples >= sample_target) {
+					LSIS::Compute::GetCommandQueue().finish();
+				}
 			}
 			const auto end = std::chrono::high_resolution_clock::now();
 			const std::chrono::duration<double, std::milli> duration = end - start;
 			render_time = duration.count();
 
 		}
+		printf("Rendering Complete\n");
 
 		const auto data = pt->GetPixelBufferData();
 		save_result(data, output_folder + output_name + ".csv");
@@ -249,10 +253,26 @@ int main(int argc, char** argv) {
 
 		save_profile(profile, output_folder + output_name + "_profile.csv");
 
-		printf("Render Time     : %fms\n", render_time);
-		printf("Build BVH       : %fms\n", profile.time_build_bvh);
-		printf("Build Lighttree : %fms\n", profile.time_build_lightstructure);
-		printf("Num Samples     : %zd\n", profile.samples);
+		cl_ulong time_kernel_total = 0;
+		time_kernel_total += profile.time_kernel_prepare;
+		time_kernel_total += profile.time_kernel_shade;
+		time_kernel_total += profile.time_kernel_trace;
+		time_kernel_total += profile.time_kernel_process_occlusion;
+		time_kernel_total += profile.time_kernel_process_results;
+		double time_kernel_total_ms = (double)time_kernel_total / 1000000.0;
+		double time_kernel_overhead = render_time - time_kernel_total_ms;
+
+		printf("Results:\n");
+		printf("- Render Time       : %fms\n", render_time);
+		printf("- Render Overhead   : %fms\n", time_kernel_overhead);
+		printf("  - kernel_prep     : %fms\n", (double)profile.time_kernel_prepare / 1000000.0);
+		printf("  - kernel_trace    : %fms\n", (double)profile.time_kernel_trace / 1000000.0);
+		printf("  - kernel_shade    : %fms\n", (double)profile.time_kernel_shade / 1000000.0);
+		printf("  - kernel_p_occ    : %fms\n", (double)profile.time_kernel_process_occlusion / 1000000.0);
+		printf("  - kernel_p_res    : %fms\n", (double)profile.time_kernel_process_results / 1000000.0);
+		printf("- Build BVH         : %fms\n", profile.time_build_bvh);
+		printf("- Build Lighttree   : %fms\n", profile.time_build_lightstructure);
+		printf("- Num Samples       : %zd\n", profile.samples);
 	}
 
 	app->Destroy();

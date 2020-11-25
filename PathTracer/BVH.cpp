@@ -38,7 +38,7 @@ namespace LSIS {
 		m_occlusion = Compute::CreateKernel(m_program, "occluded");
 	}
 
-	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info, const TypedBuffer<cl_uint>& count)
+	void BVH::Trace(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<SHARED::Intersection>& intersections, const TypedBuffer<SHARED::GeometricInfo>& info, const TypedBuffer<cl_uint>& count, cl::Event* e)
 	{
 		// Get ray count;
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
@@ -59,7 +59,7 @@ namespace LSIS {
 		CHECK(m_closest.setArg(8, count.GetBuffer()));
 
 		// submit kernel
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays)));
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays), cl::NullRange, nullptr, e));
 	}
 
 	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits, const TypedBuffer<cl_uint>& count) {

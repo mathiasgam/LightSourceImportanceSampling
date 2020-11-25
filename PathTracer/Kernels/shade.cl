@@ -64,7 +64,6 @@ int select_light(__global const float* cdf, int num_lights, float r, float* pdf_
 	const int index = max(1, lower_bound(cdf, num_lights, r)) - 1;
 
 	if (index < 0 || index >= num_lights) {
-		printf("ERROR: index: %d, num_lights: %d, r: %f\n", index, num_lights, r);
 		*pdf_out = 1.0f;
 		return 0;
 	}
@@ -78,11 +77,7 @@ int select_light(__global const float* cdf, int num_lights, float r, float* pdf_
 	}
 	*/
 	const float pdf = cdf[index + num_lights];
-	/*
-	if (pdf < 0.0f || pdf > 1.0f) {
-		printf("PDF: %f, index: %d, num_lights: %d, cdf[i]: %f, cdf[i+1]: %f\n", pdf, index, num_lights, cdf[index], cdf[index + 1]);
-	}
-	*/
+
 	//*pdf = 1.0f; // pdf is canceling out with power / area calculation, so all lights uses their material emission
 	// only works for area lights. need to calculate per light pdf if both point and area lights are used
 	*pdf_out = pdf;
@@ -234,10 +229,6 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 
 		const double p_l = sum == 0.0 ? 0.5 : I_l / sum;
 		const double p_r = sum == 0.0 ? 0.5 : I_r / sum;
-		/*
-		if (get_global_id(0) == 0)
-			printf("I_l: %f, I_r: %f, sum: %f, p_l: %f, p_r: %f\n", I_l, I_r, sum, p_l, p_r);
-		*/
 
 		if (xi < p_l) {
 			xi = xi / p_l;
@@ -357,10 +348,6 @@ __kernel void ProcessBounce(
 					float3 light_pos = light.position.xyz;
 					const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
 
-					if (isnan(area)) {
-						printf("ERROR: area is nan!\n");
-					}
-
 					if (light.position.w == 1.0f) { // if light is triangle, then sample the position
 						const float r1 = rand(&rng);
 						const float r2 = rand(&rng);
@@ -394,17 +381,6 @@ __kernel void ProcessBounce(
 					// lift shading point to avoid hitting the geometry again
 					const float3 lift = geometric.normal.xyz * 10e-6f;
 
-					if (any(isnan(L_i))) {
-						printf("Error: L_i has nan value: [%f,%f,%f]\n", L_i.x, L_i.y, L_i.z);
-					}
-
-					if (isnan(pdf)) {
-						printf("Error: pdf is nan\n");
-					}
-
-					if (any(isnan(throughput))) {
-						printf("Error: throughput has nan value\n");
-					}
 
 					shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
 					const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
