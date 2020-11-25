@@ -126,26 +126,26 @@ float fast_max_angle(float3 pmin, float3 pmax, float sqr_dist){
 
 float logical_max_angle(float3 pmin, float3 pmax, float3 position){
 	const float3 center = (pmin + pmax) * 0.5f;
-	const float3 diff = position - center;
+	const float3 diff = center - position;
 	const float3 half_diagonal = (pmax - pmin) * 0.5f;
 	const float3 dir = normalize(diff);
 
 	const float3 abs_diff = fabs(diff);
 
 	bool dx = diff.x > 0;
-	if (abs_diff.x < abs_diff.y || abs_diff.x < abs_diff.z) {
+	if (abs_diff.x < abs_diff.y && abs_diff.x < abs_diff.z) {
 		dx = !dx;
 	}
 	bool dy = diff.y > 0;
-	if (abs_diff.y < abs_diff.x || abs_diff.y < abs_diff.z) {
+	if (abs_diff.y < abs_diff.x && abs_diff.y < abs_diff.z) {
 		dy = !dy;
 	}
 	bool dz = diff.z > 0;
-	if (abs_diff.z < abs_diff.x || abs_diff.z < abs_diff.y) {
+	if (abs_diff.z < abs_diff.x && abs_diff.z < abs_diff.y) {
 		dz = !dz;
 	}
 	const float3 corner = (float3)(dx ? pmax.x : pmin.x, dy ? pmax.y : pmin.y, dz ? pmax.z : pmin.z);
-	const float3 corner_dir = normalize(position - center);
+	const float3 corner_dir = normalize(center - position);
 	return acos(dot(corner_dir, dir));
 }
 
@@ -214,9 +214,6 @@ inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_
 	return (float2)(inverse(dist_left),inverse(dist_right));
 #endif
 }
-
-//#define FAST_THETA_U
-//#define LOGICAL_THETA_U
 
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
 #ifdef USE_ORIENTATION

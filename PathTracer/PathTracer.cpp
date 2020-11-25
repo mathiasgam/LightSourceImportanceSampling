@@ -167,6 +167,8 @@ namespace LSIS {
 				options.push_back("-D AVOID_SINGULARITY");
 			if (use_orientation)
 				options.push_back("-D USE_ORIENTATION");
+			if (use_fast_theta_u)
+				options.push_back("-D FAST_THETA_U");
 
 		}
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
@@ -435,6 +437,11 @@ namespace LSIS {
 			use_conditional_attenuation = true;
 			m_profile_data.attenuation = "mindist";
 		}
+	}
+
+	void PathTracer::UseFastThetaU(bool b)
+	{
+		use_fast_theta_u = b;
 	}
 
 	inline glm::vec3 convert(cl_float4 in) {

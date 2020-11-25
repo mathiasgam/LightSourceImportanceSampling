@@ -75,6 +75,7 @@ namespace LSIS {
 
 		void SetMethod(Method m);
 		void SetClusterAttenuation(ClusterAttenuation atten);
+		void UseFastThetaU(bool b);
 
 		bool isDone() const { return m_num_samples == m_target_samples; }
 		size_t GetNumSamples() const { return m_num_samples; }
@@ -146,6 +147,7 @@ namespace LSIS {
 		bool use_conditional_attenuation = true;
 		bool use_min_distance = true;
 		bool use_orientation = true;
+		bool use_fast_theta_u = true;
 
 		EventQueue m_event_queue = EventQueue(100);
 
