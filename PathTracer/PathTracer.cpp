@@ -257,6 +257,8 @@ namespace LSIS {
 		cl_uint num_lights = static_cast<cl_uint>(m_lights.Count());
 		cl_uint seed = rand();
 
+		m_event_shade = cl::Event();
+		
 		CHECK(m_kernel_shade.setArg(0, sizeof(cl_uint), &m_num_concurrent_samples));
 		CHECK(m_kernel_shade.setArg(1, sizeof(cl_uint), &num_lights));
 		CHECK(m_kernel_shade.setArg(2, sizeof(cl_uint), &m_num_pixels));
@@ -281,7 +283,7 @@ namespace LSIS {
 		CHECK(m_kernel_shade.setArg(16, m_background_texture));
 		//CHECK(m_kernel_shade.setArg(15, m_sampler));
 
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples)));
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_kernel_shade, 0, cl::NDRange(m_num_concurrent_samples), cl::NullRange, nullptr, &m_event_shade));
 	}
 
 	void PathTracer::ProcessOcclusion()
@@ -353,6 +355,18 @@ namespace LSIS {
 
 		// copy results into pixelbuffer
 		ProcessResults();
+
+		Compute::GetCommandQueue().finish();
+
+		cl_ulong time_start;
+		cl_ulong time_end;
+
+		clGetEventProfilingInfo(m_event_shade(), CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+		clGetEventProfilingInfo(m_event_shade(), CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+
+		double kernel_time = time_end - time_start;
+		time_kernel_shade_nano += kernel_time;
+		printf("OpenCl Execution time is: %0.3f milliseconds \n", kernel_time / 1000000.0);
 
 		m_num_samples++;
 		m_profile_data.samples = m_num_samples;

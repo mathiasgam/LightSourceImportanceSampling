@@ -139,6 +139,10 @@ namespace LSIS {
 		bool use_conditional_attenuation = true;
 		bool use_min_distance = true;
 
+		cl::Event m_event_shade;
+
+		double time_kernel_shade_nano = 0.0;
+
 		// Result Buffers
 		TypedBuffer<cl_int> m_state_buffer;
 		TypedBuffer<cl_float3> m_result_buffer;
