@@ -234,10 +234,10 @@ int main(int argc, char** argv) {
 					printf("[%zd,%zd]: %.2f pct\n", num_samples, sample_target, percent);
 					std::cout << std::flush;
 				}
-				if (num_samples >= sample_target) {
-					LSIS::Compute::GetCommandQueue().finish();
-				}
 			}
+			// Wait for all kernels to finish
+			LSIS::Compute::GetCommandQueue().finish();
+
 			const auto end = std::chrono::high_resolution_clock::now();
 			const std::chrono::duration<double, std::milli> duration = end - start;
 			render_time = duration.count();
