@@ -605,6 +605,7 @@ namespace LSIS {
 		if (num_lights > 0)
 			CHECK(Compute::GetCommandQueue().enqueueWriteBuffer(m_lights.GetBuffer(), CL_TRUE, 0, sizeof(SHARED::Light) * num_lights, lights_data.data()));
 
+		if (!use_naive)
 		{
 			const auto start = std::chrono::high_resolution_clock::now();
 

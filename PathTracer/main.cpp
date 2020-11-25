@@ -127,6 +127,8 @@ int main(int argc, char** argv) {
 	size_t sample_target = 100;
 	auto scene = app->GetScene();
 
+	bool loadedObj = false;
+
 	for (int i = 1; i < argc; i++) {
 		const std::string& arg = arg_list[i];
 		//printf("Arg: %s\n", arg.c_str());
@@ -134,6 +136,7 @@ int main(int argc, char** argv) {
 			const std::string& filepath = arg_list[++i];
 			printf("Loading Object: %s\n", filepath.c_str());
 			scene->LoadObject(filepath, m1, LSIS::Transform({ 0,0,0 }));
+			loadedObj = true;
 		}
 		else if (arg == "-n") {
 			const std::string& number = arg_list[++i];
@@ -188,7 +191,12 @@ int main(int argc, char** argv) {
 		}
 	}
 
-
+	// Load default scene
+	if (!loadedObj) {
+		printf("No objects added!!!\n- Loading Default Scene\n");
+		scene->LoadObject("../Assets/Models/CornellBox.obj", m1, LSIS::Transform({ 0,0,0 }));
+		scene->LoadObject("../Assets/Models/Helix.obj", m1, LSIS::Transform({ 0,0,0 }));
+	}
 
 	// Run the program
 	if (interactive) {
@@ -202,11 +210,12 @@ int main(int argc, char** argv) {
 		pt->SetClusterAttenuation(pt_attenuation);
 		pt->UseFastThetaU(use_fast_theta_u);
 
-		printf("Sleeping\n");
+		printf("Waiting for scene to load\n");
 		std::cout << std::flush;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-		printf("Woke Up\n");
+		scene->Wait();
+
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
 		LSIS::Input::Update(0.0f);
 		scene->Update();

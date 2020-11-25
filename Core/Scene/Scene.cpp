@@ -41,6 +41,15 @@ namespace LSIS {
 		m_Futures.push_back(std::async(std::launch::async, StaticLoadObject, &m_uploads, filepath, material, transform));
 	}
 
+	void Scene::Wait()
+	{
+		while (!m_Futures.empty()) {
+			auto& f = m_Futures.front();
+			f.wait();
+			m_Futures.pop_front();
+		}
+	}
+
 	void Scene::SetCamera(std::shared_ptr<Camera> camera)
 	{
 		m_camera = camera;
