@@ -158,8 +158,8 @@ namespace LSIS {
 				if (best_k == -1) {
 					best_k = max_axis(diagonal);
 					best_split = K / 2;
-					printf("Failed to find split!\n");
-					printf("Range: %d\n", range);
+					//printf("Failed to find split!\n");
+					//printf("Range: %d\n", range);
 					middle = left + range / 2;
 				}
 				else {
