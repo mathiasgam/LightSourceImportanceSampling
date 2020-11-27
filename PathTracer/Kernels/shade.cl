@@ -157,23 +157,39 @@ float max_angle(float3 pmin, float3 pmax, float3 position) {
 	const float3 diff = center - position;
 	const float3 dir = normalize(diff);
 
-	// calculate the points from the center to each corner
-	float3 points[8];
-	points[0] = normalize((float3)(pmin.x, pmin.y, pmin.z) - position);
-	points[1] = normalize((float3)(pmax.x, pmin.y, pmin.z) - position);
-	points[2] = normalize((float3)(pmin.x, pmax.y, pmin.z) - position);
-	points[3] = normalize((float3)(pmax.x, pmax.y, pmin.z) - position);
+	// Angle version of cosine law
+	// cos(B) = (c^2 + a^2 - b^2)/2ca
+	// a = length(corner - position)
+	// b = length(diagonal) * 0.5
+	// c = length(center - position)
 
-	points[4] = normalize((float3)(pmin.x, pmin.y, pmax.z) - position);
-	points[5] = normalize((float3)(pmax.x, pmin.y, pmax.z) - position);
-	points[6] = normalize((float3)(pmin.x, pmax.y, pmax.z) - position);
-	points[7] = normalize((float3)(pmax.x, pmax.y, pmax.z) - position);
+	const float3 corners[8] = {
+		(float3)(pmin.x, pmin.y, pmin.z),
+		(float3)(pmax.x, pmin.y, pmin.z),
+		(float3)(pmin.x, pmax.y, pmin.z),
+		(float3)(pmax.x, pmax.y, pmin.z),
 
+		(float3)(pmin.x, pmin.y, pmax.z),
+		(float3)(pmax.x, pmin.y, pmax.z),
+		(float3)(pmin.x, pmax.y, pmax.z),
+		(float3)(pmax.x, pmax.y, pmax.z),
+	};
+
+	const float3 p_to_center = center - position;
+	const float3 diagonal = pmax - pmin;
+
+	const float b_sqr = dot(diagonal, diagonal);
+	const float c_sqr = dot(p_to_center, p_to_center);
+	const float c = sqrt(c_sqr);
+	
 	// Project the points from each corner onto the plane defined by tangent and bitangent and find their sqr length
 	float min_cos_theta = 1.0f;
 	for (int i = 0; i < 8; i++) {
-		const float cos_theta = dot(dir, points[i]);
-		min_cos_theta = min(min_cos_theta, cos_theta);
+		const float3 p_to_corner = corners[i] - position;
+		const float a_sqr = dot(p_to_corner, p_to_corner);
+		const float a = sqrt(a_sqr);
+		const float cos_B = (c_sqr + a_sqr - b_sqr) / (2.0f * c * a);
+		min_cos_theta = min(min_cos_theta, cos_B);
 	}
 	// the longest sqr length is used to find the maximum angle. only do the expensive calculation once
 	return acos(min_cos_theta);
@@ -216,7 +232,6 @@ inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_
 }
 
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
-#ifdef USE_ORIENTATION
 	const float3 center = (node.pmin.xyz + node.pmax.xyz) * 0.5f;
 	const float3 diff = center - position;
 	const double dist = length(diff);
@@ -224,7 +239,9 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const double sqr_dist = sqr(dist);
 	const float3 dir = normalize(diff);
 
+#ifdef USE_ORIENTATION
 	const float theta = acos(-dot(AXIS(node), dir));
+#endif
 	const float theta_i = acos(dot(normal, dir));
 
 	// atan of radius of bounding sphere divided by distance
@@ -236,15 +253,16 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position);
 #endif // FAST_THETA_U
 
-	const float theta_t = max(0.0f, (theta - THETA_O(node)) - theta_u);
 	const float theta_ti = max(0.0f, theta_i - theta_u);
 
+#ifdef USE_ORIENTATION
+	const float theta_t = max(0.0f, (theta - THETA_O(node)) - theta_u);
 	if (theta_t >= THETA_E(node))
 		return 0.0f;
 
 	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node)) * cos(theta_t);
 #else
-	const float3 I = (diffuse * ENERGY(node));
+	const float3 I = (diffuse * fabs(cos(theta_ti)) * ENERGY(node));
 #endif // USE_ORIENTATION
 	return max3(I.x, I.y, I.z);
 }
@@ -367,7 +385,7 @@ __kernel void ProcessBounce(
 				//float pdf = inverse(num_lights);
 				double r = random_double(&rng);
 				float pdf;
-				uint i = pick_light(light_tree_nodes, position, normal, diffuse, r, &pdf);
+				uint i = pick_light(light_tree_nodes, position, normal, throughput, r, &pdf);
 #else
 				float r = rand(&rng);
 				float pdf;
