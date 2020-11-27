@@ -25,6 +25,7 @@ namespace LSIS {
 
 			std::string sampling;
 			std::string attenuation;
+			std::string theta_u;
 
 			time time_render;
 			time time_exstract_tri_lights;
@@ -41,6 +42,8 @@ namespace LSIS {
 			cl_ulong time_kernel_process_occlusion = 0;
 			cl_ulong time_kernel_process_results = 0;
 
+			size_t num_lights;
+			size_t num_primitives;
 			size_t occlusion_rays;
 			size_t shading_rays;
 			size_t width;
@@ -76,6 +79,7 @@ namespace LSIS {
 		void SetMethod(Method m);
 		void SetClusterAttenuation(ClusterAttenuation atten);
 		void UseFastThetaU(bool b);
+		void SetUseHDRI(bool b);
 
 		bool isDone() const { return m_num_samples == m_target_samples; }
 		size_t GetNumSamples() const { return m_num_samples; }
@@ -101,6 +105,7 @@ namespace LSIS {
 		void ProcessResults();
 
 		void LoadSceneData();
+		void LoadHDRI();
 
 	private:
 		uint32_t m_image_width, m_image_height;
@@ -109,6 +114,7 @@ namespace LSIS {
 		uint32_t m_num_concurrent_samples = m_num_pixels * m_num_samples_per_pixel;
 		uint32_t m_num_rays;
 		uint32_t m_num_samples = 0;
+		uint32_t m_num_lights = 0;
 
 		uint32_t m_target_samples = 10;
 
@@ -142,11 +148,13 @@ namespace LSIS {
 		bool use_solid_angle = true;
 		bool use_russian_roulette = false;
 
+		bool use_hdri = false;
+
 		bool use_naive = false;
 		bool use_lighttree = true;
 		bool use_conditional_attenuation = true;
 		bool use_min_distance = true;
-		bool use_orientation = true;
+		bool use_orientation = false;
 		bool use_fast_theta_u = true;
 
 		EventQueue m_event_queue = EventQueue(100);

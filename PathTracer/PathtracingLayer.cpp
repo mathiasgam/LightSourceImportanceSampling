@@ -41,6 +41,11 @@ namespace LSIS {
 		if (e.GetEventType() == EventType::CameraUpdated) {
 			m_pathtracer->ResetSamples();
 			auto cam = Application::Get()->GetScene()->GetCamera();
+
+			auto pos = cam->GetPosition();
+			auto rot = cam->GetRotation();
+			printf("cam update: [%.2f,%.2f,%.2f],[%.2f,%.2f,%.2f]\n",pos.x,pos.y,pos.z,rot.x,rot.y,rot.z);
+
 			m_pathtracer->SetCameraProjection( glm::transpose(glm::inverse(cam->GetViewProjectionMatrix())));
 			return true;
 		}

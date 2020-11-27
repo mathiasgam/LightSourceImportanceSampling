@@ -48,7 +48,10 @@ void save_profile(LSIS::PathTracer::profile_data profile, std::string filepath) 
 		file << "platform, " << profile.platform << std::endl;
 		file << "sampling, " << profile.sampling << std::endl;
 		file << "attenuation, " << profile.attenuation << std::endl;
+		file << "theta_u, " << profile.theta_u << std::endl;
 		file << "num_samples, " << profile.samples << std::endl;
+		file << "num_lights, " << profile.num_lights << std::endl;
+		file << "num_num_primitives, " << profile.num_primitives << std::endl;
 		file << "time_build_lightstructure, " << profile.time_build_lightstructure << std::endl;
 		file << "time_build_bvh, " << profile.time_build_bvh << std::endl;
 		file << "time_render, " << profile.time_render << std::endl;
@@ -120,12 +123,14 @@ int main(int argc, char** argv) {
 	auto pt_method = LSIS::PathTracer::Method::lighttree;
 	auto pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ConditionalMinDist;
 	bool use_fast_theta_u = false;
+	bool use_hdri = false;
 
 	std::string output_folder = "../Test/";
 	std::string output_name = "Test";
 
 	size_t sample_target = 100;
 	auto scene = app->GetScene();
+	float fov = 60.0f;
 
 	bool loadedObj = false;
 
@@ -156,6 +161,9 @@ int main(int argc, char** argv) {
 			else if (method == "lighttree") {
 				pt_method = LSIS::PathTracer::Method::lighttree;
 			}
+			else if(method =="spatial") {
+				pt_method = LSIS::PathTracer::Method::spatial;
+			}
 			else {
 				printf("Unknown option\n");
 			}
@@ -185,6 +193,11 @@ int main(int argc, char** argv) {
 		}
 		else if (arg == "-fast_theta_u") {
 			use_fast_theta_u = true;
+			printf("Using fast_theta_u\n");
+		}
+		else if (arg == "-hdri") {
+			use_hdri = true;
+			printf("Using HDRI\n");
 		}
 		else if (arg == "-cam_pos") {
 			float x = std::stof(arg_list[++i]);
@@ -198,6 +211,11 @@ int main(int argc, char** argv) {
 			float z = std::stof(arg_list[++i]);
 			LSIS::Input::SetCameraRotation({ x,y,z });
 		}
+		else if (arg == "-fov") {
+			float angle = std::stof(arg_list[++i]);
+			fov = angle;
+			printf("fov: %f\n", angle);
+		}
 		else {
 			printf("Unknown argument: %s\n", arg);
 		}
@@ -206,13 +224,20 @@ int main(int argc, char** argv) {
 	// Load default scene
 	if (!loadedObj) {
 		printf("No objects added!!!\n- Loading Default Scene\n");
-		scene->LoadObject("../Assets/Models/CornellBox.obj", m1, LSIS::Transform({ 0,0,0 }));
-		scene->LoadObject("../Assets/Models/Helix.obj", m1, LSIS::Transform({ 0,0,0 }));
+		scene->LoadObject("../Assets/Models/Buddha.obj", m1, LSIS::Transform({ 0,0,0 }));
+		scene->LoadObject("../Assets/Models/HelixColor.obj", m1, LSIS::Transform({ 0,0,0 }));
+		scene->LoadObject("../Assets/Models/Background.obj", m1, LSIS::Transform({ 0,0,0 }));
+		//scene->LoadObject("../Assets/Models/BistroExterior.obj", m1, LSIS::Transform({ 0,0,0 }));
+
 	}
 
 	// Run the program
 	if (interactive) {
 		std::shared_ptr<LSIS::PathtracingLayer> pt = std::make_shared<LSIS::PathtracingLayer>(512, 512);
+
+		auto cam = scene->GetCamera();
+		cam->SetFOV(fov);
+
 		app->AddLayer(pt);
 		app->Run();
 	}
@@ -221,6 +246,7 @@ int main(int argc, char** argv) {
 		pt->SetMethod(pt_method);
 		pt->SetClusterAttenuation(pt_attenuation);
 		pt->UseFastThetaU(use_fast_theta_u);
+		pt->SetUseHDRI(use_hdri);
 
 		printf("Waiting for scene to load\n");
 		std::cout << std::flush;
@@ -234,6 +260,7 @@ int main(int argc, char** argv) {
 		app->UpdateCam();
 
 		auto cam = scene->GetCamera();
+		cam->SetFOV(fov);
 		pt->SetCameraProjection(glm::transpose(glm::inverse(cam->GetViewProjectionMatrix())));
 
 		LSIS::PROFILE_SCOPE("Total Time");
@@ -279,7 +306,7 @@ int main(int argc, char** argv) {
 		printf("Rendering Complete\n");
 
 		const auto data = pt->GetPixelBufferData();
-		save_result(data, output_folder + output_name + ".csv");
+		save_result(data, output_folder + output_name + "_data.csv");
 
 		auto profile = pt->GetProfileData();
 		profile.time_render = render_time;
@@ -306,6 +333,8 @@ int main(int argc, char** argv) {
 		printf("- Build BVH         : %fms\n", profile.time_build_bvh);
 		printf("- Build Lighttree   : %fms\n", profile.time_build_lightstructure);
 		printf("- Num Samples       : %zd\n", profile.samples);
+		printf("- Num Num Lights    : %zd\n", profile.num_lights);
+		printf("- Num Primitives    : %zd\n", profile.num_primitives);
 	}
 
 	app->Destroy();

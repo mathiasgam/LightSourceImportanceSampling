@@ -48,51 +48,12 @@ namespace LSIS {
 		CompileKernels();
 		BuildStructure();
 
-		cl_int err;
-		m_sampler = cl::Sampler(Compute::GetContext(), true, CL_ADDRESS_REPEAT, CL_FILTER_LINEAR, &err);
-		if (err) {
-			auto err_string = GET_CL_ERROR_CODE(err);
-			printf("Error: %s\n", err_string.c_str());
-			exit(err);
-		}
-
-		bool use_hdri = false;
-
-		float* hdr_data;
-		int hdr_width, hdr_height, hdr_channels;
-		if (use_hdri) {
-			hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
-		}
-		else {
-			hdr_width = 1;
-			hdr_height = 1;
-			hdr_channels = 3;
-			hdr_data = new float[3];
-			hdr_data[0] = 0.0f;
-			hdr_data[1] = 0.0f;
-			hdr_data[2] = 0.0f;
-		}
-
-		cl::ImageFormat format = {};
-		format.image_channel_order = CL_RGBA;
-		format.image_channel_data_type = CL_FLOAT;
-		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
-		size_t origin[3] = { 0,0,0 };
-		size_t region[3] = { hdr_width,hdr_height,1 };
-
-		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
-		if (err) {
-			auto err_string = GET_CL_ERROR_CODE(err);
-			printf("Error: %s\n", err_string.c_str());
-			exit(err);
-		}
-
 		m_profile_data.device = Compute::GetName(Compute::GetDevice());
 		m_profile_data.platform = Compute::GetName(Compute::GetPlatform());
 		m_profile_data.width = width;
 		m_profile_data.height = height;
 
-		delete[] hdr_data;
+		LoadHDRI();
 		//CHECK(Compute::GetCommandQueue().finish());
 	}
 
@@ -332,11 +293,14 @@ namespace LSIS {
 
 	void PathTracer::Reset()
 	{
+		LoadHDRI();
 		CompileKernels();
 		m_viewer.CompileKernels();
 		m_bvh.Compile();
 		BuildStructure();
 		ResetSamples();
+		m_profile_data.num_primitives = m_num_faces;
+		m_profile_data.num_lights = m_num_lights;
 		Compute::GetCommandQueue().enqueueWriteBuffer(m_active_count_buffer.GetBuffer(), CL_TRUE, 0, sizeof(cl_uint), &m_num_concurrent_samples);
 	}
 
@@ -416,7 +380,7 @@ namespace LSIS {
 			use_naive = false;
 			use_lighttree = true;
 			use_orientation = false;
-			m_profile_data.sampling = "lighttree";
+			m_profile_data.sampling = "spatial";
 		}
 	}
 
@@ -442,6 +406,17 @@ namespace LSIS {
 	void PathTracer::UseFastThetaU(bool b)
 	{
 		use_fast_theta_u = b;
+		if (b) {
+			m_profile_data.theta_u = "approx";
+		}
+		else {
+			m_profile_data.theta_u = "brute";
+		}
+	}
+
+	void PathTracer::SetUseHDRI(bool b)
+	{
+		use_hdri = b;
 	}
 
 	inline glm::vec3 convert(cl_float4 in) {
@@ -462,6 +437,7 @@ namespace LSIS {
 		if (entities.empty()) {
 			m_num_faces = 0;
 			m_num_vertices = 0;
+			m_num_lights = 0;
 			ready = false;
 			return;
 		}
@@ -557,17 +533,17 @@ namespace LSIS {
 		printf("faces: %zd, vertices: %zd, materials: %zd\n", num_faces, num_vertices, num_materials);
 
 		// load scene lights
-		auto scene_lights = scene->GetLights();
+		//auto scene_lights = scene->GetLights();
 
 		// get the number of lights and allocate the space for the temporary buffer data
-		size_t num_lights = scene_lights.size();
+		size_t num_lights = 0;
 		std::vector<SHARED::Light> lights_data = std::vector<SHARED::Light>(num_lights);
 
 		// format and store scene lights data
-		for (auto i = 0; i < num_lights; i++) {
-			auto& light = scene_lights[i];
-			lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
-		}
+		//for (auto i = 0; i < num_lights; i++) {
+		//	auto& light = scene_lights[i];
+		//	lights_data[i] = SHARED::make_light(light->GetPosition(), { 0,0,0 }, light->GetColor());
+		//}
 
 		for (auto i : mesh_light_indices) {
 			SHARED::Face face = m_face_data[i];
@@ -589,6 +565,8 @@ namespace LSIS {
 			glm::vec3 n = glm::normalize(n0 + n1 + n2);
 			glm::vec3 i = convert(mat.emission);
 			glm::vec3 p = ((p0 + p1 + p2) / 3.0f);
+
+			//printf("light: [%.2f,%.2f,%.2f]\n", i.x, i.y, i.z);
 
 			//lights_data.push_back(SHARED::make_light(p, n, i));
 			lights_data.push_back(SHARED::make_mesh_light(p0, p1, p2, dir, i));
@@ -621,8 +599,53 @@ namespace LSIS {
 			m_profile_data.time_build_lightstructure = duration.count();
 		}
 
+		m_num_lights = num_lights;
+
 		ready = true;
 		printf("PointLights: %zd, MeshLights: %zd\n", num_lights, num_emissive_faces);
+	}
+
+	void PathTracer::LoadHDRI()
+	{
+		cl_int err;
+		m_sampler = cl::Sampler(Compute::GetContext(), true, CL_ADDRESS_REPEAT, CL_FILTER_LINEAR, &err);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+		float* hdr_data;
+		int hdr_width, hdr_height, hdr_channels;
+		if (use_hdri) {
+			hdr_data = LoadHDRImage("../Assets/Images/HDRIs/kloppenheim_06_2k.hdr", &hdr_width, &hdr_height, &hdr_channels);
+		}
+		else {
+			hdr_width = 1;
+			hdr_height = 1;
+			hdr_channels = 3;
+			hdr_data = new float[3];
+			hdr_data[0] = 0.0f;
+			hdr_data[1] = 0.0f;
+			hdr_data[2] = 0.0f;
+		}
+
+		cl::ImageFormat format = {};
+		format.image_channel_order = CL_RGBA;
+		format.image_channel_data_type = CL_FLOAT;
+		m_background_texture = cl::Image2D(Compute::GetContext(), CL_MEM_READ_ONLY, format, hdr_width, hdr_height, 0, nullptr);
+		size_t origin[3] = { 0,0,0 };
+		size_t region[3] = { hdr_width,hdr_height,1 };
+
+		err = clEnqueueWriteImage(Compute::GetCommandQueue()(), m_background_texture(), CL_TRUE, origin, region, 0, 0, (void*)hdr_data, 0, nullptr, nullptr);
+		if (err) {
+			auto err_string = GET_CL_ERROR_CODE(err);
+			printf("Error: %s\n", err_string.c_str());
+			exit(err);
+		}
+
+
+		delete[] hdr_data;
 	}
 
 }
