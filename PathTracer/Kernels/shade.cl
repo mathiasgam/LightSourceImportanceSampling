@@ -118,35 +118,10 @@ float3 BRDF(float3 w_in, float3 w_out, float3 diffuse, float3 normal) {
 }
 
 float fast_max_angle(float3 pmin, float3 pmax, float sqr_dist){
-	const float3 diagonal = pmax - pmin;
-	const float sqr_radius = dot(diagonal, diagonal);
+	const float3 half_diagonal = (pmax - pmin) * 0.5f;
+	const float sqr_radius = dot(half_diagonal, half_diagonal);
 
 	return asin(sqrt(sqr_radius) / sqrt(sqr_dist));
-}
-
-float logical_max_angle(float3 pmin, float3 pmax, float3 position){
-	const float3 center = (pmin + pmax) * 0.5f;
-	const float3 diff = center - position;
-	const float3 half_diagonal = (pmax - pmin) * 0.5f;
-	const float3 dir = normalize(diff);
-
-	const float3 abs_diff = fabs(diff);
-
-	bool dx = diff.x > 0;
-	if (abs_diff.x < abs_diff.y && abs_diff.x < abs_diff.z) {
-		dx = !dx;
-	}
-	bool dy = diff.y > 0;
-	if (abs_diff.y < abs_diff.x && abs_diff.y < abs_diff.z) {
-		dy = !dy;
-	}
-	bool dz = diff.z > 0;
-	if (abs_diff.z < abs_diff.x && abs_diff.z < abs_diff.y) {
-		dz = !dz;
-	}
-	const float3 corner = (float3)(dx ? pmax.x : pmin.x, dy ? pmax.y : pmin.y, dz ? pmax.z : pmin.z);
-	const float3 corner_dir = normalize(center - position);
-	return acos(dot(corner_dir, dir));
 }
 
 // Brute force finding the angle that captures the entire box
@@ -154,8 +129,6 @@ float max_angle(float3 pmin, float3 pmax, float3 position) {
 	if (contained(pmin, pmax, position)) // if inside the bounding box, a light can be in all directions
 		return M_PI_F;
 	const float3 center = (pmin + pmax) * 0.5f;
-	const float3 diff = center - position;
-	const float3 dir = normalize(diff);
 
 	// Angle version of cosine law
 	// cos(B) = (c^2 + a^2 - b^2)/2ca
@@ -176,9 +149,9 @@ float max_angle(float3 pmin, float3 pmax, float3 position) {
 	};
 
 	const float3 p_to_center = center - position;
-	const float3 diagonal = pmax - pmin;
+	const float3 half_diagonal = (pmax - pmin) * 0.5f;
 
-	const float b_sqr = dot(diagonal, diagonal);
+	const float b_sqr = dot(half_diagonal, half_diagonal);
 	const float c_sqr = dot(p_to_center, p_to_center);
 	const float c = sqrt(c_sqr);
 	
@@ -261,8 +234,6 @@ inline float importance(LightTreeNode node, float3 position, float3 normal, floa
 	// atan of radius of bounding sphere divided by distance
 #if defined FAST_THETA_U
 	const float theta_u = fast_max_angle(node.pmin.xyz, node.pmax.xyz, sqr_dist);
-#elif defined LOGICAL_THETA_U // FAST_THETA_U
-	const float theta_u = logical_max_angle(node.pmin.xyz, node.pmax.xyz, position);
 #else
 	const float theta_u = max_angle(node.pmin.xyz, node.pmax.xyz, position);
 #endif // FAST_THETA_U
