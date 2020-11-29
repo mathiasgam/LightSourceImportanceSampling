@@ -434,6 +434,12 @@ namespace LSIS {
 		use_hdri = b;
 	}
 
+	void PathTracer::SetNumBins(size_t num_bins)
+	{
+		m_num_bins = num_bins;
+		m_profile_data.num_bins = num_bins;
+	}
+
 	inline glm::vec3 convert(cl_float4 in) {
 		return glm::vec3(in.x, in.y, in.z);
 	}
@@ -603,7 +609,7 @@ namespace LSIS {
 			const auto start = std::chrono::high_resolution_clock::now();
 
 			if (use_lighttree) {
-				LightTree light_tree = LightTree(lights_data.data(), num_lights);
+				LightTree light_tree = LightTree(lights_data.data(), num_lights, m_num_bins);
 				m_lighttree_buffer = light_tree.GetNodeBuffer();
 			}
 			else {

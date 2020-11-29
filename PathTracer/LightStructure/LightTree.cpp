@@ -8,7 +8,8 @@
 
 namespace LSIS {
 
-	LightTree::LightTree(const SHARED::Light* lights, const size_t num_lights)
+	LightTree::LightTree(const SHARED::Light* lights, const size_t num_lights, size_t K)
+		: m_K(K)
 	{
 		//PROFILE_SCOPE("LightTree Construction");
 		if (num_lights == 0) {
@@ -31,8 +32,8 @@ namespace LSIS {
 		auto queue = std::queue<queue_data>();
 		queue.push({ next_index++, 0, (int)num_lights});
 
-		bin_data bins[3];
-		split_data splits[3];
+		bin_data bins[3] = { bin_data(m_K),bin_data(m_K),bin_data(m_K) };
+		split_data splits[3] = { split_data(m_K),split_data(m_K),split_data(m_K) };
 
 		// Do recursive function using queue to avoid stack overflow with many lights
 		while (!queue.empty()) {
@@ -264,7 +265,7 @@ namespace LSIS {
 	}
 	inline void LightTree::calculate_splits(split_data& data_out, const bin_data& bins)
 	{
-		constexpr int last = K - 1;
+		const int last = m_K - 1;
 
 		// allocate bin for accumulaton
 		bin accumulation = {};
@@ -301,7 +302,7 @@ namespace LSIS {
 		// Find the best split
 		float cost_best = std::numeric_limits<float>::infinity();
 		int index_best = -1;
-		for (int i = 0; i < K - 1; i++) {
+		for (int i = 0; i < m_K - 1; i++) {
 			const bin& left = splits.data[i].bin_l;
 			const bin& right = splits.data[i].bin_r;
 
@@ -344,7 +345,7 @@ namespace LSIS {
 	inline int LightTree::partition(build_data& data, uint start, uint end, const uint split, int k, float k0, float k1)
 	{
 		CORE_ASSERT(start < end, "Range has to be non zero!");
-		CORE_ASSERT(split >= 0 || split < K, "Split not within range K");
+		CORE_ASSERT(split >= 0 || split < m_K, "Split not within range K");
 		CORE_ASSERT(k >= 0 || k < 3, "dimension not valid!");
 
 		if (k == -1) {
@@ -357,7 +358,7 @@ namespace LSIS {
 		for (int i = 0; i < range; i++) {
 			const float c_ik = data.centers[data.ids[start + i]][k];
 			uint bin_id = static_cast<uint>(k1 * (c_ik - k0));
-			CORE_ASSERT(bin_id >= 0 && bin_id < K, "Bin id out of bounds!");
+			CORE_ASSERT(bin_id >= 0 && bin_id < m_K, "Bin id out of bounds!");
 			bin_ids[i] = bin_id;
 		}
 
@@ -501,7 +502,7 @@ namespace LSIS {
 	}
 	inline void LightTree::init_bins(bin_data& bin)
 	{
-		for (int i = 0; i < K; i++) {
+		for (int i = 0; i < m_K; i++) {
 			bin_init(bin.data[i]);
 		}
 	}
@@ -528,7 +529,7 @@ namespace LSIS {
 			dst.energy += other.energy;
 		}
 	}
-	inline void LightTree::bin_update(bin& data, const bbox& cb, const bbox& box, const bcone& cone, const float3& energy)
+	inline void LightTree::bin_update(bin& data, const bbox& cb, const bbox& box, const bcone& cone, const glm::vec3& energy)
 	{
 		if (bin_is_empty(data)) {
 			data.cb = cb;
@@ -592,4 +593,5 @@ namespace LSIS {
 	{
 		return a.x > a.y ? (a.x > a.z ? 0 : 2) : (a.y > a.z ? 1 : 2);
 	}
+
 }

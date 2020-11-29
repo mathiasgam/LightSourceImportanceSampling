@@ -50,6 +50,7 @@ namespace LSIS {
 			size_t width;
 			size_t height;
 			size_t samples;
+			size_t num_bins;
 		};
 
 		enum Method {
@@ -82,6 +83,7 @@ namespace LSIS {
 		void SetClusterAttenuation(ClusterAttenuation atten);
 		void UseFastThetaU(bool b);
 		void SetUseHDRI(bool b);
+		void SetNumBins(size_t num_bins);
 
 		bool isDone() const { return m_num_samples == m_target_samples; }
 		size_t GetNumSamples() const { return m_num_samples; }
@@ -159,6 +161,8 @@ namespace LSIS {
 		bool use_orientation = false;
 		bool use_fast_theta_u = true;
 		bool use_zero_dist = false;
+
+		size_t m_num_bins = 128;
 
 		EventQueue m_event_queue = EventQueue(100);
 

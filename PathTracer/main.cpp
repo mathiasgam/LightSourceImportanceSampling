@@ -53,6 +53,7 @@ void save_profile(LSIS::PathTracer::profile_data profile, std::string filepath) 
 		file << "num_samples, " << profile.samples << std::endl;
 		file << "num_lights, " << profile.num_lights << std::endl;
 		file << "num_num_primitives, " << profile.num_primitives << std::endl;
+		file << "num_bins, " << profile.num_bins << std::endl;
 		file << "time_build_lightstructure, " << profile.time_build_lightstructure << std::endl;
 		file << "time_build_bvh, " << profile.time_build_bvh << std::endl;
 		file << "time_render, " << profile.time_render << std::endl;
@@ -130,7 +131,8 @@ int main(int argc, char** argv) {
 	std::string output_folder = "../Test/";
 	std::string output_name = "Test";
 
-	size_t sample_target = 10;
+	size_t num_bins = 128;
+	size_t sample_target = 5;
 	auto scene = app->GetScene();
 	float fov = 60.0f;
 
@@ -221,6 +223,13 @@ int main(int argc, char** argv) {
 			fov = angle;
 			printf("fov: %f\n", angle);
 		}
+		else if (arg == "-bins") {
+			const std::string& number = arg_list[++i];
+			int n = std::max(1,std::stoi(number));
+			printf("Set Number of bins: %s, %d\n", number, n);
+
+			num_bins = n;
+		}
 		else {
 			printf("Unknown argument: %s\n", arg);
 		}
@@ -252,6 +261,7 @@ int main(int argc, char** argv) {
 		pt->SetClusterAttenuation(pt_attenuation);
 		pt->UseFastThetaU(use_fast_theta_u);
 		pt->SetUseHDRI(use_hdri);
+		pt->SetNumBins(num_bins);
 
 		printf("Waiting for scene to load\n");
 		std::cout << std::flush;
@@ -342,6 +352,7 @@ int main(int argc, char** argv) {
 		printf("- Num Samples       : %zd\n", profile.samples);
 		printf("- Num Num Lights    : %zd\n", profile.num_lights);
 		printf("- Num Primitives    : %zd\n", profile.num_primitives);
+		printf("- Num Bins          : %zd\n", profile.num_bins);
 	}
 
 	app->Destroy();
