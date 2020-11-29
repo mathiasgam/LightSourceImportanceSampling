@@ -62,7 +62,7 @@ namespace LSIS {
 		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_closest, cl::NullRange, cl::NDRange(num_rays), cl::NullRange, nullptr, e));
 	}
 
-	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits, const TypedBuffer<cl_uint>& count) {
+	void BVH::TraceOcclusion(const TypedBuffer<SHARED::Ray>& rays, const TypedBuffer<cl_int>& hits, const TypedBuffer<cl_uint>& count, cl::Event* e) {
 		cl_uint num_rays = static_cast<cl_uint>(rays.Count());
 
 		const cl_uint zero = 0;
@@ -74,7 +74,7 @@ namespace LSIS {
 		CHECK(m_occlusion.setArg(7, count.GetBuffer()));
 
 		// Submit kernel
-		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_occlusion, cl::NullRange, cl::NDRange(num_rays)));
+		CHECK(Compute::GetCommandQueue().enqueueNDRangeKernel(m_occlusion, cl::NullRange, cl::NDRange(num_rays), cl::NullRange, nullptr, e));
 	}
 
 }

@@ -39,6 +39,7 @@ namespace LSIS {
 			cl_ulong time_kernel_prepare = 0;
 			cl_ulong time_kernel_shade = 0;
 			cl_ulong time_kernel_trace = 0;
+			cl_ulong time_kernel_trace_occlusion = 0;
 			cl_ulong time_kernel_process_occlusion = 0;
 			cl_ulong time_kernel_process_results = 0;
 

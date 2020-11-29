@@ -329,9 +329,11 @@ namespace LSIS {
 
 		for (auto bounce = 0; bounce < 4; bounce++) {
 			// Handle bounce
-			cl::Event* e = m_event_queue.GetNextEvent();
-			m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer, e);
-			CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_trace));
+			{
+				cl::Event* e = m_event_queue.GetNextEvent();
+				m_bvh.Trace(m_ray_buffer, m_intersection_buffer, m_geometric_buffer, m_active_count_buffer, e);
+				CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_trace));
+			}
 			//ProcessIntersections();
 
 			// Process bounce and prepare shadow rays
@@ -339,7 +341,9 @@ namespace LSIS {
 
 			if (!use_naive) {
 				// if the shadow ray is not occluded, the lights contribution is added to the result
+				cl::Event* e = m_event_queue.GetNextEvent();
 				m_bvh.TraceOcclusion(m_occlusion_ray_buffer, m_occlusion_buffer, m_active_count_buffer);
+				CHECK(e->setCallback(CL_COMPLETE, accumulate, &m_profile_data.time_kernel_trace_occlusion));
 				ProcessOcclusion();
 			}
 		}

@@ -58,6 +58,7 @@ void save_profile(LSIS::PathTracer::profile_data profile, std::string filepath) 
 		file << "time_render, " << profile.time_render << std::endl;
 		file << "time_kernel_prepare, " << profile.time_kernel_prepare / 1000000.0 << std::endl;
 		file << "time_kernel_trace, " << profile.time_kernel_trace / 1000000.0 << std::endl;
+		file << "time_kernel_trace_occlusion, " << profile.time_kernel_trace_occlusion / 1000000.0 << std::endl;
 		file << "time_kernel_shade, " << profile.time_kernel_shade / 1000000.0 << std::endl;
 		file << "time_kernel_process_occlusion, " << profile.time_kernel_process_occlusion / 1000000.0 << std::endl;
 		file << "time_kernel_process_results, " << profile.time_kernel_process_results / 1000000.0 << std::endl;
@@ -321,6 +322,7 @@ int main(int argc, char** argv) {
 		time_kernel_total += profile.time_kernel_prepare;
 		time_kernel_total += profile.time_kernel_shade;
 		time_kernel_total += profile.time_kernel_trace;
+		time_kernel_total += profile.time_kernel_trace_occlusion;
 		time_kernel_total += profile.time_kernel_process_occlusion;
 		time_kernel_total += profile.time_kernel_process_results;
 		double time_kernel_total_ms = (double)time_kernel_total / 1000000.0;
@@ -331,6 +333,7 @@ int main(int argc, char** argv) {
 		printf("- Render Overhead   : %fms\n", time_kernel_overhead);
 		printf("  - kernel_prep     : %fms\n", (double)profile.time_kernel_prepare / 1000000.0);
 		printf("  - kernel_trace    : %fms\n", (double)profile.time_kernel_trace / 1000000.0);
+		printf("  - kernel_trace_oc : %fms\n", (double)profile.time_kernel_trace_occlusion / 1000000.0);
 		printf("  - kernel_shade    : %fms\n", (double)profile.time_kernel_shade / 1000000.0);
 		printf("  - kernel_p_occ    : %fms\n", (double)profile.time_kernel_process_occlusion / 1000000.0);
 		printf("  - kernel_p_res    : %fms\n", (double)profile.time_kernel_process_results / 1000000.0);
