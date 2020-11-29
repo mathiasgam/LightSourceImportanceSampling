@@ -200,35 +200,49 @@ inline float sqr_length(float3 vec){
 }
 
 inline float bbox_min_sqr_distance(float3 pmin, float3 pmax, float3 p){
-#ifdef MIN_DIST
 	float3 vec;
 	vec.x = max3(pmin.x - p.x, p.x - pmax.x, 0.0f);
 	vec.y = max3(pmin.y - p.y, p.y - pmax.y, 0.0f);
 	vec.z = max3(pmin.z - p.z, p.z - pmax.z, 0.0f);
 	return sqr_length(vec);
-#else
-	const float3 center = (pmax - pmin) * 0.5f;
+}
+
+inline float center_sqr_dist(float3 pmin, float3 pmax, float3 p){
+	const float3 center = (pmax + pmin) * 0.5f;
 	const float3 diff = p - center;
 	return sqr_length(diff);
-#endif
 }
 
 inline float2 calc_attenuation(float3 pmax_left, float3 pmax_right, float3 pmin_left, float3 pmin_right, float3 position){
-	float dist_left = bbox_min_sqr_distance(pmax_left, pmin_left, position);
-	float dist_right = bbox_min_sqr_distance(pmax_right, pmin_right, position);
-
-#ifdef AVOID_SINGULARITY
-	float diagonal_left = sqr_length(pmax_left - pmin_left);
-	float diagonal_right = sqr_length(pmax_right - pmin_right);
-	float alpha = 1.0f;
-	if (dist_left > diagonal_left * alpha && dist_right > diagonal_right * alpha){
-		return (float2)(inverse(dist_left),inverse(dist_right));
-	}else{
-		return (float2)(1.0f);
-	}
+#ifdef MIN_DIST
+	float2 dist = (float2)(bbox_min_sqr_distance(pmax_left, pmin_left, position), bbox_min_sqr_distance(pmax_right, pmin_right, position));
 #else
-	return (float2)(inverse(dist_left),inverse(dist_right));
+	float2 dist = (float2)(center_sqr_dist(pmax_left, pmin_left, position), center_sqr_dist(pmax_right, pmin_right, position));
 #endif
+	
+
+#ifdef ZERO_TEST
+	//const float alpha = 0.1f;
+	const float alpha = 0.5f;
+	if (dist.x == 0.0f)
+		dist += sqr_length(pmax_left - pmin_left) * alpha;
+	if (dist.y == 0.0f)
+		dist += sqr_length(pmax_right - pmin_right) * alpha;
+
+	return 1.0f / (dist);
+#elif defined AVOID_SINGULARITY
+	const float diagonal_left = sqr_length(pmax_left - pmin_left);
+	const float diagonal_right = sqr_length(pmax_right - pmin_right);
+	const float alpha = 1.0f;
+	if (dist.x > diagonal_left * alpha && dist.y > diagonal_right * alpha){
+
+		return 1.0f / dist;
+	}else{
+		return (float2)(1.0f,1.0f);
+	}
+#else // AVOID_SINGULARITY
+	return 1.0f / dist;
+#endif // AVOID_SINGULARITY
 }
 
 inline float importance(LightTreeNode node, float3 position, float3 normal, float3 diffuse) {
@@ -280,10 +294,16 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 		// Store the attenuation of the left node in x and right in y
 		float2 attenuation = calc_attenuation(node_l.pmax.xyz,node_r.pmax.xyz,node_l.pmin.xyz,node_r.pmin.xyz,position);
 
-		const double I_l = importance(node_l, position, normal, diffuse) * attenuation.x;
-		const double I_r = importance(node_r, position, normal, diffuse) * attenuation.y;
+		const float I_l = importance(node_l, position, normal, diffuse) * attenuation.x;
+		const float I_r = importance(node_r, position, normal, diffuse) * attenuation.y;
 
-		const double sum = I_l + I_r;
+		const float sum = I_l + I_r;
+
+		// return null light
+		if (sum == 0.0) {
+			*pdf_out = 1.0f;
+			return -1;
+		}
 
 		const double p_l = sum == 0.0 ? 0.5 : I_l / sum;
 		const double p_r = sum == 0.0 ? 0.5 : I_r / sum;
@@ -304,6 +324,44 @@ inline int pick_light(__global const LightTreeNode* nodes, float3 position, floa
 
 	*pdf_out = pdf;
 	return INDEX(node);
+}
+
+inline float3 sample_light(Light light, float3 position, float3 normal, float2 r, float* pdf, float3* out_dir, float* out_dist) {
+	// Handle direct light
+	float3 light_pos = light.position.xyz;
+	const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+
+	if (light.position.w == 1.0f) { // if light is triangle, then sample the position
+		light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r.x, r.y);
+		// PDF has precalculated 1.0/area for triangle lights
+#ifdef USE_LIGHTTREE
+		*pdf *= inverse(area);
+#endif
+	}
+
+	const float3 diff = light_pos - position;
+	const float dist = length(diff);
+	const float dist_inv = inverse(dist);
+	const float3 dir = diff * dist_inv;
+
+	const float cos_theta = max(dot(normal, dir), 0.0f);
+	const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
+
+	// calculate the lights contribution
+	const float3 intensity = light.intensity.xyz;
+	const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
+	//const float FTR = 1.0f;
+
+#ifdef SOLID_ANGLE
+	const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+#else
+	const float Omega = cos_theta_light * area * inv_sqr(dist);
+#endif
+	const float3 L_i = intensity * cos_theta * Omega * ceil(cos_theta_light) * inverse(area); // WHY !?!?
+
+	*out_dir = dir;
+	*out_dist = dist;
+	return L_i;
 }
 
 __kernel void ProcessBounce(
@@ -377,6 +435,8 @@ __kernel void ProcessBounce(
 
 				const float3 position = geometric.position.xyz;
 				const float3 normal = geometric.normal.xyz;
+				// lift shading point to avoid hitting the geometry again
+				const float3 lift = normal * 10e-6f;
 
 #ifndef USE_NAIVE
 #ifdef USE_LIGHTTREE
@@ -385,57 +445,30 @@ __kernel void ProcessBounce(
 				//float pdf = inverse(num_lights);
 				double r = random_double(&rng);
 				float pdf;
-				uint i = pick_light(light_tree_nodes, position, normal, throughput, r, &pdf);
+				int i = pick_light(light_tree_nodes, position, normal, throughput, r, &pdf);
 #else
 				float r = rand(&rng);
 				float pdf;
-				uint i = select_light(light_power_cdf, num_lights, r, &pdf);
+				int i = select_light(light_power_cdf, num_lights, r, &pdf);
 #endif
+				// Check if light was found
+				if (i != -1) {
+					const Light light = lights[i];
 
-				// Handle direct light
-				Light light = lights[i];
-				float3 light_pos = light.position.xyz;
-				const float area = length(cross(light.tangent.xyz, light.bitangent.xyz)) * 0.5f;
+					float3 dir;
+					float dist;
+					const float3 L_i = sample_light(light, position, normal, random_float2(&rng), &pdf, &dir, &dist);
 
-				if (light.position.w == 1.0f) { // if light is triangle, then sample the position
-					const float r1 = rand(&rng);
-					const float r2 = rand(&rng);
-					light_pos += sample_triangle(light.tangent.xyz, light.bitangent.xyz, r1, r2);
-					// PDF has precalculated 1.0/area for triangle lights
-#ifdef USE_LIGHTTREE
-					pdf *= inverse(area);
-#endif
+					shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
+					const float3 L = throughput * L_i * inverse(pdf);
+					light_contribution[id] = L;
 				}
-
-				const float3 diff = light_pos - position;
-				const float dist = length(diff);
-				const float dist_inv = inverse(dist);
-				const float3 dir = diff * dist_inv;
-
-				const float cos_theta = max(dot(geometric.normal.xyz, dir), 0.0f);
-				const float cos_theta_light = max(-dot(light.direction.xyz, dir), 0.0f);
-
-				// calculate the lights contribution
-				const float3 intensity = light.intensity.xyz;
-				const float FTR = inverse(area); // lamberts Five Times Rule. only works if applied all the time...
-				//const float FTR = 1.0f;
-
-#ifdef SOLID_ANGLE
-				const float Omega = triangle_solid_angle(position, light.position.xyz, light.position.xyz + light.tangent.xyz, light.position.xyz + light.bitangent.xyz);
+				else {
+					shadow_rays[id] = CreateRay((float3)(0.0f), (float3)(0.0f), 0.0f, 0.0f);
+					light_contribution[id] = (float3)(0.0f,0.0f,0.0f);
+				}
 #else
-				const float Omega = cos_theta_light * area * inv_sqr(dist);
-#endif
-				const float3 L_i = intensity * cos_theta * Omega * ceil(cos_theta_light) * inverse(area); // WHY !?!?
-
-				// lift shading point to avoid hitting the geometry again
-				const float3 lift = geometric.normal.xyz * 10e-6f;
-
-
-				shadow_rays[id] = CreateRay(geometric.position.xyz + lift, dir, 0.0f, dist - 10e-5f);
-				const float3 L = throughput * L_i * inverse(pdf) * 1.0f;
-				light_contribution[id] = L;
-#else
-				const float3 lift = geometric.normal.xyz * 10e-6f;
+				
 #endif // !USE_NAIVE
 
 #ifdef RUSSIAN_ROULETTE
