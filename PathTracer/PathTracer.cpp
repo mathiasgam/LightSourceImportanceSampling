@@ -130,6 +130,8 @@ namespace LSIS {
 				options.push_back("-D USE_ORIENTATION");
 			if (use_fast_theta_u)
 				options.push_back("-D FAST_THETA_U");
+			if (use_zero_dist)
+				options.push_back("-D ZERO_TEST");
 
 		}
 		m_program_shade = Compute::CreateProgram(Compute::GetContext(), Compute::GetDevice(), "Kernels/shade.cl", options);
@@ -389,17 +391,26 @@ namespace LSIS {
 		if (atten == ClusterAttenuation::Center) {
 			use_min_distance = false;
 			use_conditional_attenuation = false;
+			use_zero_dist = false;
 			m_profile_data.attenuation = "center";
 		}
 		else if (atten == ClusterAttenuation::Conditional) {
 			use_min_distance = false;
 			use_conditional_attenuation = true;
+			use_zero_dist = false;
 			m_profile_data.attenuation = "conditional";
 		}
 		else if (atten == ClusterAttenuation::ConditionalMinDist) {
 			use_min_distance = true;
 			use_conditional_attenuation = true;
+			use_zero_dist = false;
 			m_profile_data.attenuation = "mindist";
+		}
+		else if (atten == ClusterAttenuation::ZeroTest) {
+			use_min_distance = true;
+			use_conditional_attenuation = false;
+			use_zero_dist = true;
+			m_profile_data.attenuation = "zerotest";
 		}
 	}
 

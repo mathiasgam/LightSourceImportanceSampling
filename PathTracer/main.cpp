@@ -20,7 +20,8 @@
 
 #include <iostream>
 #include <fstream>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 
 #include "IO/Image.h"
 
@@ -99,7 +100,7 @@ int main(int argc, char** argv) {
 
 	std::vector<std::string> arg_list(argv, argc + argv);
 	
-	srand(time(NULL));
+	srand((unsigned)time(NULL));
 
 	//#ifdef DEBUG
 	setenv("CUDA_CACHE_DISABLE", "1", 1);
@@ -121,14 +122,14 @@ int main(int argc, char** argv) {
 
 	bool interactive = false;
 	auto pt_method = LSIS::PathTracer::Method::lighttree;
-	auto pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ConditionalMinDist;
+	auto pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ZeroTest;
 	bool use_fast_theta_u = false;
 	bool use_hdri = false;
 
 	std::string output_folder = "../Test/";
 	std::string output_name = "Test";
 
-	size_t sample_target = 100;
+	size_t sample_target = 10;
 	auto scene = app->GetScene();
 	float fov = 60.0f;
 
@@ -178,6 +179,9 @@ int main(int argc, char** argv) {
 			}
 			else if (atten == "mindist") {
 				pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ConditionalMinDist;
+			}
+			else if (atten == "zerotest") {
+				pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ZeroTest;
 			}
 			else {
 				printf("unknown cluster attenuation method\n");

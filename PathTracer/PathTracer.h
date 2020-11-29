@@ -61,7 +61,8 @@ namespace LSIS {
 		enum ClusterAttenuation {
 			Center,
 			Conditional,
-			ConditionalMinDist
+			ConditionalMinDist,
+			ZeroTest
 		};
 
 		PathTracer(uint32_t width, uint32_t height);
@@ -156,6 +157,7 @@ namespace LSIS {
 		bool use_min_distance = true;
 		bool use_orientation = false;
 		bool use_fast_theta_u = true;
+		bool use_zero_dist = false;
 
 		EventQueue m_event_queue = EventQueue(100);
 
