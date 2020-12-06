@@ -5,6 +5,7 @@
 #include <future>
 #include <queue>
 #include <set>
+#include <list>
 
 #include "Core.h"
 
@@ -42,6 +43,7 @@ namespace LSIS {
 		Entity CreateEntity();
 
 		void LoadObject(const std::string& filepath, std::shared_ptr<Material> material, Transform transform);
+		void Wait();
 
 		void SetCamera(std::shared_ptr<Camera> camera);
 		std::shared_ptr<Camera> GetCamera() const;
@@ -77,7 +79,7 @@ namespace LSIS {
 
 		std::shared_ptr<Camera> m_camera;
 
-		std::vector<std::future<void>> m_Futures{};
+		std::list<std::future<void>> m_Futures{};
 
 		std::mutex m_upload_mutex;
 		std::queue<ObjectUpload> m_uploads{};

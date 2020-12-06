@@ -259,7 +259,6 @@ namespace LSIS {
 		RenderCommand::SetViewPort(0, 0, window_size.x, window_size.y);
 
 		CenterWindow();
-		glfwShowWindow(m_native_window);
 
 		glfwSetErrorCallback([](int code, const char* err) {
 			std::cout << "Code: " << code << ": " << err << std::endl;

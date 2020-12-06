@@ -9,8 +9,6 @@ namespace LSIS {
 
 	class LightTree {
 
-#define K 128
-
 		using LightTreeNode = SHARED::LightTreeNode;
 		using float3 = glm::vec3;
 		using uint = uint32_t;
@@ -46,7 +44,6 @@ namespace LSIS {
 			int index;
 			int left;
 			int right;
-			bbox center_bound;
 		} queue_data;
 
 		typedef struct bin {
@@ -58,7 +55,9 @@ namespace LSIS {
 		};
 
 		typedef struct bin_data {
-			bin data[K];
+			bin* data;
+			bin_data(const size_t k) { data = new bin[k]; }
+			~bin_data() { delete[] data; }
 		} bin_data;
 
 		typedef struct split {
@@ -66,12 +65,15 @@ namespace LSIS {
 			bin bin_r;
 		} split;
 
+
 		typedef struct split_data {
-			split data[K - 1];
+			split* data;
+			inline split_data(const size_t k) { data = new split[k - 1]; }
+			inline ~split_data() { delete[] data; }
 		} split_data;
 
 	public:
-		LightTree(const SHARED::Light* lights, const size_t num_lights);
+		LightTree(const SHARED::Light* lights, const size_t num_lights, size_t k = 128);
 		~LightTree();
 
 		TypedBuffer<SHARED::LightTreeNode> GetNodeBuffer();
@@ -117,6 +119,7 @@ namespace LSIS {
 		inline float3 convert(glm::vec3 vec) { return { vec.x, vec.y, vec.z }; }
 
 	private:
+		const size_t m_K;
 		SHARED::LightTreeNode* m_nodes = nullptr;
 		size_t m_num_nodes = 0;
 	};
