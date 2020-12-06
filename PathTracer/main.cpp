@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 	auto m1 = std::make_shared<LSIS::Material>(flat, glm::vec4(199 / 256.0f, 151 / 256.0f, 40 / 256.0f, 1.0f));
 
 
-	bool interactive = false;
+	bool interactive = true;
 	auto pt_method = LSIS::PathTracer::Method::lighttree;
 	auto pt_attenuation = LSIS::PathTracer::ClusterAttenuation::ZeroTest;
 	bool use_fast_theta_u = false;
