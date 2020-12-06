@@ -321,7 +321,7 @@ namespace LSIS {
 		// Don't do anything if not ready
 		if (!ready)
 			return;
-
+		//test
 		//PROFILE_SCOPE("PathTracer");
 		Prepare();
 
